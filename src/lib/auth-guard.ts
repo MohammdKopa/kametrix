@@ -38,6 +38,39 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
 }
 
 /**
+ * Get the current authenticated user in a server component
+ * @returns AuthUser or null if not authenticated
+ */
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = getSessionFromCookies(cookieStore);
+
+    if (!token) {
+      return null;
+    }
+
+    const sessionData = await validateSession(token);
+    if (!sessionData) {
+      return null;
+    }
+
+    const { user } = sessionData;
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      creditBalance: user.creditBalance,
+    };
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+}
+
+/**
  * Require authentication for a request
  * @param request - Next request
  * @returns AuthUser
