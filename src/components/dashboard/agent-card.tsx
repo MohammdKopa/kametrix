@@ -3,10 +3,26 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Copy, Check } from 'lucide-react';
 import type { Agent, PhoneNumber } from '@/generated/prisma/client';
 
 interface AgentCardProps {
   agent: Agent & { phoneNumber: PhoneNumber | null };
+}
+
+/**
+ * Format E.164 phone number to (XXX) XXX-XXXX
+ */
+function formatPhoneNumber(number: string): string {
+  // Remove + prefix for US numbers
+  const cleaned = number.replace(/^\+1/, '');
+
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+
+  // Return as-is if not a US number
+  return number;
 }
 
 export function AgentCard({ agent }: AgentCardProps) {
@@ -14,6 +30,7 @@ export function AgentCard({ agent }: AgentCardProps) {
   const [isToggling, setIsToggling] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleToggle = async () => {
     setIsToggling(true);
@@ -58,6 +75,18 @@ export function AgentCard({ agent }: AgentCardProps) {
     }
   };
 
+  const handleCopyPhone = async () => {
+    if (!agent.phoneNumber?.number) return;
+
+    try {
+      await navigator.clipboard.writeText(agent.phoneNumber.number);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy phone number:', error);
+    }
+  };
+
   return (
     <>
       <div className="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
@@ -67,9 +96,26 @@ export function AgentCard({ agent }: AgentCardProps) {
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
               {agent.name}
             </h3>
-            <p className="text-sm text-gray-500">
-              {agent.phoneNumber?.number || 'No phone assigned'}
-            </p>
+            {agent.phoneNumber ? (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-base font-medium text-blue-600">
+                  {formatPhoneNumber(agent.phoneNumber.number)}
+                </span>
+                <button
+                  onClick={handleCopyPhone}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title="Copy phone number"
+                >
+                  {isCopied ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-gray-500" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 mt-1">No phone assigned</p>
+            )}
           </div>
 
           {/* Status Badge */}

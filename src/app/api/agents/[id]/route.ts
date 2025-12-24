@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
+import { unassignPhoneNumber } from '@/lib/vapi/phone-numbers';
+import { deleteAssistant } from '@/lib/vapi';
 
 /**
  * GET /api/agents/[id] - Get a single agent
@@ -156,6 +158,9 @@ export async function DELETE(
         id,
         userId: user.id,
       },
+      include: {
+        phoneNumber: true,
+      },
     });
 
     if (!existingAgent) {
@@ -163,6 +168,35 @@ export async function DELETE(
         { error: 'Agent not found' },
         { status: 404 }
       );
+    }
+
+    // If agent has a phone number, unassign it from Vapi
+    if (existingAgent.phoneNumber && existingAgent.phoneNumber.vapiPhoneId) {
+      try {
+        await unassignPhoneNumber(existingAgent.phoneNumber.vapiPhoneId);
+
+        // Update phone number in DB to make it available again
+        await prisma.phoneNumber.update({
+          where: { id: existingAgent.phoneNumber.id },
+          data: {
+            agentId: null,
+            status: 'AVAILABLE',
+          },
+        });
+      } catch (phoneError) {
+        console.error('Failed to unassign phone number:', phoneError);
+        // Continue with deletion even if phone unassignment fails
+      }
+    }
+
+    // Delete Vapi assistant if it exists
+    if (existingAgent.vapiAssistantId) {
+      try {
+        await deleteAssistant(existingAgent.vapiAssistantId);
+      } catch (vapiError) {
+        console.error('Failed to delete Vapi assistant:', vapiError);
+        // Continue with deletion even if Vapi deletion fails
+      }
     }
 
     // Delete agent (cascade will handle related records)

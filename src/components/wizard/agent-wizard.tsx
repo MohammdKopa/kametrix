@@ -131,7 +131,15 @@ export function AgentWizard() {
         throw new Error(data.error || 'Failed to create agent');
       }
 
-      const { agent } = await response.json();
+      const { agent, warning } = await response.json();
+
+      // Show success message with phone number or warning
+      if (warning) {
+        alert(`Agent created successfully!\n\n${warning}`);
+      } else if (agent.phoneNumber?.number) {
+        alert(`Agent created successfully!\n\nYour agent is ready to receive calls at:\n${agent.phoneNumber.number}`);
+      }
+
       router.push('/dashboard/agents');
       router.refresh();
     } catch (err) {
