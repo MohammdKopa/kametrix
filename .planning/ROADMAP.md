@@ -17,7 +17,7 @@ None
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project setup, database schema, authentication system
-- [ ] **Phase 2: Core Dashboard** - User and admin dashboards, basic UI structure
+- [x] **Phase 2: Core Dashboard** - User and admin dashboards, basic UI structure
 - [ ] **Phase 3: Vapi Integration** - Voice agent creation, phone number provisioning, call handling
 - [ ] **Phase 4: Google Integrations** - Calendar booking, Sheets logging, OAuth flow
 - [ ] **Phase 5: Payments & Credits** - Stripe integration, credit packs, usage tracking, grace period
@@ -46,7 +46,7 @@ Plans:
 - [x] 02-01: User dashboard layout and navigation
 - [x] 02-02: Agent management UI (list, create stub, edit, delete)
 - [x] 02-03: Call history and credit balance views
-- [ ] 02-04: Admin dashboard with user, agent, and phone number management
+- [x] 02-04: Admin dashboard with user, agent, and phone number management
 
 ### Phase 3: Vapi Integration
 **Goal**: Create and configure voice agents via Vapi, provision phone numbers, handle incoming calls
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2025-12-24 |
-| 2. Core Dashboard | 3/4 | In progress | - |
+| 2. Core Dashboard | 4/4 | Complete | 2025-12-24 |
 | 3. Vapi Integration | 0/4 | Not started | - |
 | 4. Google Integrations | 0/3 | Not started | - |
 | 5. Payments & Credits | 0/4 | Not started | - |
