@@ -11,5 +11,141 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CallStatus {
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  NO_ANSWER
+}
+
+enum TransactionType {
+  PURCHASE
+  CALL_USAGE
+  ADMIN_ADJUSTMENT
+  GRACE_USAGE
+}
+
+enum PhoneStatus {
+  AVAILABLE
+  ASSIGNED
+  RELEASED
+}
+
+// Models
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique @db.VarChar(255)
+  passwordHash      String
+  name              String?
+  role              Role                @default(USER)
+  creditBalance     Int                 @default(0) // current credit balance in cents
+  graceCreditsUsed  Int                 @default(0) // credits used during grace period
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  agents            Agent[]
+  calls             Call[]
+  creditTransactions CreditTransaction[]
+  sessions          Session[]
+}
+
+model Agent {
+  id                  String      @id @default(cuid())
+  userId              String
+  name                String
+  vapiAssistantId     String?     @unique // Vapi's assistant ID (null until created in Vapi)
+  greeting            String
+  systemPrompt        String      @db.Text
+  voiceId             String
+  businessName        String
+  businessDescription String?     @db.Text
+  isActive            Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calls               Call[]
+  phoneNumber         PhoneNumber?
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Call {
+  id              String      @id @default(cuid())
+  agentId         String
+  userId          String      // denormalized for easier queries
+  vapiCallId      String?     @unique // Vapi's call ID
+  phoneNumber     String
+  status          CallStatus
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationSeconds Int?
+  creditsUsed     Int         @default(0)
+  summary         String?     @db.Text // AI-generated call summary
+  transcript      String?     @db.Text // full transcript
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  agent           Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreditPack {
+  id            String   @id @default(cuid())
+  name          String
+  credits       Int      // amount of credits
+  priceInCents  Int      // price in cents
+  stripePriceId String?  @unique // Stripe price ID
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CreditTransaction {
+  id              String          @id @default(cuid())
+  userId          String
+  type            TransactionType
+  amount          Int             // positive for purchases, negative for usage
+  balanceAfter    Int             // balance after this transaction
+  description     String?
+  callId          String?         // if deducted for a call
+  stripePaymentId String?         // if from Stripe payment
+  createdAt       DateTime        @default(now())
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PhoneNumber {
+  id          String      @id @default(cuid())
+  number      String      @unique // E.164 format
+  agentId     String?     @unique // one phone per agent
+  twilioSid   String?     @unique // Twilio phone number SID
+  vapiPhoneId String?     @unique // Vapi phone number ID
+  status      PhoneStatus
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  agent       Agent?      @relation(fields: [agentId], references: [id], onDelete: SetNull)
 }
