@@ -1,3 +1,5 @@
+'use client';
+
 interface CreditBalanceProps {
   balance: number;
   graceCreditsUsed: number;
