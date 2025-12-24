@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
 
     // Process each Vapi phone number
     for (const vapiPhone of vapiPhones) {
+      // If Vapi phone is assigned to an assistant, find our local agent
+      let agentId: string | null = null;
+      if (vapiPhone.assistantId) {
+        const agent = await prisma.agent.findFirst({
+          where: { vapiAssistantId: vapiPhone.assistantId },
+        });
+        agentId = agent?.id || null;
+      }
+
       // Check if phone number exists in our DB by vapiPhoneId
       const existingPhone = await prisma.phoneNumber.findUnique({
         where: { vapiPhoneId: vapiPhone.id },
@@ -29,19 +38,20 @@ export async function POST(request: NextRequest) {
 
       if (existingPhone) {
         // Update existing phone number
-        const shouldBeAssigned = !!vapiPhone.assistantId;
-        const currentlyAssigned = existingPhone.status === 'ASSIGNED';
+        const shouldBeAssigned = !!vapiPhone.assistantId && !!agentId;
 
         // Only update if there's a change
         if (
           existingPhone.number !== vapiPhone.number ||
-          shouldBeAssigned !== currentlyAssigned
+          existingPhone.agentId !== agentId ||
+          (shouldBeAssigned && existingPhone.status !== 'ASSIGNED') ||
+          (!shouldBeAssigned && existingPhone.status === 'ASSIGNED')
         ) {
           await prisma.phoneNumber.update({
             where: { id: existingPhone.id },
             data: {
               number: vapiPhone.number,
-              // Keep existing status unless assignment state changed in Vapi
+              agentId: agentId,
               status: shouldBeAssigned ? 'ASSIGNED' : 'AVAILABLE',
             },
           });
@@ -53,13 +63,16 @@ export async function POST(request: NextRequest) {
           where: { number: vapiPhone.number },
         });
 
+        const shouldBeAssigned = !!vapiPhone.assistantId && !!agentId;
+
         if (existingByNumber) {
           // Number exists but doesn't have vapiPhoneId - update it
           await prisma.phoneNumber.update({
             where: { id: existingByNumber.id },
             data: {
               vapiPhoneId: vapiPhone.id,
-              status: vapiPhone.assistantId ? 'ASSIGNED' : 'AVAILABLE',
+              agentId: agentId,
+              status: shouldBeAssigned ? 'ASSIGNED' : 'AVAILABLE',
             },
           });
           updated++;
@@ -69,7 +82,8 @@ export async function POST(request: NextRequest) {
             data: {
               number: vapiPhone.number,
               vapiPhoneId: vapiPhone.id,
-              status: vapiPhone.assistantId ? 'ASSIGNED' : 'AVAILABLE',
+              agentId: agentId,
+              status: shouldBeAssigned ? 'ASSIGNED' : 'AVAILABLE',
             },
           });
           added++;

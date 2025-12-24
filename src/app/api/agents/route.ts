@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import { createBusinessAssistant, deleteAssistant } from '@/lib/vapi';
-import { assignAssistantToPhoneNumber, unassignPhoneNumber } from '@/lib/vapi/phone-numbers';
 import type { WizardState } from '@/types/wizard';
 
 /**
@@ -127,56 +126,18 @@ export async function POST(request: NextRequest) {
             vapiAssistantId,
             isActive: true,
           },
+          include: {
+            phoneNumber: true,
+          },
         });
 
-        // Try to assign an available phone number
-        let phoneNumber = null;
-        let phoneWarning = null;
-
-        try {
-          // Find an available phone number
-          const availablePhone = await prisma.phoneNumber.findFirst({
-            where: {
-              status: 'AVAILABLE',
-              agentId: null,
-            },
-            orderBy: {
-              createdAt: 'asc', // Assign oldest available number first
-            },
-          });
-
-          if (availablePhone && vapiAssistantId) {
-            try {
-              // Assign phone to assistant in Vapi
-              await assignAssistantToPhoneNumber(availablePhone.vapiPhoneId!, vapiAssistantId);
-
-              // Update our DB to reflect assignment
-              phoneNumber = await prisma.phoneNumber.update({
-                where: { id: availablePhone.id },
-                data: {
-                  agentId: agent.id,
-                  status: 'ASSIGNED',
-                },
-              });
-            } catch (vapiAssignError) {
-              console.error('Failed to assign phone in Vapi:', vapiAssignError);
-              phoneWarning = 'Phone assignment to Vapi failed. Please contact admin.';
-            }
-          } else if (!availablePhone) {
-            phoneWarning = 'No phone numbers available. Agent created but cannot receive calls yet.';
-          }
-        } catch (phoneError) {
-          console.error('Error during phone assignment:', phoneError);
-          phoneWarning = 'Phone assignment failed. Please contact admin.';
-        }
+        // Phone numbers are assigned manually by admin via Vapi dashboard
+        // After admin assigns phone to assistant in Vapi, they run sync to update our DB
 
         return NextResponse.json(
           {
-            agent: {
-              ...agent,
-              phoneNumber,
-            },
-            warning: phoneWarning,
+            agent,
+            message: 'Agent created successfully. Admin will assign a phone number.',
           },
           { status: 201 }
         );
