@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01: Next.js project setup with TypeScript, Tailwind, PostgreSQL connection
-- [ ] 01-02: Database schema (users, agents, calls, credits, phone numbers)
+- [x] 01-02: Database schema (users, agents, calls, credits, phone numbers)
 - [ ] 01-03: Email/password authentication with session management
 
 ### Phase 2: Core Dashboard
@@ -105,7 +105,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/3 | In progress | - |
+| 1. Foundation | 2/3 | In progress | - |
 | 2. Core Dashboard | 0/4 | Not started | - |
 | 3. Vapi Integration | 0/4 | Not started | - |
 | 4. Google Integrations | 0/3 | Not started | - |
