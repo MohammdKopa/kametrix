@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth-guard';
 import { redirect } from 'next/navigation';
-import { AgentForm } from '@/components/dashboard/agent-form';
+import { AgentWizard } from '@/components/wizard/agent-wizard';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,17 +12,16 @@ export default async function NewAgentPage() {
   }
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Create Agent</h1>
-        <p className="text-gray-500 mt-1">
-          Set up a new voice AI agent for your business
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Create Your AI Agent</h1>
+        <p className="text-gray-600 mt-2">
+          Follow the steps below to create a fully-configured voice AI agent for your business.
+          We'll guide you through setting up business information, knowledge base, voice selection, and more.
         </p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <AgentForm mode="create" />
-      </div>
+      <AgentWizard />
     </div>
   );
 }
