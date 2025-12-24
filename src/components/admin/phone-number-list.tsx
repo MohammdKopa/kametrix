@@ -30,6 +30,8 @@ export function PhoneNumberList() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newNumber, setNewNumber] = useState('');
   const [adding, setAdding] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ added: number; updated: number; released: number } | null>(null);
   const limit = 20;
 
   const fetchPhoneNumbers = useCallback(async () => {
@@ -136,6 +138,32 @@ export function PhoneNumberList() {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const response = await fetch('/api/admin/phone-numbers/sync', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'Failed to sync phone numbers from Vapi');
+        return;
+      }
+
+      const data = await response.json();
+      setSyncResult(data.summary);
+      fetchPhoneNumbers();
+    } catch (error) {
+      console.error('Error syncing phone numbers:', error);
+      alert('Failed to sync phone numbers from Vapi');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'AVAILABLE':
@@ -153,6 +181,15 @@ export function PhoneNumberList() {
 
   return (
     <div>
+      {/* Sync Result Banner */}
+      {syncResult && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-800">
+            Sync complete: {syncResult.added} added, {syncResult.updated} updated, {syncResult.released} released
+          </p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="mb-6 flex items-center justify-between">
         <select
@@ -169,12 +206,21 @@ export function PhoneNumberList() {
           <option value="RELEASED">Released</option>
         </select>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          Add Phone Number
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {syncing ? 'Syncing...' : 'Sync from Vapi'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Add Phone Number
+          </button>
+        </div>
       </div>
 
       {/* Add Modal */}
