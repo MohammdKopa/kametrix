@@ -56,7 +56,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: Vapi SDK integration and API setup
+- [x] 03-01: Vapi SDK integration and API setup
 - [ ] 03-02: Agent creation flow (templates + custom builder)
 - [ ] 03-03: Phone number provisioning and assignment
 - [ ] 03-04: Call webhook handling and call logging
@@ -107,7 +107,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2025-12-24 |
 | 2. Core Dashboard | 4/4 | Complete | 2025-12-24 |
-| 3. Vapi Integration | 0/4 | Not started | - |
+| 3. Vapi Integration | 1/4 | In progress | - |
 | 4. Google Integrations | 0/3 | Not started | - |
 | 5. Payments & Credits | 0/4 | Not started | - |
 | 6. Polish & Launch | 0/4 | Not started | - |
