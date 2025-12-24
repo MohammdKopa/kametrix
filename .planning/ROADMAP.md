@@ -44,7 +44,7 @@ Plans:
 
 Plans:
 - [x] 02-01: User dashboard layout and navigation
-- [ ] 02-02: Agent management UI (list, create stub, edit, delete)
+- [x] 02-02: Agent management UI (list, create stub, edit, delete)
 - [ ] 02-03: Call history and credit balance views
 - [ ] 02-04: Admin dashboard with user, agent, and phone number management
 
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2025-12-24 |
-| 2. Core Dashboard | 1/4 | In progress | - |
+| 2. Core Dashboard | 2/4 | In progress | - |
 | 3. Vapi Integration | 0/4 | Not started | - |
 | 4. Google Integrations | 0/3 | Not started | - |
 | 5. Payments & Credits | 0/4 | Not started | - |
