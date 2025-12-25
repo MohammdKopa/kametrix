@@ -229,3 +229,79 @@ export async function deleteAssistant(assistantId: string): Promise<void> {
   const client = getVapiClient();
   await client.assistants.delete({ id: assistantId });
 }
+
+/**
+ * Refresh an assistant's system prompt with current date
+ * Call this to update the date for agents created days/weeks ago
+ */
+export async function refreshAssistantDate(
+  assistantId: string,
+  config: CreateAssistantConfig
+): Promise<VapiAssistantResponse> {
+  const client = getVapiClient();
+  const hasCalendarTools = config.hasGoogleCalendar ?? false;
+
+  const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  // Rebuild tools with current server URL
+  const tools = hasCalendarTools ? [
+    {
+      type: 'function',
+      async: false,
+      server: { url: `${serverUrl}/api/webhooks/vapi` },
+      function: {
+        name: 'check_availability',
+        description: 'Check calendar availability for a specific date.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+            timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+          },
+          required: ['date'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      async: false,
+      server: { url: `${serverUrl}/api/webhooks/vapi` },
+      function: {
+        name: 'book_appointment',
+        description: 'Book an appointment on the calendar.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+            time: { type: 'string', description: 'Time in HH:MM AM/PM or 24-hour format' },
+            callerName: { type: 'string', description: "Caller's full name (required)" },
+            callerPhone: { type: 'string', description: "Caller's phone number (optional)" },
+            callerEmail: { type: 'string', description: "Caller's email (optional)" },
+            summary: { type: 'string', description: 'Brief description (optional)' },
+            timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+          },
+          required: ['date', 'time', 'callerName'],
+        },
+      },
+    },
+  ] : undefined;
+
+  const assistant = await client.assistants.update({
+    id: assistantId,
+    model: {
+      provider: 'openai',
+      model: 'gpt-4o',
+      messages: [{ role: 'system', content: buildSystemPrompt(config, hasCalendarTools) }],
+      ...(tools && { tools }),
+    },
+  });
+
+  console.log(`Refreshed assistant ${assistantId} with current date`);
+
+  return {
+    id: assistant.id,
+    name: assistant.name ?? '',
+    createdAt: assistant.createdAt ?? new Date().toISOString(),
+    updatedAt: assistant.updatedAt ?? new Date().toISOString(),
+  };
+}

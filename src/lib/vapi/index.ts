@@ -6,6 +6,7 @@ export {
   createBusinessAssistant,
   updateAssistant,
   deleteAssistant,
+  refreshAssistantDate,
 } from './assistants';
 
 // Phone number operations
