@@ -21,18 +21,18 @@
 ## Current Position
 
 Phase: 4 of 6 (Google Integrations)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2025-12-25 - Completed 04-01-PLAN.md
+Last activity: 2025-12-25 - Completed 04-02-PLAN.md (Calendar integration)
 
-Progress: █████████████░░░ 71%
+Progress: ██████████████░░ 78%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 12 min
-- Total execution time: 2.2 hours
+- Total plans completed: 13
+- Average duration: 15 min
+- Total execution time: 3.4 hours
 
 **By Phase:**
 
@@ -41,11 +41,11 @@ Progress: █████████████░░░ 71%
 | 1 | 3 | 23 min | 8 min |
 | 2 | 4 | 44 min | 11 min |
 | 3 | 4 | 63 min | 16 min |
-| 4 | 1 | 8 min | 8 min |
+| 4 | 2 | 78 min | 39 min |
 
 **Recent Trend:**
-- Last 5 plans: 7 min, 26 min, 18 min, 12 min, 8 min
-- Trend: Stable at ~14 min average
+- Last 5 plans: 26 min, 18 min, 12 min, 8 min, 70 min
+- Trend: 04-02 extended due to VPS deployment + debugging
 
 *Updated after each plan completion*
 
@@ -79,6 +79,11 @@ Progress: █████████████░░░ 71%
 | 4 | AES-256-GCM for token encryption | Industry standard, includes authentication tag |
 | 4 | Force consent on every OAuth | Guarantees refresh token is returned |
 | 4 | Token refresh event listener | Auto-update stored tokens if Google issues new ones |
+| 4 | Default timezone Europe/Berlin | User's location |
+| 4 | 30-min appointment slots | Standard duration for quick appointments |
+| 4 | Local datetime format (no Z) | Google Calendar interprets with timeZone param |
+| 4 | Direct function calls in webhook | Avoids Docker networking issues with HTTP fetch |
+| 4 | Date header prepended to systemPrompt | GPT-4o needs current date for correct year |
 
 ### Deferred Issues
 
@@ -98,5 +103,6 @@ Drift notes: None
 ## Session Continuity
 
 Last session: 2025-12-25
-Stopped at: Completed 04-01-PLAN.md (Google OAuth flow)
+Stopped at: Completed 04-02-PLAN.md (Calendar integration with Vapi)
 Resume file: None
+Next: 04-03-PLAN.md (Google Sheets integration for call logging)
