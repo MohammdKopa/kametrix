@@ -9,12 +9,18 @@ function buildSystemPrompt(config: CreateAssistantConfig, hasCalendarTools: bool
     ? `## Frequently Asked Questions\n${config.faqs.map(faq => `Q: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
     : '';
 
+  // Include current date so the AI knows what year/month it is
+  const today = new Date();
+  const currentDateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
   const calendarSection = hasCalendarTools
     ? `\n\n## Calendar Capabilities
+- Today's date is ${currentDateStr}. ALWAYS use the current year (${today.getFullYear()}) when booking appointments.
 - You can check calendar availability using the check_availability tool
 - You can book appointments using the book_appointment tool
 - When booking, collect: date, time, caller name (required), phone number (optional), email (optional)
-- Always confirm the details before booking`
+- Always confirm the details before booking
+- When the caller says "tomorrow" or "next week", calculate the correct date based on today (${currentDateStr})`
     : '';
 
   return `You are an AI assistant for ${config.businessName}.
