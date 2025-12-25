@@ -1,5 +1,6 @@
 import type { Call, Agent } from '@/generated/prisma/client';
 import { CallStatus } from '@/generated/prisma/client';
+import Link from 'next/link';
 
 interface CallRowProps {
   call: Call & { agent: Agent };
@@ -22,7 +23,10 @@ export function CallRow({ call }: CallRowProps) {
     if (!seconds) return '-';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    if (mins === 0) {
+      return `${secs}s`;
+    }
+    return `${mins}m ${secs}s`;
   };
 
   // Get status badge styling
@@ -42,34 +46,53 @@ export function CallRow({ call }: CallRowProps) {
     return `$${(cents / 100).toFixed(2)}`;
   };
 
+  // Truncate transcript for preview
+  const truncateTranscript = (text: string | null, maxLength: number = 100) => {
+    if (!text) return '-';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">{formattedDate}</div>
-        <div className="text-sm text-gray-500">{formattedTime}</div>
+        <Link href={`/dashboard/calls/${call.id}`} className="block">
+          <div className="text-sm text-gray-900">{formattedDate}</div>
+          <div className="text-sm text-gray-500">{formattedTime}</div>
+        </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm font-medium text-gray-900">{call.agent.name}</div>
+        <Link href={`/dashboard/calls/${call.id}`} className="block">
+          <div className="text-sm font-medium text-gray-900">{call.agent.name}</div>
+        </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">{call.phoneNumber}</div>
+        <Link href={`/dashboard/calls/${call.id}`} className="block">
+          <div className="text-sm text-gray-900">{call.phoneNumber}</div>
+        </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">
-          {formatDuration(call.durationSeconds)}
-        </div>
+        <Link href={`/dashboard/calls/${call.id}`} className="block">
+          <div className="text-sm text-gray-900">
+            {formatDuration(call.durationSeconds)}
+          </div>
+        </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
-            call.status
-          )}`}
-        >
-          {call.status.replace('_', ' ')}
-        </span>
+        <Link href={`/dashboard/calls/${call.id}`} className="block">
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
+              call.status
+            )}`}
+          >
+            {call.status.replace('_', ' ')}
+          </span>
+        </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {formatCredits(call.creditsUsed)}
+        <Link href={`/dashboard/calls/${call.id}`} className="block">
+          {formatCredits(call.creditsUsed)}
+        </Link>
       </td>
     </tr>
   );
