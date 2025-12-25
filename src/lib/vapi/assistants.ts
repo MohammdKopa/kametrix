@@ -4,9 +4,17 @@ import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantRespons
 /**
  * Build a system prompt from business configuration
  */
-function buildSystemPrompt(config: CreateAssistantConfig): string {
+function buildSystemPrompt(config: CreateAssistantConfig, hasCalendarTools: boolean): string {
   const faqSection = config.faqs.length > 0
     ? `## Frequently Asked Questions\n${config.faqs.map(faq => `Q: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
+    : '';
+
+  const calendarSection = hasCalendarTools
+    ? `\n\n## Calendar Capabilities
+- You can check calendar availability using the check_availability tool
+- You can book appointments using the book_appointment tool
+- When booking, collect: date, time, caller name (required), phone number (optional), email (optional)
+- Always confirm the details before booking`
     : '';
 
   return `You are an AI assistant for ${config.businessName}.
@@ -16,14 +24,13 @@ function buildSystemPrompt(config: CreateAssistantConfig): string {
 - Hours: ${config.businessHours}
 - Services: ${config.services.join(', ')}
 
-${faqSection}
+${faqSection}${calendarSection}
 
 ## Guidelines
 - Be friendly, professional, and concise
 - Answer questions about the business accurately using the information above
 - If you don't know something or it's outside your knowledge, politely say you'll have someone get back to them
-- Keep responses brief and natural for voice conversation
-- If the caller wants to book an appointment, collect their name, preferred date/time, and reason for visit`;
+- Keep responses brief and natural for voice conversation${hasCalendarTools ? '\n- When handling appointments, use your calendar tools to check availability and book time slots' : '\n- If the caller wants to book an appointment, collect their name, preferred date/time, and reason for visit'}`;
 }
 
 /**
@@ -37,13 +44,83 @@ export async function createBusinessAssistant(
   const greeting = config.greeting ??
     `Hello! Thank you for calling ${config.businessName}. How can I help you today?`;
 
-  const assistant = await client.assistants.create({
+  // Check if user has Google Calendar connected
+  const hasCalendarTools = config.hasGoogleCalendar ?? false;
+
+  // Build calendar tools if Google is connected
+  const tools = hasCalendarTools ? [
+    {
+      type: 'function' as const,
+      function: {
+        name: 'check_availability',
+        description: 'Check calendar availability for a specific date. Use this when a caller asks about available appointment times.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: {
+              type: 'string',
+              description: 'Date to check in YYYY-MM-DD format (e.g., 2024-03-15)',
+            },
+            timeZone: {
+              type: 'string',
+              description: 'IANA timezone (e.g., America/New_York). Optional, defaults to America/New_York.',
+            },
+          },
+          required: ['date'],
+        },
+      },
+    },
+    {
+      type: 'function' as const,
+      function: {
+        name: 'book_appointment',
+        description: 'Book an appointment on the calendar. Use this after confirming the date, time, and caller details.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: {
+              type: 'string',
+              description: 'Date in YYYY-MM-DD format (e.g., 2024-03-15)',
+            },
+            time: {
+              type: 'string',
+              description: 'Time in HH:MM AM/PM format (e.g., 10:00 AM) or 24-hour format (e.g., 14:30)',
+            },
+            callerName: {
+              type: 'string',
+              description: "Caller's full name (required)",
+            },
+            callerPhone: {
+              type: 'string',
+              description: "Caller's phone number (optional)",
+            },
+            callerEmail: {
+              type: 'string',
+              description: "Caller's email address (optional, will send calendar invite if provided)",
+            },
+            summary: {
+              type: 'string',
+              description: 'Brief description of the appointment (optional, defaults to "Appointment")',
+            },
+            timeZone: {
+              type: 'string',
+              description: 'IANA timezone (e.g., America/New_York). Optional, defaults to America/New_York.',
+            },
+          },
+          required: ['date', 'time', 'callerName'],
+        },
+      },
+    },
+  ] : undefined;
+
+  const assistantConfig: any = {
     name: config.name,
     firstMessage: greeting,
     model: {
       provider: 'openai',
       model: 'gpt-4o',
-      messages: [{ role: 'system', content: buildSystemPrompt(config) }],
+      messages: [{ role: 'system', content: buildSystemPrompt(config, hasCalendarTools) }],
+      tools,
     },
     voice: {
       provider: '11labs',
@@ -56,7 +133,15 @@ export async function createBusinessAssistant(
     },
     maxDurationSeconds: 600, // 10 minute max call
     endCallMessage: 'Thank you for calling. Have a great day!',
-  });
+  };
+
+  const assistant = await client.assistants.create(assistantConfig);
+
+  if (hasCalendarTools) {
+    console.log(`Created assistant ${assistant.id} with calendar tools enabled`);
+  } else {
+    console.log(`Created assistant ${assistant.id} without calendar tools (Google not connected)`);
+  }
 
   return {
     id: assistant.id,
@@ -98,10 +183,11 @@ export async function updateAssistant(
     // We need full config to rebuild prompt - this would require fetching current config
     // For now, only update if all required fields are provided
     if (config.businessName && config.businessHours && config.services && config.faqs) {
+      const hasCalendarTools = config.hasGoogleCalendar ?? false;
       updatePayload.model = {
         provider: 'openai',
         model: 'gpt-4o',
-        messages: [{ role: 'system', content: buildSystemPrompt(config as CreateAssistantConfig) }],
+        messages: [{ role: 'system', content: buildSystemPrompt(config as CreateAssistantConfig, hasCalendarTools) }],
       };
     }
   }

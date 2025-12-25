@@ -76,6 +76,14 @@ export async function POST(request: NextRequest) {
       // Filter out empty services
       const validServices = wizardData.businessInfo.services.filter((s) => s.trim());
 
+      // Check if user has Google Calendar connected
+      const userWithGoogle = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { googleRefreshToken: true },
+      });
+
+      const hasGoogleCalendar = !!userWithGoogle?.googleRefreshToken;
+
       let vapiAssistantId: string | null = null;
 
       try {
@@ -91,6 +99,7 @@ export async function POST(request: NextRequest) {
             /{businessName}/g,
             wizardData.businessInfo.businessName
           ),
+          hasGoogleCalendar,
         });
 
         vapiAssistantId = vapiResponse.id;

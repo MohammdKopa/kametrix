@@ -16,6 +16,8 @@ export interface CreateAssistantConfig {
   voiceId?: string;
   /** Custom greeting message (optional, will be generated if not provided) */
   greeting?: string;
+  /** Whether user has Google Calendar connected (enables calendar tools) */
+  hasGoogleCalendar?: boolean;
 }
 
 /**
