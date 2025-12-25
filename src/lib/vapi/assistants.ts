@@ -47,6 +47,9 @@ export async function createBusinessAssistant(
   // Check if user has Google Calendar connected
   const hasCalendarTools = config.hasGoogleCalendar ?? false;
 
+  // Get the server URL for tool callbacks
+  const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
   // Build calendar tools if Google is connected
   const tools = hasCalendarTools ? [
     {
@@ -68,6 +71,9 @@ export async function createBusinessAssistant(
           },
           required: ['date'],
         },
+      },
+      server: {
+        url: `${serverUrl}/api/webhooks/vapi`,
       },
     },
     {
@@ -110,6 +116,9 @@ export async function createBusinessAssistant(
           required: ['date', 'time', 'callerName'],
         },
       },
+      server: {
+        url: `${serverUrl}/api/webhooks/vapi`,
+      },
     },
   ] : undefined;
 
@@ -120,7 +129,6 @@ export async function createBusinessAssistant(
       provider: 'openai',
       model: 'gpt-4o',
       messages: [{ role: 'system', content: buildSystemPrompt(config, hasCalendarTools) }],
-      tools,
     },
     voice: {
       provider: '11labs',
@@ -134,6 +142,11 @@ export async function createBusinessAssistant(
     maxDurationSeconds: 600, // 10 minute max call
     endCallMessage: 'Thank you for calling. Have a great day!',
   };
+
+  // Add tools at top level if calendar is connected
+  if (tools) {
+    assistantConfig.tools = tools;
+  }
 
   const assistant = await client.assistants.create(assistantConfig);
 
