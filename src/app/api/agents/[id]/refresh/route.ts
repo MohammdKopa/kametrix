@@ -46,7 +46,7 @@ export async function POST(
 
     // Remove any existing date header from system prompt
     let systemPrompt = agent.systemPrompt;
-    systemPrompt = systemPrompt.replace(/^\[CURRENT DATE:.*?\]\n\n/s, '');
+    systemPrompt = systemPrompt.replace(/^\[CURRENT DATE:[^\]]*\]\n\n/, '');
 
     // Prepend new date header
     const updatedPrompt = dateHeader + systemPrompt;
