@@ -14,8 +14,15 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Fix Windows line endings if present
+echo "Fixing line endings..."
+sed -i 's/\r$//' .env
+sed -i 's/\r$//' Caddyfile 2>/dev/null || true
+
 # Load environment variables
+set -a
 source .env
+set +a
 
 # Update Caddyfile with domain
 if [ -n "$DOMAIN" ]; then
