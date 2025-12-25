@@ -17,18 +17,11 @@ fi
 # Fix Windows line endings if present
 echo "Fixing line endings..."
 sed -i 's/\r$//' .env
-sed -i 's/\r$//' Caddyfile 2>/dev/null || true
 
 # Load environment variables
 set -a
 source .env
 set +a
-
-# Update Caddyfile with domain
-if [ -n "$DOMAIN" ]; then
-    sed -i "s/\${DOMAIN:localhost}/$DOMAIN/g" Caddyfile
-    echo "Configured domain: $DOMAIN"
-fi
 
 # Pull latest code (if using git)
 if [ -d .git ]; then
@@ -50,9 +43,12 @@ docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
 
 echo ""
 echo "=== Deployment Complete ==="
-echo "Your app is running at: https://$DOMAIN"
+echo "App is running on port 3000"
 echo ""
-echo "Next steps:"
-echo "1. Update Google OAuth redirect URI to: https://$DOMAIN/api/google/callback"
-echo "2. Update Vapi webhook URL to: https://$DOMAIN/api/webhooks/vapi"
+echo "Configure nginx reverse proxy with:"
+echo "  sudo nano /etc/nginx/sites-available/kametrix"
+echo ""
+echo "Don't forget to update:"
+echo "1. Google OAuth redirect URI: ${NEXT_PUBLIC_APP_URL}/api/google/callback"
+echo "2. Vapi webhook URL: ${NEXT_PUBLIC_APP_URL}/api/webhooks/vapi"
 echo ""

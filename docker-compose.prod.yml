@@ -21,7 +21,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}
       - VAPI_API_KEY=${VAPI_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - OPENROUTER_API_KEY={OPENROUTER_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_ENCRYPTION_KEY=${GOOGLE_ENCRYPTION_KEY}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
@@ -33,27 +33,8 @@ services:
       - kametrix-network
     restart: unless-stopped
 
-  # Optional: Caddy for automatic HTTPS (recommended)
-  caddy:
-    image: caddy:2-alpine
-    container_name: kametrix-caddy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
-    networks:
-      - kametrix-network
-    restart: unless-stopped
-
 volumes:
   kametrix_postgres_data:
-  caddy_data:
-  caddy_config:
 
 networks:
   kametrix-network:
