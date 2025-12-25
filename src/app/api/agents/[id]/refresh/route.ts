@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
-import { refreshAssistantDate } from '@/lib/vapi/assistants';
+import { getVapiClient } from '@/lib/vapi';
 
 /**
  * POST /api/agents/[id]/refresh - Refresh agent's Vapi assistant with current date
@@ -17,14 +17,11 @@ export async function POST(
     const user = await requireAuth(request);
     const { id } = await params;
 
-    // Get agent with user info
+    // Get agent
     const agent = await prisma.agent.findFirst({
       where: {
         id,
         userId: user.id,
-      },
-      include: {
-        user: true,
       },
     });
 
@@ -42,25 +39,35 @@ export async function POST(
       );
     }
 
-    // Check if user has Google Calendar connected
-    const hasGoogleCalendar = !!agent.user?.googleRefreshToken;
+    // Build date header
+    const today = new Date();
+    const currentDateStr = today.toISOString().split('T')[0];
+    const dateHeader = `[CURRENT DATE: ${currentDateStr}. Always use year ${today.getFullYear()} for appointments.]\n\n`;
 
-    // Refresh the assistant with current date
-    await refreshAssistantDate(agent.vapiAssistantId, {
-      name: agent.name,
-      businessName: agent.businessName,
-      businessHours: agent.businessHours || '',
-      services: (agent.services as string[]) || [],
-      faqs: (agent.faqs as Array<{ question: string; answer: string }>) || [],
-      greeting: agent.greeting || undefined,
-      voiceId: agent.voiceId || undefined,
-      hasGoogleCalendar,
+    // Remove any existing date header from system prompt
+    let systemPrompt = agent.systemPrompt;
+    systemPrompt = systemPrompt.replace(/^\[CURRENT DATE:.*?\]\n\n/s, '');
+
+    // Prepend new date header
+    const updatedPrompt = dateHeader + systemPrompt;
+
+    // Update Vapi assistant
+    const client = getVapiClient();
+    await client.assistants.update({
+      id: agent.vapiAssistantId,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        messages: [{ role: 'system', content: updatedPrompt }],
+      },
     });
+
+    console.log(`Refreshed assistant ${agent.vapiAssistantId} with date ${currentDateStr}`);
 
     return NextResponse.json({
       success: true,
       message: 'Agent assistant refreshed with current date',
-      date: new Date().toISOString().split('T')[0],
+      date: currentDateStr,
     });
   } catch (error) {
     console.error('Error refreshing agent:', error);
