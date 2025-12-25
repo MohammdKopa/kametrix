@@ -293,7 +293,7 @@ export async function refreshAssistantDate(
       model: 'gpt-4o',
       messages: [{ role: 'system', content: buildSystemPrompt(config, hasCalendarTools) }],
       ...(tools && { tools }),
-    },
+    } as any,
   });
 
   console.log(`Refreshed assistant ${assistantId} with current date`);
