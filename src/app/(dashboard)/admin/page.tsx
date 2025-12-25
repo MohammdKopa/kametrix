@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { UserList } from '@/components/admin/user-list';
 
+export const dynamic = 'force-dynamic';
+
 async function getAdminStats() {
   const [totalUsers, totalAgents, totalCalls] = await Promise.all([
     prisma.user.count(),

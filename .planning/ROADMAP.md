@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project setup, database schema, authentication system
 - [x] **Phase 2: Core Dashboard** - User and admin dashboards, basic UI structure
-- [ ] **Phase 3: Vapi Integration** - Voice agent creation, phone number provisioning, call handling
+- [x] **Phase 3: Vapi Integration** - Voice agent creation, phone number provisioning, call handling
 - [ ] **Phase 4: Google Integrations** - Calendar booking, Sheets logging, OAuth flow
 - [ ] **Phase 5: Payments & Credits** - Stripe integration, credit packs, usage tracking, grace period
 - [ ] **Phase 6: Polish & Launch** - Email notifications, webhooks, final testing, deployment config
@@ -59,7 +59,7 @@ Plans:
 - [x] 03-01: Vapi SDK integration and API setup
 - [x] 03-02: Agent creation flow (templates + custom builder)
 - [x] 03-03: Phone number provisioning and assignment
-- [ ] 03-04: Call webhook handling and call logging
+- [x] 03-04: Call webhook handling and call logging
 
 ### Phase 4: Google Integrations
 **Goal**: OAuth flow for Google, Calendar integration for booking, Sheets integration for logging
@@ -69,7 +69,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: Google OAuth flow and token management
+- [x] 04-01: Google OAuth flow and token management
 - [ ] 04-02: Google Calendar integration (availability check, appointment booking)
 - [ ] 04-03: Google Sheets integration (call logging, data export)
 
@@ -107,7 +107,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2025-12-24 |
 | 2. Core Dashboard | 4/4 | Complete | 2025-12-24 |
-| 3. Vapi Integration | 3/4 | In progress | - |
-| 4. Google Integrations | 0/3 | Not started | - |
+| 3. Vapi Integration | 4/4 | Complete | 2025-12-24 |
+| 4. Google Integrations | 1/3 | In progress | - |
 | 5. Payments & Credits | 0/4 | Not started | - |
 | 6. Polish & Launch | 0/4 | Not started | - |

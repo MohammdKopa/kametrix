@@ -30,6 +30,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       name: user.name,
       role: user.role,
       creditBalance: user.creditBalance,
+      googleConnectedAt: user.googleConnectedAt,
     };
   } catch (error) {
     console.error('Error getting auth user:', error);
@@ -63,6 +64,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       name: user.name,
       role: user.role,
       creditBalance: user.creditBalance,
+      googleConnectedAt: user.googleConnectedAt,
     };
   } catch (error) {
     console.error('Error getting current user:', error);

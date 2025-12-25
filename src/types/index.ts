@@ -9,6 +9,7 @@ export interface AuthUser {
   name: string | null;
   role: Role;
   creditBalance: number;
+  googleConnectedAt: Date | null;
 }
 
 /**

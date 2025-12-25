@@ -42,21 +42,27 @@ enum PhoneStatus {
 
 // Models
 model User {
-  id                String              @id @default(cuid())
-  email             String              @unique @db.VarChar(255)
-  passwordHash      String
-  name              String?
-  role              Role                @default(USER)
-  creditBalance     Int                 @default(0) // current credit balance in cents
-  graceCreditsUsed  Int                 @default(0) // credits used during grace period
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id                  String              @id @default(cuid())
+  email               String              @unique @db.VarChar(255)
+  passwordHash        String
+  name                String?
+  role                Role                @default(USER)
+  creditBalance       Int                 @default(0) // current credit balance in cents
+  graceCreditsUsed    Int                 @default(0) // credits used during grace period
+
+  // Google integration
+  googleRefreshToken  String?             // encrypted refresh token for Google OAuth
+  googleSheetId       String?             // auto-created logging spreadsheet ID
+  googleConnectedAt   DateTime?           // when Google was connected
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   // Relations
-  agents            Agent[]
-  calls             Call[]
-  creditTransactions CreditTransaction[]
-  sessions          Session[]
+  agents              Agent[]
+  calls               Call[]
+  creditTransactions  CreditTransaction[]
+  sessions            Session[]
 }
 
 model Agent {
