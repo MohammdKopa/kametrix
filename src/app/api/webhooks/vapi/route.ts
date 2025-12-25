@@ -71,6 +71,10 @@ export async function POST(req: NextRequest) {
         // Tool calls require a synchronous response with results
         return await handleToolCalls(message);
 
+      case 'assistant-request':
+        // Dynamic assistant config - return current date in system prompt
+        return await handleAssistantRequest(message);
+
       default:
         console.log(`Unhandled Vapi event: ${message.type}`);
     }
@@ -348,5 +352,153 @@ async function handleToolCalls(message: WebhookToolCalls) {
         result: "I'm sorry, I'm having technical difficulties right now.",
       })),
     });
+  }
+}
+
+/**
+ * Handle assistant-request events
+ * Returns dynamic assistant config with current date in system prompt
+ */
+async function handleAssistantRequest(message: { call?: { assistantId?: string; phoneNumberId?: string } }) {
+  try {
+    const { call } = message;
+
+    // Try to find agent by assistant ID first, then by phone number
+    let agent = null;
+
+    if (call?.assistantId) {
+      agent = await prisma.agent.findFirst({
+        where: { vapiAssistantId: call.assistantId },
+        include: { user: true },
+      });
+    }
+
+    if (!agent && call?.phoneNumberId) {
+      // Look up by phone number
+      const phoneNumber = await prisma.phoneNumber.findFirst({
+        where: { vapiPhoneNumberId: call.phoneNumberId },
+        include: { agent: { include: { user: true } } },
+      });
+      agent = phoneNumber?.agent;
+    }
+
+    if (!agent) {
+      console.warn('Assistant request: agent not found', { call });
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    // Build dynamic system prompt with current date
+    const today = new Date();
+    const currentDateStr = today.toISOString().split('T')[0];
+
+    // Check if user has Google Calendar connected
+    const hasCalendarTools = agent.user?.googleAccessToken ? true : false;
+
+    const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Build FAQ section
+    const faqs = (agent.faqs as Array<{ question: string; answer: string }>) || [];
+    const faqSection = faqs.length > 0
+      ? `## Frequently Asked Questions\n${faqs.map(faq => `Q: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
+      : '';
+
+    // Build calendar section with current date
+    const calendarSection = hasCalendarTools
+      ? `\n\n## Calendar Capabilities
+- Today's date is ${currentDateStr}. ALWAYS use the current year (${today.getFullYear()}) when booking appointments.
+- You can check calendar availability using the check_availability tool
+- You can book appointments using the book_appointment tool
+- When booking, collect: date, time, caller name (required), phone number (optional), email (optional)
+- Always confirm the details before booking
+- When the caller says "tomorrow" or "next week", calculate the correct date based on today (${currentDateStr})`
+      : '';
+
+    const services = (agent.services as string[]) || [];
+    const systemPrompt = `You are an AI assistant for ${agent.businessName}.
+
+## Business Information
+- Business Name: ${agent.businessName}
+- Hours: ${agent.businessHours || 'Contact for hours'}
+- Services: ${services.join(', ') || 'Various services'}
+
+${faqSection}${calendarSection}
+
+## Guidelines
+- Be friendly, professional, and concise
+- Answer questions about the business accurately using the information above
+- If you don't know something or it's outside your knowledge, politely say you'll have someone get back to them
+- Keep responses brief and natural for voice conversation${hasCalendarTools ? '\n- When handling appointments, use your calendar tools to check availability and book time slots' : '\n- If the caller wants to book an appointment, collect their name, preferred date/time, and reason for visit'}`;
+
+    // Build tools if calendar connected
+    const tools = hasCalendarTools ? [
+      {
+        type: 'function',
+        async: false,
+        server: { url: `${serverUrl}/api/webhooks/vapi` },
+        function: {
+          name: 'check_availability',
+          description: 'Check calendar availability for a specific date.',
+          parameters: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+              timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+            },
+            required: ['date'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        async: false,
+        server: { url: `${serverUrl}/api/webhooks/vapi` },
+        function: {
+          name: 'book_appointment',
+          description: 'Book an appointment on the calendar.',
+          parameters: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+              time: { type: 'string', description: 'Time in HH:MM AM/PM or 24-hour format' },
+              callerName: { type: 'string', description: "Caller's full name (required)" },
+              callerPhone: { type: 'string', description: "Caller's phone number (optional)" },
+              callerEmail: { type: 'string', description: "Caller's email (optional)" },
+              summary: { type: 'string', description: 'Brief description (optional)' },
+              timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+            },
+            required: ['date', 'time', 'callerName'],
+          },
+        },
+      },
+    ] : undefined;
+
+    // Return assistant config
+    const assistantConfig = {
+      name: agent.name,
+      firstMessage: agent.greeting || `Hello! Thank you for calling ${agent.businessName}. How can I help you today?`,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        messages: [{ role: 'system', content: systemPrompt }],
+        ...(tools && { tools }),
+      },
+      voice: {
+        provider: '11labs',
+        voiceId: agent.voiceId || 'marissa',
+      },
+      transcriber: {
+        provider: 'deepgram',
+        model: 'nova-2',
+        language: 'en',
+      },
+      maxDurationSeconds: 600,
+      endCallMessage: 'Thank you for calling. Have a great day!',
+    };
+
+    console.log(`Assistant request: returning dynamic config for ${agent.name} with date ${currentDateStr}`);
+    return NextResponse.json({ assistant: assistantConfig });
+  } catch (error) {
+    console.error('Error handling assistant request:', error);
+    return NextResponse.json({ error: 'Failed to build assistant config' }, { status: 500 });
   }
 }
