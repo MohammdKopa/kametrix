@@ -8,6 +8,9 @@ import {
   type WebhookEndOfCall,
 } from '@/lib/calls';
 import { CallStatus } from '@/generated/prisma/client';
+import { getOAuth2ClientForUser } from '@/lib/google/auth';
+import { getAvailableSlots, bookAppointment, parseDateTime } from '@/lib/google/calendar';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Tool call payload from Vapi
@@ -237,41 +240,77 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
           switch (functionName) {
             case 'check_availability': {
-              // Call availability endpoint internally
-              const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/google/calendar/availability`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  agentId: agent.id,
-                  date: args.date,
-                  timeZone: args.timeZone || 'America/New_York',
-                }),
+              // Get agent's user and check Google connection
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
               });
 
-              const data = await response.json();
-              result = data.message || "I'm having trouble checking the calendar right now.";
+              if (!agentWithUser?.user) {
+                result = "I'm sorry, I'm having technical difficulties right now.";
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = "I'm sorry, calendar booking isn't set up yet. Please call back later or leave your contact information.";
+                break;
+              }
+
+              try {
+                const timeZone = args.timeZone || 'Europe/Berlin';
+                const date = new Date(args.date);
+                const slots = await getAvailableSlots(oauth2Client, date, timeZone);
+
+                if (slots.length === 0) {
+                  result = `I don't see any available slots on ${args.date}. Would you like to try a different day?`;
+                } else {
+                  const slotList = slots.slice(0, 5).map(s => s.display).join(', ');
+                  result = `I have the following times available on ${args.date}: ${slotList}. Which time works best for you?`;
+                }
+              } catch (error) {
+                console.error('Calendar availability error:', error);
+                result = "I'm having trouble checking the calendar right now. Please try again.";
+              }
               break;
             }
 
             case 'book_appointment': {
-              // Call booking endpoint internally
-              const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/google/calendar/book`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  agentId: agent.id,
-                  date: args.date,
-                  time: args.time,
-                  callerName: args.callerName,
-                  callerPhone: args.callerPhone,
-                  callerEmail: args.callerEmail,
-                  summary: args.summary || 'Appointment',
-                  timeZone: args.timeZone || 'America/New_York',
-                }),
+              // Get agent's user and check Google connection
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
               });
 
-              const data = await response.json();
-              result = data.message || "I'm having trouble booking that appointment right now.";
+              if (!agentWithUser?.user) {
+                result = "I'm sorry, I'm having technical difficulties right now.";
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = "I'm sorry, calendar booking isn't set up yet. Please call back later.";
+                break;
+              }
+
+              try {
+                const timeZone = args.timeZone || 'Europe/Berlin';
+                const { start, end } = parseDateTime(args.date, args.time, timeZone);
+
+                const event = await bookAppointment(oauth2Client, {
+                  summary: args.summary || `Appointment with ${args.callerName}`,
+                  start,
+                  end,
+                  timeZone,
+                  attendeeEmail: args.callerEmail,
+                  description: `Booked by voice agent.\n\nCaller: ${args.callerName}${args.callerPhone ? `\nPhone: ${args.callerPhone}` : ''}${args.callerEmail ? `\nEmail: ${args.callerEmail}` : ''}`,
+                });
+
+                result = `I've booked your appointment for ${args.date} at ${args.time}. You're all set, ${args.callerName}!`;
+              } catch (error) {
+                console.error('Calendar booking error:', error);
+                result = "I wasn't able to book that appointment. The time slot might be taken. Would you like to try a different time?";
+              }
               break;
             }
 

@@ -70,7 +70,7 @@ export async function createBusinessAssistant(
             },
             timeZone: {
               type: 'string',
-              description: 'IANA timezone (e.g., America/New_York). Optional, defaults to America/New_York.',
+              description: 'IANA timezone (e.g., Europe/Berlin). Optional, defaults to Europe/Berlin.',
             },
           },
           required: ['date'],
@@ -115,7 +115,7 @@ export async function createBusinessAssistant(
             },
             timeZone: {
               type: 'string',
-              description: 'IANA timezone (e.g., America/New_York). Optional, defaults to America/New_York.',
+              description: 'IANA timezone (e.g., Europe/Berlin). Optional, defaults to Europe/Berlin.',
             },
           },
           required: ['date', 'time', 'callerName'],
