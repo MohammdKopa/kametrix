@@ -195,9 +195,37 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
 
     // Log to Google Sheets (non-blocking, fire-and-forget)
     // Check if any book_appointment tool was called
-    const appointmentBooked = artifact?.toolCalls?.some(
-      (tc: any) => tc.function?.name === 'book_appointment'
-    ) || false;
+    // Vapi can send toolCalls in different formats, so check multiple paths
+    // Also check messages array for tool-call-result messages
+    let appointmentBooked = false;
+
+    // Check artifact.toolCalls (various possible formats)
+    if (artifact?.toolCalls && Array.isArray(artifact.toolCalls)) {
+      console.log('Checking artifact.toolCalls:', JSON.stringify(artifact.toolCalls, null, 2));
+      appointmentBooked = artifact.toolCalls.some((tc: any) => {
+        const name = tc.function?.name || tc.name || tc.toolName || '';
+        return name === 'book_appointment';
+      });
+    }
+
+    // Also check artifact.messages for tool-call-result entries
+    if (!appointmentBooked && artifact?.messages && Array.isArray(artifact.messages)) {
+      appointmentBooked = artifact.messages.some((msg: any) => {
+        if (msg.role === 'tool_call_result' || msg.type === 'tool-call-result' || msg.toolCalls) {
+          const name = msg.name || msg.toolName || msg.function?.name || '';
+          if (name === 'book_appointment') return true;
+          // Check nested toolCalls in message
+          if (msg.toolCalls && Array.isArray(msg.toolCalls)) {
+            return msg.toolCalls.some((tc: any) =>
+              (tc.function?.name || tc.name) === 'book_appointment'
+            );
+          }
+        }
+        return false;
+      });
+    }
+
+    console.log(`Appointment booked detection: ${appointmentBooked}`);
 
     // Fire-and-forget pattern - don't await
     Promise.resolve().then(() =>
