@@ -33,6 +33,23 @@ services:
       - kametrix-network
     restart: unless-stopped
 
+  # Migration runner - uses builder stage with full node_modules
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: kametrix-migrate
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}
+    depends_on:
+      - postgres
+    networks:
+      - kametrix-network
+    command: npx prisma migrate deploy
+    profiles:
+      - migrate
+
 volumes:
   kametrix_postgres_data:
 
