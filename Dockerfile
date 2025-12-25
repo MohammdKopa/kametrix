@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Install dependencies
 RUN npm ci
@@ -37,9 +38,13 @@ COPY --from=builder /app/.next/static ./.next/static
 # Copy public folder
 COPY --from=builder /app/public ./public
 
-# Copy Prisma files
+# Copy Prisma files and CLI for migrations
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/src/generated ./src/generated
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 

@@ -39,7 +39,7 @@ sleep 5
 
 # Run database migrations
 echo "Running database migrations..."
-docker compose -f docker-compose.prod.yml exec -e DATABASE_URL="postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}" app npx prisma migrate deploy
+docker compose -f docker-compose.prod.yml exec -e DATABASE_URL="postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}" app node_modules/.bin/prisma migrate deploy
 
 echo ""
 echo "=== Deployment Complete ==="
