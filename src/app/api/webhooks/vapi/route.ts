@@ -301,9 +301,16 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 const timeZone = args.timeZone || 'Europe/Berlin';
                 const start = parseDateTime(args.date, args.time, timeZone);
                 // Add 30 minutes for default appointment duration
-                const endDate = new Date(start);
-                endDate.setMinutes(endDate.getMinutes() + 30);
-                const end = endDate.toISOString();
+                // Parse the local time and add 30 minutes, keeping local format
+                const [datePart, timePart] = start.split('T');
+                const [hh, mm] = timePart.split(':').map(Number);
+                let endHour = hh;
+                let endMin = mm + 30;
+                if (endMin >= 60) {
+                  endMin -= 60;
+                  endHour += 1;
+                }
+                const end = `${datePart}T${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
 
                 const event = await bookAppointment(oauth2Client, {
                   summary: args.summary || `Appointment with ${args.callerName}`,

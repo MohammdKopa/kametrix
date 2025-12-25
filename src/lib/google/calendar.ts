@@ -212,12 +212,13 @@ function formatTimeForVoice(date: Date, timeZone: string): string {
 }
 
 /**
- * Parse date string (YYYY-MM-DD) and time string (HH:MM or HH:MM AM/PM) into ISO datetime
+ * Parse date string (YYYY-MM-DD) and time string (HH:MM or HH:MM AM/PM) into local datetime
  *
  * @param dateStr - Date string in YYYY-MM-DD format
  * @param timeStr - Time string (e.g., "10:00 AM" or "14:30")
- * @param timeZone - IANA timezone
- * @returns ISO 8601 datetime string
+ * @param timeZone - IANA timezone (used by Google Calendar API with the returned datetime)
+ * @returns Local datetime string in format YYYY-MM-DDTHH:MM:SS (no Z suffix)
+ *          Google Calendar interprets this with the timeZone parameter we pass
  */
 export function parseDateTime(dateStr: string, timeStr: string, timeZone: string): string {
   // Parse time string to 24-hour format
@@ -242,9 +243,9 @@ export function parseDateTime(dateStr: string, timeStr: string, timeZone: string
     minutes = parseInt(time24hrMatch[2], 10);
   }
 
-  // Construct date with time
-  const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
-  const dateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
-
-  return dateTime.toISOString();
+  // Return local datetime string (no Z suffix)
+  // Google Calendar will use the timeZone parameter to interpret this correctly
+  const hh = hours.toString().padStart(2, '0');
+  const mm = minutes.toString().padStart(2, '0');
+  return `${dateStr}T${hh}:${mm}:00`;
 }
