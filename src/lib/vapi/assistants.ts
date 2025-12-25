@@ -246,14 +246,14 @@ export async function refreshAssistantDate(
   // Rebuild tools with current server URL
   const tools = hasCalendarTools ? [
     {
-      type: 'function',
+      type: 'function' as const,
       async: false,
       server: { url: `${serverUrl}/api/webhooks/vapi` },
       function: {
         name: 'check_availability',
         description: 'Check calendar availability for a specific date.',
         parameters: {
-          type: 'object',
+          type: 'object' as const,
           properties: {
             date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
             timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
@@ -263,14 +263,14 @@ export async function refreshAssistantDate(
       },
     },
     {
-      type: 'function',
+      type: 'function' as const,
       async: false,
       server: { url: `${serverUrl}/api/webhooks/vapi` },
       function: {
         name: 'book_appointment',
         description: 'Book an appointment on the calendar.',
         parameters: {
-          type: 'object',
+          type: 'object' as const,
           properties: {
             date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
             time: { type: 'string', description: 'Time in HH:MM AM/PM or 24-hour format' },
@@ -280,7 +280,7 @@ export async function refreshAssistantDate(
             summary: { type: 'string', description: 'Brief description (optional)' },
             timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
           },
-          required: ['date', 'time', 'callerName'],
+          required: ['date', 'time', 'callerName'] as const,
         },
       },
     },
