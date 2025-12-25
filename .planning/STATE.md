@@ -100,9 +100,13 @@ Status: ✓ Aligned
 Assessment: No work done yet - baseline alignment.
 Drift notes: None
 
+### Roadmap Evolution
+
+- v1.1 milestone created: German Market & Polish, 4 phases (Phase 7-10)
+
 ## Session Continuity
 
 Last session: 2025-12-25
-Stopped at: Phase 4 complete (Google Integrations)
+Stopped at: v1.1 milestone created
 Resume file: None
-Next: Phase 5 - Payments & Credits (plan-phase first)
+Next: Complete v1.0 (Phases 5-6), then start v1.1

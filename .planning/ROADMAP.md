@@ -2,7 +2,12 @@
 
 ## Overview
 
-Kametrix evolves from an empty Next.js project to a complete self-serve voice AI platform. We start with foundational infrastructure and authentication, build out user-facing dashboards, integrate Vapi for voice agents, connect Google services for calendar and logging, add Stripe payments with credit tracking, and finish with polish and deployment configuration.
+Kametrix evolves from an empty Next.js project to a complete self-serve voice AI platform. We start with foundational infrastructure and authentication, build out user-facing dashboards, integrate Vapi for voice agents, connect Google services for calendar and logging, add Stripe payments with credit tracking, and finish with polish and deployment configuration. Post-MVP, we localize for the German market and polish the UI.
+
+## Milestones
+
+- 🚧 **v1.0 MVP** - Phases 1-6 (in progress)
+- 📋 **v1.1 German Market & Polish** - Phases 7-10 (planned)
 
 ## Domain Expertise
 
@@ -98,16 +103,64 @@ Plans:
 - [ ] 06-03: Deployment configuration and environment setup
 - [ ] 06-04: End-to-end testing and final polish
 
+---
+
+### 📋 v1.1 German Market & Polish (Planned)
+
+**Milestone Goal:** Localize the platform for the German market with German voice agents and prompts, polish the dashboard UI, and add public-facing pages including landing page and legal compliance.
+
+#### Phase 7: German Voice Setup
+**Goal**: Configure German voice selection in Vapi, German TTS/STT providers, locale-aware agent configuration
+**Depends on**: Phase 6 (v1.0 complete)
+**Research**: Likely (Vapi German voice options, provider availability)
+**Research topics**: Vapi German voice providers, German TTS quality comparison, STT accuracy for German, locale configuration patterns
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: TBD (run /gsd:plan-phase 7 to break down)
+
+#### Phase 8: German Prompts & Localization
+**Goal**: German system prompts for agents, localized UI strings, German date/time/number formatting
+**Depends on**: Phase 7
+**Research**: Unlikely (internal patterns, i18n setup)
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: TBD (run /gsd:plan-phase 8 to break down)
+
+#### Phase 9: Dashboard UI Polish
+**Goal**: Redesign dashboard UI based on provided v0 designs, improve overall UX
+**Depends on**: Phase 8
+**Research**: Unlikely (design implementation)
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: TBD (run /gsd:plan-phase 9 to break down)
+
+#### Phase 10: Landing & Legal Pages
+**Goal**: Public landing page (v0 design), Impressum, Datenschutz (privacy policy), AGB (terms), cookie consent banner
+**Depends on**: Phase 9
+**Research**: Likely (German legal requirements, GDPR compliance)
+**Research topics**: German Impressum requirements, Datenschutzerklärung template, AGB requirements, cookie consent GDPR patterns
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: TBD (run /gsd:plan-phase 10 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation | 3/3 | Complete | 2025-12-24 |
-| 2. Core Dashboard | 4/4 | Complete | 2025-12-24 |
-| 3. Vapi Integration | 4/4 | Complete | 2025-12-24 |
-| 4. Google Integrations | 3/3 | Complete | 2025-12-25 |
-| 5. Payments & Credits | 0/4 | Not started | - |
-| 6. Polish & Launch | 0/4 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation | v1.0 | 3/3 | Complete | 2025-12-24 |
+| 2. Core Dashboard | v1.0 | 4/4 | Complete | 2025-12-24 |
+| 3. Vapi Integration | v1.0 | 4/4 | Complete | 2025-12-24 |
+| 4. Google Integrations | v1.0 | 3/3 | Complete | 2025-12-25 |
+| 5. Payments & Credits | v1.0 | 0/4 | Not started | - |
+| 6. Polish & Launch | v1.0 | 0/4 | Not started | - |
+| 7. German Voice Setup | v1.1 | 0/? | Not started | - |
+| 8. German Prompts & Localization | v1.1 | 0/? | Not started | - |
+| 9. Dashboard UI Polish | v1.1 | 0/? | Not started | - |
+| 10. Landing & Legal Pages | v1.1 | 0/? | Not started | - |
