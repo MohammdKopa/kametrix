@@ -1,0 +1,11 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Force LF for shell scripts (needed for Linux/VPS)
+*.sh text eol=lf
+Caddyfile text eol=lf
+Dockerfile text eol=lf
+
+# Keep Windows line endings for Windows-specific files
+*.bat text eol=crlf
+*.cmd text eol=crlf
