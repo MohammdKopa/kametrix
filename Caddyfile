@@ -1,0 +1,6 @@
+# Replace YOUR_DOMAIN with your actual domain
+# e.g., app.kametrix.com
+
+{$DOMAIN:localhost} {
+    reverse_proxy app:3000
+}
