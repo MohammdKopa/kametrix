@@ -17,7 +17,7 @@ interface ToolCall {
   type: 'function';
   function: {
     name: string;
-    arguments: string; // JSON string of arguments
+    arguments: string | Record<string, unknown>; // Can be JSON string or object
   };
 }
 
@@ -225,7 +225,10 @@ async function handleToolCalls(message: WebhookToolCalls) {
     const results = await Promise.all(
       toolCallList.map(async (toolCall) => {
         try {
-          const args = JSON.parse(toolCall.function.arguments);
+          // Arguments can be string or object depending on Vapi version
+          const args = typeof toolCall.function.arguments === 'string'
+            ? JSON.parse(toolCall.function.arguments)
+            : toolCall.function.arguments;
           const functionName = toolCall.function.name;
 
           console.log(`Executing tool: ${functionName} with args:`, args);
