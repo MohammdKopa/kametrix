@@ -265,7 +265,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 if (slots.length === 0) {
                   result = `I don't see any available slots on ${args.date}. Would you like to try a different day?`;
                 } else {
-                  const slotList = slots.slice(0, 5).map(s => s.display).join(', ');
+                  const slotList = slots.slice(0, 5).map(s => s.displayTime).join(', ');
                   result = `I have the following times available on ${args.date}: ${slotList}. Which time works best for you?`;
                 }
               } catch (error) {
@@ -295,7 +295,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
-                const { start, end } = parseDateTime(args.date, args.time, timeZone);
+                const start = parseDateTime(args.date, args.time, timeZone);
+                // Add 30 minutes for default appointment duration
+                const endDate = new Date(start);
+                endDate.setMinutes(endDate.getMinutes() + 30);
+                const end = endDate.toISOString();
 
                 const event = await bookAppointment(oauth2Client, {
                   summary: args.summary || `Appointment with ${args.callerName}`,
