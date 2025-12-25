@@ -376,7 +376,7 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     if (!agent && call?.phoneNumberId) {
       // Look up by phone number
       const phoneNumber = await prisma.phoneNumber.findFirst({
-        where: { vapiPhoneNumberId: call.phoneNumberId },
+        where: { vapiPhoneId: call.phoneNumberId },
         include: { agent: { include: { user: true } } },
       });
       agent = phoneNumber?.agent;
