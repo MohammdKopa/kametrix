@@ -392,7 +392,7 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     const currentDateStr = today.toISOString().split('T')[0];
 
     // Check if user has Google Calendar connected
-    const hasCalendarTools = agent.user?.googleAccessToken ? true : false;
+    const hasCalendarTools = agent.user?.googleRefreshToken ? true : false;
 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 

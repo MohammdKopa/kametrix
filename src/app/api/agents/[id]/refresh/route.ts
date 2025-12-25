@@ -43,7 +43,7 @@ export async function POST(
     }
 
     // Check if user has Google Calendar connected
-    const hasGoogleCalendar = !!agent.user?.googleAccessToken;
+    const hasGoogleCalendar = !!agent.user?.googleRefreshToken;
 
     // Refresh the assistant with current date
     await refreshAssistantDate(agent.vapiAssistantId, {
