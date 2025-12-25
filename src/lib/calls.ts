@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { CallStatus } from '@/generated/prisma/client';
+import { getOAuth2ClientForUser } from '@/lib/google/auth';
+import { getOrCreateLogSheet, appendCallLog } from '@/lib/google/sheets';
 
 /**
  * Webhook payload type definitions
@@ -36,6 +38,13 @@ export interface WebhookEndOfCall {
   artifact?: {
     transcript?: string;
     messages?: any[];
+    summary?: string;
+    toolCalls?: Array<{
+      function?: {
+        name?: string;
+        arguments?: any;
+      };
+    }>;
   };
   endedReason: string;
   // Some reports include duration at message level
@@ -222,5 +231,67 @@ export function calculateCallDuration(
   } catch (error) {
     console.error('Error calculating duration:', error);
     return null;
+  }
+}
+
+/**
+ * Log a call to Google Sheets (non-blocking, fire-and-forget)
+ *
+ * @param userId - User ID to get Google credentials
+ * @param callData - Call data from webhook
+ */
+export async function logCallToSheets(
+  userId: string,
+  callData: {
+    startedAt: Date;
+    phoneNumber: string;
+    agentName: string;
+    durationSeconds?: number | null;
+    status: CallStatus;
+    summary?: string | null;
+    transcript?: string | null;
+    appointmentBooked?: boolean;
+  }
+): Promise<void> {
+  try {
+    // Get OAuth client for user
+    const oauth2Client = await getOAuth2ClientForUser(userId);
+    if (!oauth2Client) {
+      // User hasn't connected Google - skip silently
+      return;
+    }
+
+    // Get or create the log sheet
+    const sheetId = await getOrCreateLogSheet(oauth2Client, userId);
+
+    // Format status for display
+    const statusDisplay = callData.status
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    // Extract summary from transcript if no summary provided
+    let summary = callData.summary || '';
+    if (!summary && callData.transcript) {
+      // Use first 100 chars of transcript as summary
+      summary = callData.transcript.substring(0, 100);
+      if (callData.transcript.length > 100) {
+        summary += '...';
+      }
+    }
+
+    // Append call log to sheet
+    await appendCallLog(oauth2Client, sheetId, {
+      startedAt: callData.startedAt,
+      phoneNumber: callData.phoneNumber,
+      agentName: callData.agentName,
+      durationSeconds: callData.durationSeconds,
+      status: statusDisplay,
+      summary,
+      appointmentBooked: callData.appointmentBooked,
+    });
+  } catch (error) {
+    // Log error but don't throw - this is fire-and-forget
+    console.error('Error logging call to Sheets:', error);
   }
 }

@@ -31,6 +31,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       role: user.role,
       creditBalance: user.creditBalance,
       googleConnectedAt: user.googleConnectedAt,
+      googleSheetId: user.googleSheetId,
     };
   } catch (error) {
     console.error('Error getting auth user:', error);
@@ -65,6 +66,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       role: user.role,
       creditBalance: user.creditBalance,
       googleConnectedAt: user.googleConnectedAt,
+      googleSheetId: user.googleSheetId,
     };
   } catch (error) {
     console.error('Error getting current user:', error);

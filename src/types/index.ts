@@ -10,6 +10,7 @@ export interface AuthUser {
   role: Role;
   creditBalance: number;
   googleConnectedAt: Date | null;
+  googleSheetId: string | null;
 }
 
 /**

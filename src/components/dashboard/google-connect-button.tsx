@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, ExternalLink } from 'lucide-react';
 
 interface GoogleConnectButtonProps {
   isConnected: boolean;
   connectedAt?: Date | null;
+  googleSheetId?: string | null;
 }
 
 // Google logo SVG component
@@ -35,6 +36,7 @@ function GoogleLogo({ className }: { className?: string }) {
 export function GoogleConnectButton({
   isConnected,
   connectedAt,
+  googleSheetId,
 }: GoogleConnectButtonProps) {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
@@ -94,9 +96,37 @@ export function GoogleConnectButton({
             )}
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-4">
-          Your Google Calendar and Sheets are connected. Agents can book appointments and log calls automatically.
-        </p>
+
+        {/* Integration Status */}
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Calendar: Ready for bookings</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>
+              {googleSheetId
+                ? 'Call Logging: Active'
+                : 'Call Logging: Sheet will be created on first call'}
+            </span>
+          </div>
+        </div>
+
+        {/* Sheet Link */}
+        {googleSheetId && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${googleSheetId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              View Call Log
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        )}
       </div>
     );
   }

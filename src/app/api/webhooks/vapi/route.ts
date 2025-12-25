@@ -4,6 +4,7 @@ import {
   upsertCallFromWebhook,
   mapEndedReasonToStatus,
   extractCallDuration,
+  logCallToSheets,
   type WebhookStatusUpdate,
   type WebhookEndOfCall,
 } from '@/lib/calls';
@@ -191,6 +192,26 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
     });
 
     console.log(`Call ${call.id} completed: ${finalStatus}, duration: ${durationSeconds}s`);
+
+    // Log to Google Sheets (non-blocking, fire-and-forget)
+    // Check if any book_appointment tool was called
+    const appointmentBooked = artifact?.toolCalls?.some(
+      (tc: any) => tc.function?.name === 'book_appointment'
+    ) || false;
+
+    // Fire-and-forget pattern - don't await
+    Promise.resolve().then(() =>
+      logCallToSheets(agent.userId, {
+        startedAt: call.startedAt ? new Date(call.startedAt) : new Date(),
+        phoneNumber,
+        agentName: agent.name,
+        durationSeconds: durationSeconds || null,
+        status: finalStatus,
+        summary: artifact?.summary || null,
+        transcript,
+        appointmentBooked,
+      })
+    );
   } catch (error) {
     console.error('Error handling end of call report:', error);
     // Don't throw - we already responded to Vapi
