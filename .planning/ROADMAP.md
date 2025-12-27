@@ -59,10 +59,12 @@ Plans:
 **Goal**: Redesign dashboard UI based on provided v0 designs, improve overall UX
 **Depends on**: Phase 8
 **Research**: Unlikely (design implementation)
-**Plans**: TBD
+**Plans**: 1/3
 
 Plans:
-- [ ] 09-01: TBD (run /gsd:plan-phase 9 to break down)
+- [x] 09-01: Layout & Navigation Polish (header, nav-tabs, user-menu)
+- [ ] 09-02: Core Dashboard Pages (main dashboard, credits, settings)
+- [ ] 09-03: Agent & Call Pages (agents list/wizard, calls list/detail)
 
 #### Phase 10: Landing & Legal Pages
 **Goal**: Public landing page (v0 design), Impressum, Datenschutz (privacy policy), AGB (terms), cookie consent banner
@@ -89,5 +91,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Polish & Launch | v1.0 | 3/3 | Complete | 2025-12-27 |
 | 7. German Voice Setup | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 8. German Prompts & Localization | v1.1 | 1/1 | Complete | 2025-12-27 |
-| 9. Dashboard UI Polish | v1.1 | 0/? | Not started | - |
+| 9. Dashboard UI Polish | v1.1 | 1/3 | In progress | - |
 | 10. Landing & Legal Pages | v1.1 | 0/? | Not started | - |
