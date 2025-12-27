@@ -119,7 +119,7 @@ export async function upsertCallFromWebhook(data: WebhookCallData) {
         endedAt: data.endedAt,
         durationSeconds: data.durationSeconds,
         transcript: data.transcript,
-        creditsUsed: 0, // Phase 5 will handle credit calculation
+        creditsUsed: 0, // Deducted separately after call ends
       },
     });
   }

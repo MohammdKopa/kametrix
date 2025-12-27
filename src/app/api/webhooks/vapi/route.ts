@@ -12,6 +12,7 @@ import { CallStatus } from '@/generated/prisma/client';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { getAvailableSlots, bookAppointment, parseDateTime } from '@/lib/google/calendar';
 import { prisma } from '@/lib/prisma';
+import { deductCreditsForCall } from '@/lib/credits';
 
 /**
  * Tool call payload from Vapi
@@ -192,6 +193,28 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
     });
 
     console.log(`Call ${call.id} completed: ${finalStatus}, duration: ${durationSeconds}s`);
+
+    // Deduct credits for completed calls with duration
+    if (finalStatus === CallStatus.COMPLETED && durationSeconds && durationSeconds > 0) {
+      try {
+        // Get the call record we just upserted
+        const callRecord = await prisma.call.findUnique({
+          where: { vapiCallId: call.id },
+        });
+
+        if (callRecord) {
+          await deductCreditsForCall(
+            agent.userId,
+            callRecord.id,
+            durationSeconds
+          );
+          console.log(`Deducted credits for call ${call.id}: ${durationSeconds}s`);
+        }
+      } catch (error) {
+        console.error('Error deducting credits:', error);
+        // Don't throw - credit deduction failure shouldn't break webhook
+      }
+    }
 
     // Log to Google Sheets (non-blocking, fire-and-forget)
     // Check if any book_appointment tool was called

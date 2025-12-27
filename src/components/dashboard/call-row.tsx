@@ -1,6 +1,7 @@
 import type { Call, Agent } from '@/generated/prisma/client';
 import { CallStatus } from '@/generated/prisma/client';
 import Link from 'next/link';
+import { formatCallCost } from '@/lib/credits-utils';
 
 interface CallRowProps {
   call: Call & { agent: Agent };
@@ -74,7 +75,11 @@ export function CallRow({ call }: CallRowProps) {
       <td className="px-6 py-4 whitespace-nowrap">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
           <div className="text-sm text-gray-900">
-            {formatDuration(call.durationSeconds)}
+            {call.durationSeconds !== null && call.durationSeconds > 0
+              ? (call.creditsUsed > 0
+                  ? formatCallCost(call.durationSeconds, call.creditsUsed)
+                  : formatDuration(call.durationSeconds))
+              : '-'}
           </div>
         </Link>
       </td>

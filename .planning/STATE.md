@@ -21,18 +21,18 @@
 ## Current Position
 
 Phase: 5 of 6 (Payments & Credits) - IN PROGRESS
-Plan: 2 of 4 in current phase
-Status: Plan 05-02 complete
-Last activity: 2025-12-27 - Completed 05-02-PLAN.md (Credit purchase flow)
+Plan: 3 of 4 in current phase
+Status: Plan 05-03 complete
+Last activity: 2025-12-27 - Completed 05-03-PLAN.md (Credit deduction on call completion)
 
-Progress: ██████████████████░░ 88%
+Progress: ██████████████████░░ 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 19 min
-- Total execution time: 5.0 hours
+- Total execution time: 5.25 hours
 
 **By Phase:**
 
@@ -42,10 +42,10 @@ Progress: ██████████████████░░ 88%
 | 2 | 4 | 44 min | 11 min |
 | 3 | 4 | 63 min | 16 min |
 | 4 | 3 | 105 min | 35 min |
-| 5 | 2 | 60 min | 30 min |
+| 5 | 3 | 75 min | 25 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min, 70 min, 27 min, 15 min, 45 min
+- Last 5 plans: 70 min, 27 min, 15 min, 45 min, 15 min
 - Trend: Phase 5 includes VPS testing and webhook verification
 
 *Updated after each plan completion*
@@ -89,6 +89,9 @@ Progress: ██████████████████░░ 88%
 | 5 | Proxy pattern for stripe export | Backward compatibility with lazy initialization |
 | 5 | Balance format "$X.XX (~Y min)" | User clarity with 15 cents/minute rate |
 | 5 | Separate CreditsNotification component | Clean URL cleanup logic for credits page |
+| 5 | Split credits module (utils vs server) | Client components cannot import prisma |
+| 5 | Grace period tracks in graceCreditsUsed | Soft warning, no hard cutoff per CONTEXT.md |
+| 5 | $0.15/min with ceil rounding | Simple, user-friendly pricing |
 
 ### Deferred Issues
 
@@ -112,6 +115,6 @@ Drift notes: None
 ## Session Continuity
 
 Last session: 2025-12-27
-Stopped at: Phase 05-02 complete
+Stopped at: Phase 05-03 complete
 Resume file: None
-Next: Execute 05-03-PLAN.md (Credit deduction on call completion)
+Next: Execute 05-04-PLAN.md (Grace period logic and low balance notifications)
