@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Zap } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface CreditPackCardProps {
   id: string;
@@ -66,76 +70,79 @@ export function CreditPackCard({
   };
 
   return (
-    <div
-      className={`
-        relative glass-card border-2 p-6 flex flex-col transition-all duration-200
-        ${isPopular
-          ? 'border-[var(--accent)] shadow-lg dark:shadow-[0_0_25px_rgba(152,58,214,0.25)]'
-          : 'border-gray-200 hover:border-gray-300 dark:border-[var(--border)] dark:hover:border-[var(--accent)]/50'
-        }
-      `}
+    <Card
+      className={cn(
+        'relative glass-card border-0 flex flex-col transition-all duration-300 hover:scale-[1.02]',
+        isPopular
+          ? 'ring-2 ring-primary shadow-[0_0_30px_oklch(0.55_0.25_300_/_0.25)]'
+          : 'hover:shadow-[0_0_20px_oklch(0.55_0.25_300_/_0.15)]'
+      )}
     >
       {/* Popular badge */}
       {isPopular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500 text-white dark:bg-[var(--accent)]">
-            <Sparkles className="w-3 h-3" />
-            Most Popular
-          </span>
-        </div>
+        <Badge
+          className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-accent text-primary-foreground border-0 shadow-lg"
+        >
+          <Sparkles className="w-3 h-3 mr-1" />
+          Most Popular
+        </Badge>
       )}
 
-      {/* Pack name */}
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-2">{name}</h3>
+      <CardHeader className="pb-2 pt-6">
+        <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+          {isPopular && <Zap className="w-4 h-4 text-primary" />}
+          {name}
+        </CardTitle>
+      </CardHeader>
 
-      {/* Price */}
-      <div className="mb-4">
-        <span className="text-3xl font-bold text-gray-900 dark:text-[var(--foreground)]">
-          {formatPrice(priceInCents)}
-        </span>
-      </div>
+      <CardContent className="flex-1 space-y-4">
+        {/* Price */}
+        <div>
+          <span className="text-4xl font-bold text-foreground">
+            {formatPrice(priceInCents)}
+          </span>
+        </div>
 
-      {/* Credits and minutes */}
-      <div className="mb-6 text-sm text-gray-600 dark:text-[var(--muted-foreground)]">
-        <p className="font-medium">{credits.toLocaleString()} credits</p>
-        <p>~{estimatedMinutes} minutes of calls</p>
-        {/* Settlement preview when grace period is active */}
-        {hasGrace && canCoverGrace && (
-          <p className="text-amber-600 dark:text-amber-400 text-xs mt-2">
-            After ${(graceCreditsUsed / 100).toFixed(2)} grace settlement,
-            you&apos;ll receive {effectiveCredits.toLocaleString()} credits (~{effectiveMinutes} min)
-          </p>
-        )}
-        {hasGrace && !canCoverGrace && (
-          <p className="text-red-600 dark:text-red-400 text-xs mt-2">
-            Pack does not cover ${(graceCreditsUsed / 100).toFixed(2)} grace balance
-          </p>
-        )}
-      </div>
+        {/* Credits and minutes */}
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p className="font-medium text-primary">{credits.toLocaleString()} credits</p>
+          <p>~{estimatedMinutes} minutes of calls</p>
 
-      {/* Buy button */}
-      <button
-        onClick={handleBuy}
-        disabled={isLoading}
-        className={`
-          mt-auto w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white transition-colors
-          focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-          ${isPopular
-            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 dark:bg-[var(--accent)] dark:hover:bg-[var(--accent-secondary)] dark:focus:ring-[var(--accent)]'
-            : 'bg-gray-800 hover:bg-gray-900 focus:ring-gray-500 dark:bg-[var(--muted)] dark:hover:bg-[var(--border)] dark:focus:ring-[var(--border)]'
-          }
-          dark:focus:ring-offset-[var(--background)]
-        `}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Redirecting...
-          </>
-        ) : (
-          'Buy Credits'
-        )}
-      </button>
-    </div>
+          {/* Settlement preview when grace period is active */}
+          {hasGrace && canCoverGrace && (
+            <p className="text-amber-400 text-xs mt-2 pt-2 border-t border-border">
+              After ${(graceCreditsUsed / 100).toFixed(2)} grace settlement,
+              you&apos;ll receive {effectiveCredits.toLocaleString()} credits (~{effectiveMinutes} min)
+            </p>
+          )}
+          {hasGrace && !canCoverGrace && (
+            <p className="text-red-400 text-xs mt-2 pt-2 border-t border-border">
+              Pack does not cover ${(graceCreditsUsed / 100).toFixed(2)} grace balance
+            </p>
+          )}
+        </div>
+      </CardContent>
+
+      <CardFooter className="pt-0">
+        <Button
+          onClick={handleBuy}
+          disabled={isLoading}
+          variant={isPopular ? 'default' : 'outline'}
+          className={cn(
+            'w-full',
+            isPopular && 'bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 border-0'
+          )}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Redirecting...
+            </>
+          ) : (
+            'Buy Credits'
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

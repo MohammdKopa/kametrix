@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, DollarSign, Loader2 } from 'lucide-react';
 import type { CreditTransaction } from '@/generated/prisma/client';
 import { TransactionType } from '@/generated/prisma/client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface TransactionListProps {
   initialTransactions: CreditTransaction[];
@@ -37,26 +39,31 @@ export function TransactionList({
     });
   };
 
-  // Get type badge styling
-  const getTypeBadge = (type: TransactionType) => {
-    const badges = {
-      PURCHASE: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400',
-      CALL_USAGE: 'bg-gray-100 text-gray-800 dark:bg-[var(--muted)] dark:text-[var(--muted-foreground)]',
-      ADMIN_ADJUSTMENT: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400',
-      GRACE_USAGE: 'bg-yellow-100 text-yellow-800 dark:bg-amber-500/20 dark:text-amber-400',
+  // Get type badge variant and styling
+  const getTypeBadgeConfig = (type: TransactionType) => {
+    const configs = {
+      PURCHASE: {
+        className: 'bg-green-500/20 text-green-400 border-green-500/30',
+        label: 'Purchase',
+        icon: Plus,
+      },
+      CALL_USAGE: {
+        className: 'bg-muted text-muted-foreground border-border',
+        label: 'Call Usage',
+        icon: Minus,
+      },
+      ADMIN_ADJUSTMENT: {
+        className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        label: 'Admin Adjustment',
+        icon: Plus,
+      },
+      GRACE_USAGE: {
+        className: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        label: 'Grace Usage',
+        icon: Minus,
+      },
     };
-    return badges[type] || 'bg-gray-100 text-gray-800 dark:bg-[var(--muted)] dark:text-[var(--muted-foreground)]';
-  };
-
-  // Get type label
-  const getTypeLabel = (type: TransactionType) => {
-    const labels = {
-      PURCHASE: 'Purchase',
-      CALL_USAGE: 'Call Usage',
-      ADMIN_ADJUSTMENT: 'Admin Adjustment',
-      GRACE_USAGE: 'Grace Usage',
-    };
-    return labels[type] || type;
+    return configs[type] || configs.CALL_USAGE;
   };
 
   const loadPage = async (newPage: number) => {
@@ -98,25 +105,12 @@ export function TransactionList({
 
   if (transactions.length === 0 && page === 1) {
     return (
-      <div className="text-center py-12 glass-card">
-        <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 dark:bg-[var(--muted)] flex items-center justify-center mb-4">
-          <svg
-            className="h-8 w-8 text-gray-400 dark:text-[var(--muted-foreground)]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+      <div className="text-center py-12 px-6">
+        <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
+          <DollarSign className="h-8 w-8 text-primary" />
         </div>
-        <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)]">No transactions yet</h3>
-        <p className="mt-1 text-sm text-gray-500 dark:text-[var(--muted-foreground)]">
+        <h3 className="text-sm font-medium text-foreground">No transactions yet</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
           Transactions will appear here when you purchase or use credits.
         </p>
       </div>
@@ -124,107 +118,119 @@ export function TransactionList({
   }
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="overflow-hidden">
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-[var(--border)]">
-          <thead className="bg-gray-50 dark:bg-[var(--muted)]">
-            <tr>
+        <table className="min-w-full">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--muted-foreground)] uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
               >
                 Date
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--muted-foreground)] uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
               >
                 Type
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--muted-foreground)] uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
               >
                 Amount
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--muted-foreground)] uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
               >
                 Description
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--muted-foreground)] uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
               >
                 Balance After
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-[var(--border)]">
-            {transactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-[var(--muted)]/50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--foreground)]">
-                  {formatDate(transaction.createdAt)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeBadge(
-                      transaction.type
-                    )}`}
-                  >
-                    {transaction.amount >= 0 ? (
-                      <Plus className="w-3 h-3" />
-                    ) : (
-                      <Minus className="w-3 h-3" />
-                    )}
-                    {getTypeLabel(transaction.type)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span
-                    className={
-                      transaction.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }
-                  >
-                    {transaction.amount >= 0 ? '+' : ''}
-                    {formatCredits(transaction.amount)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 dark:text-[var(--muted-foreground)]">
-                  {transaction.description || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--foreground)]">
-                  {formatCredits(transaction.balanceAfter)}
-                </td>
-              </tr>
-            ))}
+          <tbody className="divide-y divide-border">
+            {transactions.map((transaction) => {
+              const badgeConfig = getTypeBadgeConfig(transaction.type);
+              const IconComponent = badgeConfig.icon;
+              return (
+                <tr
+                  key={transaction.id}
+                  className="hover:bg-muted/30 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                    {formatDate(transaction.createdAt)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge
+                      variant="outline"
+                      className={`${badgeConfig.className} gap-1`}
+                    >
+                      <IconComponent className="w-3 h-3" />
+                      {badgeConfig.label}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span
+                      className={`font-medium ${
+                        transaction.amount >= 0
+                          ? 'text-green-400'
+                          : 'text-red-400'
+                      }`}
+                    >
+                      {transaction.amount >= 0 ? '+' : ''}
+                      {formatCredits(transaction.amount)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs truncate">
+                    {transaction.description || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-medium">
+                    {formatCredits(transaction.balanceAfter)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
       {(page > 1 || hasMore) && (
-        <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200 dark:bg-[var(--muted)] dark:border-[var(--border)]">
-          <div className="text-sm text-gray-700 dark:text-[var(--muted-foreground)]">
+        <div className="px-6 py-4 flex items-center justify-between border-t border-border bg-muted/30">
+          <p className="text-sm text-muted-foreground">
             Page {page} {initialTotal > 0 && `of ${Math.ceil(initialTotal / 20)}`}
-          </div>
+          </p>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handlePrevious}
               disabled={page === 1 || isLoading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-[var(--background)] dark:border-[var(--border)] dark:text-[var(--foreground)] dark:hover:bg-[var(--muted)]"
             >
+              {isLoading && page > 1 ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : null}
               Previous
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleNext}
               disabled={!hasMore || isLoading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-[var(--background)] dark:border-[var(--border)] dark:text-[var(--foreground)] dark:hover:bg-[var(--muted)]"
             >
               Next
-            </button>
+              {isLoading && hasMore ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+              ) : null}
+            </Button>
           </div>
         </div>
       )}

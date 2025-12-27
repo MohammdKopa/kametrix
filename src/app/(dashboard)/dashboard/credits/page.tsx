@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { CreditPackCard } from '@/components/dashboard/credit-pack-card';
 import { CreditsNotification } from './credits-notification';
 import { formatBalance } from '@/lib/credits-utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Wallet, AlertTriangle, Info } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,57 +68,55 @@ export default async function CreditsPage({ searchParams }: PageProps) {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-[var(--foreground)]">Buy Credits</h1>
-        <p className="text-gray-500 dark:text-[var(--muted-foreground)] mt-1">
+        <h1 className="text-2xl font-semibold text-foreground">Buy Credits</h1>
+        <p className="text-muted-foreground mt-1">
           Purchase credits to power your AI phone agents
         </p>
       </div>
 
       {/* Current Balance */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]">Current Balance</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-[var(--accent)] mt-1">
-              {formatBalance(userWithCredits.creditBalance)}
-            </p>
+      <Card className="glass-card border-0">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
+                <Wallet className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
+                <p className="text-3xl font-bold text-primary mt-1">
+                  {formatBalance(userWithCredits.creditBalance)}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Grace Period Banner - Prominent when active */}
       {userWithCredits.graceCreditsUsed > 0 && (
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 dark:bg-amber-500/10 dark:border-[var(--accent)]/50">
-          <div className="flex items-center gap-3">
-            <svg
-              className="h-6 w-6 text-amber-500 dark:text-amber-400 flex-shrink-0"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div>
-              <p className="text-amber-800 dark:text-amber-300 font-medium">Grace Period Active</p>
-              <p className="text-amber-700 dark:text-amber-400 text-sm">
-                You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits
-                that will be automatically settled on your next purchase.
-              </p>
+        <Card className="border-2 border-amber-500/50 bg-amber-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-amber-400 flex-shrink-0" />
+              <div>
+                <p className="text-amber-300 font-medium">Grace Period Active</p>
+                <p className="text-amber-400/80 text-sm">
+                  You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits
+                  that will be automatically settled on your next purchase.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Credit Packs Grid */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-4">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           Choose a Credit Pack
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {creditPacks.map((pack) => (
             <CreditPackCard
               key={pack.id}
@@ -132,25 +132,34 @@ export default async function CreditsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Info section */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 dark:bg-[var(--muted)] dark:border-[var(--border)]">
-        <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)] mb-3">
-          How credits work
-        </h3>
-        <ul className="text-sm text-gray-600 dark:text-[var(--muted-foreground)] space-y-2">
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)] mt-1">&#8226;</span>
-            <span>Credits are charged at $0.15 per minute of call time</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)] mt-1">&#8226;</span>
-            <span>Unused credits never expire</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[var(--accent)] mt-1">&#8226;</span>
-            <span>Grace credits allow calls to continue even when your balance is low</span>
-          </li>
-        </ul>
-      </div>
+      <Card className="glass-card border-0">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 mt-0.5">
+              <Info className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-foreground mb-3">
+                How credits work
+              </h3>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">&#8226;</span>
+                  <span>Credits are charged at $0.15 per minute of call time</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">&#8226;</span>
+                  <span>Unused credits never expire</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">&#8226;</span>
+                  <span>Grace credits allow calls to continue even when your balance is low</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

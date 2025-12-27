@@ -14,10 +14,10 @@ export default async function NewAgentPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create Your AI Agent</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-foreground">Create Your AI Agent</h1>
+        <p className="text-muted-foreground mt-2">
           Follow the steps below to create a fully-configured voice AI agent for your business.
-          We'll guide you through setting up business information, knowledge base, voice selection, and more.
+          We&apos;ll guide you through setting up business information, knowledge base, voice selection, and more.
         </p>
       </div>
 

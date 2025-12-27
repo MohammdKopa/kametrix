@@ -33,15 +33,13 @@ export default async function EditAgentPage({
   return (
     <div className="max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Edit Agent</h1>
-        <p className="text-gray-500 mt-1">
-          Update your agent's configuration
+        <h1 className="text-2xl font-semibold text-foreground">Edit Agent</h1>
+        <p className="text-muted-foreground mt-1">
+          Update your agent&apos;s configuration
         </p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <AgentForm mode="edit" agent={agent} />
-      </div>
+      <AgentForm mode="edit" agent={agent} />
     </div>
   );
 }

@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Agent } from '@/generated/prisma/client';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Bot, Building2, MessageSquare, Mic } from 'lucide-react';
 
 interface AgentFormProps {
   agent?: Agent;
@@ -29,6 +37,7 @@ export function AgentForm({ agent, mode }: AgentFormProps) {
     greeting: agent?.greeting || '',
     systemPrompt: agent?.systemPrompt || '',
     voiceId: agent?.voiceId || 'de-DE-KatjaNeural',
+    isActive: agent?.isActive ?? true,
   });
 
   const handleChange = (
@@ -40,6 +49,10 @@ export function AgentForm({ agent, mode }: AgentFormProps) {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleSwitchChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, isActive: checked }));
   };
 
   const validate = () => {
@@ -107,158 +120,215 @@ export function AgentForm({ agent, mode }: AgentFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Name */}
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Agent Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-            errors.name
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
-          placeholder="e.g., Customer Support Agent"
-        />
-        {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-      </div>
+    <form onSubmit={handleSubmit}>
+      <Card className="glass-card border-0">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Bot className="h-5 w-5 text-primary" />
+            {mode === 'create' ? 'Create New Agent' : 'Edit Agent'}
+          </CardTitle>
+        </CardHeader>
 
-      {/* Business Name */}
-      <div>
-        <label htmlFor="businessName" className="block text-sm font-medium text-gray-700">
-          Business Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="businessName"
-          name="businessName"
-          value={formData.businessName}
-          onChange={handleChange}
-          className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-            errors.businessName
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
-          placeholder="e.g., Acme Inc"
-        />
-        {errors.businessName && (
-          <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>
-        )}
-      </div>
+        <CardContent className="space-y-8">
+          {/* Agent Identity Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Bot className="h-4 w-4" />
+              Agent Identity
+            </div>
 
-      {/* Business Description */}
-      <div>
-        <label htmlFor="businessDescription" className="block text-sm font-medium text-gray-700">
-          Business Description
-        </label>
-        <textarea
-          id="businessDescription"
-          name="businessDescription"
-          value={formData.businessDescription}
-          onChange={handleChange}
-          rows={3}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          placeholder="Brief description of your business (optional)"
-        />
-      </div>
+            <div className="space-y-4 pl-6">
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  Agent Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="e.g., Customer Support Agent"
+                  className={errors.name ? 'border-destructive focus-visible:ring-destructive/50' : ''}
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                )}
+              </div>
 
-      {/* Voice */}
-      <div>
-        <label htmlFor="voiceId" className="block text-sm font-medium text-gray-700">
-          Voice <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="voiceId"
-          name="voiceId"
-          value={formData.voiceId}
-          onChange={handleChange}
-          className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-            errors.voiceId
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
-        >
-          {VOICE_OPTIONS.map((voice) => (
-            <option key={voice.id} value={voice.id}>
-              {voice.name}
-            </option>
-          ))}
-        </select>
-        {errors.voiceId && <p className="mt-1 text-sm text-red-600">{errors.voiceId}</p>}
-      </div>
+              {mode === 'edit' && (
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="isActive" className="text-sm font-medium">
+                      Agent Active
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {formData.isActive ? 'Agent is receiving calls' : 'Agent is paused'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={handleSwitchChange}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* Greeting */}
-      <div>
-        <label htmlFor="greeting" className="block text-sm font-medium text-gray-700">
-          Greeting <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          id="greeting"
-          name="greeting"
-          value={formData.greeting}
-          onChange={handleChange}
-          rows={3}
-          className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-            errors.greeting
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
-          placeholder="e.g., Hello! Thank you for calling Acme Inc. How can I help you today?"
-          maxLength={500}
-        />
-        <p className="mt-1 text-sm text-gray-500">
-          {formData.greeting.length}/500 characters
-        </p>
-        {errors.greeting && <p className="mt-1 text-sm text-red-600">{errors.greeting}</p>}
-      </div>
+          <Separator />
 
-      {/* System Prompt */}
-      <div>
-        <label htmlFor="systemPrompt" className="block text-sm font-medium text-gray-700">
-          System Prompt <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          id="systemPrompt"
-          name="systemPrompt"
-          value={formData.systemPrompt}
-          onChange={handleChange}
-          rows={6}
-          className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm font-mono text-xs ${
-            errors.systemPrompt
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
-          placeholder="You are a helpful customer service agent for Acme Inc. Your role is to..."
-        />
-        {errors.systemPrompt && (
-          <p className="mt-1 text-sm text-red-600">{errors.systemPrompt}</p>
-        )}
-      </div>
+          {/* Business Information Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Building2 className="h-4 w-4" />
+              Business Information
+            </div>
 
-      {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          disabled={isSubmitting}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Agent' : 'Save Changes'}
-        </button>
-      </div>
+            <div className="space-y-4 pl-6">
+              <div className="space-y-2">
+                <Label htmlFor="businessName">
+                  Business Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="businessName"
+                  name="businessName"
+                  value={formData.businessName}
+                  onChange={handleChange}
+                  placeholder="e.g., Acme Inc"
+                  className={errors.businessName ? 'border-destructive focus-visible:ring-destructive/50' : ''}
+                />
+                {errors.businessName && (
+                  <p className="text-sm text-destructive">{errors.businessName}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="businessDescription">
+                  Business Description
+                </Label>
+                <Textarea
+                  id="businessDescription"
+                  name="businessDescription"
+                  value={formData.businessDescription}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Brief description of your business (optional)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Voice & Greeting Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Mic className="h-4 w-4" />
+              Voice & Greeting
+            </div>
+
+            <div className="space-y-4 pl-6">
+              <div className="space-y-2">
+                <Label htmlFor="voiceId">
+                  Voice <span className="text-destructive">*</span>
+                </Label>
+                <select
+                  id="voiceId"
+                  name="voiceId"
+                  value={formData.voiceId}
+                  onChange={handleChange}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                >
+                  {VOICE_OPTIONS.map((voice) => (
+                    <option key={voice.id} value={voice.id} className="bg-popover text-popover-foreground">
+                      {voice.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.voiceId && (
+                  <p className="text-sm text-destructive">{errors.voiceId}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="greeting">
+                  Greeting <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="greeting"
+                  name="greeting"
+                  value={formData.greeting}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="e.g., Hello! Thank you for calling Acme Inc. How can I help you today?"
+                  maxLength={500}
+                  className={errors.greeting ? 'border-destructive focus-visible:ring-destructive/50' : ''}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {formData.greeting.length}/500 characters
+                </p>
+                {errors.greeting && (
+                  <p className="text-sm text-destructive">{errors.greeting}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* System Prompt Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <MessageSquare className="h-4 w-4" />
+              Behavior Configuration
+            </div>
+
+            <div className="space-y-4 pl-6">
+              <div className="space-y-2">
+                <Label htmlFor="systemPrompt">
+                  System Prompt <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="systemPrompt"
+                  name="systemPrompt"
+                  value={formData.systemPrompt}
+                  onChange={handleChange}
+                  rows={6}
+                  placeholder="You are a helpful customer service agent for Acme Inc. Your role is to..."
+                  className={`font-mono text-xs ${errors.systemPrompt ? 'border-destructive focus-visible:ring-destructive/50' : ''}`}
+                />
+                {errors.systemPrompt && (
+                  <p className="text-sm text-destructive">{errors.systemPrompt}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="flex gap-3 border-t border-border pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              mode === 'create' ? 'Create Agent' : 'Save Changes'
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
     </form>
   );
 }
