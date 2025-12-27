@@ -2,24 +2,23 @@
 
 ## Current State (Updated: 2025-12-27)
 
-**Shipped:** v1.0 MVP (2025-12-27)
+**Shipped:** v1.1 German Market & Polish (2025-12-27)
 **Status:** Production Ready
-**Codebase:** 25,095 lines TypeScript/TSX, Next.js 15 + PostgreSQL + Prisma 7, self-hosted deployment
+**Users:** German small business market
+**Codebase:** ~31,000 lines TypeScript/TSX, Next.js 15 + PostgreSQL + Prisma 7, self-hosted deployment
 
-## v1.1 German Market & Polish Goals
+## v1.2 Goals
 
-**Vision:** Localize the platform for German-speaking businesses and polish the user experience.
+**Vision:** Complete the landing page experience and add English localization.
 
 **Motivation:**
-- Target German small business market (underserved by existing voice AI solutions)
-- Improve dashboard UI based on v0 designs
-- Add required legal pages for German market (Impressum, Datenschutz, AGB)
+- Landing page needs Pricing, CTA, and Footer sections
+- Expand to English-speaking markets
 
-**Scope (v1.1):**
-- German voice agents (TTS/STT providers)
-- German system prompts and UI localization
-- Dashboard UI redesign
-- Landing page and legal compliance pages
+**Scope (v1.2):**
+- Complete landing page (Pricing preview, CTA section, Footer with legal links)
+- English language option
+- Additional landing page polish
 
 ---
 

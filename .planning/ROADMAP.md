@@ -7,7 +7,7 @@ Kametrix evolves from an empty Next.js project to a complete self-serve voice AI
 ## Milestones
 
 - [v1.0 MVP](milestones/v1.0-ROADMAP.md) - Phases 1-6 (SHIPPED 2025-12-27)
-- v1.1 German Market & Polish - Phases 7-10 (planned)
+- [v1.1 German Market & Polish](milestones/v1.1-ROADMAP.md) - Phases 7-10 (SHIPPED 2025-12-27)
 
 ## Domain Expertise
 
@@ -33,49 +33,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v1.1 German Market & Polish (Planned)
+<details>
+<summary>v1.1 German Market & Polish (Phases 7-10) - SHIPPED 2025-12-27</summary>
 
-**Milestone Goal:** Localize the platform for the German market with German voice agents and prompts, polish the dashboard UI, and add public-facing pages including landing page and legal compliance.
+- [x] **Phase 7: German Voice Setup** - Azure de-DE-KatjaNeural TTS, Deepgram German STT (1/1 plans)
+- [x] **Phase 8: German Prompts & Localization** - Sie-form prompts, localization helpers (1/1 plans)
+- [x] **Phase 9: Dashboard UI Polish** - Glassmorphism dark mode, theme toggle (3/3 plans)
+- [x] **Phase 10: Landing & Legal Pages** - Hero, Features, How It Works, legal pages (2/2 plans)
 
-#### Phase 7: German Voice Setup
-**Goal**: Configure German voice selection in Vapi, German TTS/STT providers, locale-aware agent configuration
-**Depends on**: Phase 6 (v1.0 complete)
-**Research**: Complete
-**Plans**: 1/1
-
-Plans:
-- [x] 07-01: German voice configuration (Azure de-DE-KatjaNeural TTS, Deepgram German STT)
-
-#### Phase 8: German Prompts & Localization
-**Goal**: German system prompts for agents, localized UI strings, German date/time/number formatting
-**Depends on**: Phase 7
-**Research**: Unlikely (internal patterns, i18n setup)
-**Plans**: 1/1
-
-Plans:
-- [x] 08-01: Native German localization helpers, system prompts with Sie-form, webhook responses
-
-#### Phase 9: Dashboard UI Polish
-**Goal**: Redesign dashboard UI based on provided v0 designs, improve overall UX
-**Depends on**: Phase 8
-**Research**: Unlikely (design implementation)
-**Plans**: 3/3
-
-Plans:
-- [x] 09-01: Layout & Navigation Polish (header, nav-tabs, user-menu)
-- [x] 09-02: Core Dashboard Pages (main dashboard, credits, settings)
-- [x] 09-03: Agent & Call Pages (agents list/wizard, calls list/detail)
-
-#### Phase 10: Landing & Legal Pages
-**Goal**: Public landing page (v0 design), Impressum, Datenschutz (privacy policy), AGB (terms), cookie consent banner
-**Depends on**: Phase 9
-**Research**: Likely (German legal requirements, GDPR compliance)
-**Research topics**: German Impressum requirements, Datenschutzerklarung template, AGB requirements, cookie consent GDPR patterns
-**Plans**: TBD
-
-Plans:
-- [x] 10-01: Cookie consent and German legal pages (Impressum, Datenschutz)
-- [x] 10-02: Landing page structure (Hero, Features, How It Works)
+</details>
 
 ## Progress
 
@@ -93,4 +59,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. German Voice Setup | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 8. German Prompts & Localization | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 9. Dashboard UI Polish | v1.1 | 3/3 | Complete | 2025-12-27 |
-| 10. Landing & Legal Pages | v1.1 | 2/? | In progress | - |
+| 10. Landing & Legal Pages | v1.1 | 2/2 | Complete | 2025-12-27 |
