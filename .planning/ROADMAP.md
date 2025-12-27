@@ -75,6 +75,7 @@ Plans:
 
 Plans:
 - [x] 10-01: Cookie consent and German legal pages (Impressum, Datenschutz)
+- [x] 10-02: Landing page structure (Hero, Features, How It Works)
 
 ## Progress
 
@@ -92,4 +93,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. German Voice Setup | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 8. German Prompts & Localization | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 9. Dashboard UI Polish | v1.1 | 3/3 | Complete | 2025-12-27 |
-| 10. Landing & Legal Pages | v1.1 | 1/? | In progress | - |
+| 10. Landing & Legal Pages | v1.1 | 2/? | In progress | - |
