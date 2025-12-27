@@ -50,6 +50,9 @@ model User {
   creditBalance       Int                 @default(0) // current credit balance in cents
   graceCreditsUsed    Int                 @default(0) // credits used during grace period
 
+  // Stripe integration
+  stripeCustomerId    String?             @unique // Stripe customer ID
+
   // Google integration
   googleRefreshToken  String?             // encrypted refresh token for Google OAuth
   googleSheetId       String?             // auto-created logging spreadsheet ID
