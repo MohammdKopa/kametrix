@@ -30,6 +30,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       name: user.name,
       role: user.role,
       creditBalance: user.creditBalance,
+      graceCreditsUsed: user.graceCreditsUsed,
       googleConnectedAt: user.googleConnectedAt,
       googleSheetId: user.googleSheetId,
     };
@@ -65,6 +66,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       name: user.name,
       role: user.role,
       creditBalance: user.creditBalance,
+      graceCreditsUsed: user.graceCreditsUsed,
       googleConnectedAt: user.googleConnectedAt,
       googleSheetId: user.googleSheetId,
     };

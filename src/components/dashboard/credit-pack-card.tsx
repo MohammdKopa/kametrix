@@ -9,6 +9,7 @@ interface CreditPackCardProps {
   credits: number;
   priceInCents: number;
   isPopular?: boolean;
+  graceCreditsUsed?: number;
 }
 
 export function CreditPackCard({
@@ -17,6 +18,7 @@ export function CreditPackCard({
   credits,
   priceInCents,
   isPopular = false,
+  graceCreditsUsed = 0,
 }: CreditPackCardProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,6 +29,13 @@ export function CreditPackCard({
 
   // Calculate estimated minutes (~$0.15/min)
   const estimatedMinutes = Math.floor(credits / 15);
+
+  // Calculate settlement preview when grace credits are active
+  // Only show if pack price can cover grace amount
+  const hasGrace = graceCreditsUsed > 0;
+  const canCoverGrace = credits >= graceCreditsUsed;
+  const effectiveCredits = canCoverGrace ? credits - graceCreditsUsed : 0;
+  const effectiveMinutes = Math.floor(effectiveCredits / 15);
 
   const handleBuy = async () => {
     setIsLoading(true);
@@ -88,6 +97,18 @@ export function CreditPackCard({
       <div className="mb-6 text-sm text-gray-600">
         <p className="font-medium">{credits.toLocaleString()} credits</p>
         <p>~{estimatedMinutes} minutes of calls</p>
+        {/* Settlement preview when grace period is active */}
+        {hasGrace && canCoverGrace && (
+          <p className="text-amber-600 text-xs mt-2">
+            After ${(graceCreditsUsed / 100).toFixed(2)} grace settlement,
+            you&apos;ll receive {effectiveCredits.toLocaleString()} credits (~{effectiveMinutes} min)
+          </p>
+        )}
+        {hasGrace && !canCoverGrace && (
+          <p className="text-red-600 text-xs mt-2">
+            Pack does not cover ${(graceCreditsUsed / 100).toFixed(2)} grace balance
+          </p>
+        )}
       </div>
 
       {/* Buy button */}

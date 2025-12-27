@@ -10,6 +10,13 @@
 export const CENTS_PER_MINUTE = 15;
 
 /**
+ * Low balance threshold constants
+ * $5.00 = 500 cents = ~33 minutes of call time
+ */
+export const LOW_BALANCE_THRESHOLD_CENTS = 500; // $5.00
+export const LOW_BALANCE_THRESHOLD_MINUTES = 33; // ~$5 at $0.15/min
+
+/**
  * Calculate call cost in cents based on duration
  * Rounds up to nearest minute (e.g., 4:32 = 5 minutes = 75 cents)
  *
@@ -49,4 +56,47 @@ export function formatCallCost(durationSeconds: number, creditsCents: number): s
   const seconds = durationSeconds % 60;
   const cost = (creditsCents / 100).toFixed(2);
   return `${minutes} min ${seconds} sec - $${cost}`;
+}
+
+/**
+ * Check if a credit balance is considered low
+ * Low balance is defined as <= $5.00 (500 cents)
+ *
+ * @param creditBalanceCents - Balance in cents
+ * @returns true if balance is low
+ */
+export function isLowBalance(creditBalanceCents: number): boolean {
+  return creditBalanceCents <= LOW_BALANCE_THRESHOLD_CENTS;
+}
+
+/**
+ * Check if user has any grace credits used
+ *
+ * @param graceCreditsUsed - Grace credits used in cents
+ * @returns true if grace credits are being used
+ */
+export function hasGraceUsage(graceCreditsUsed: number): boolean {
+  return graceCreditsUsed > 0;
+}
+
+/**
+ * Generate low balance warning message
+ *
+ * @param balanceCents - Current balance in cents
+ * @returns Warning message string
+ */
+export function getLowBalanceMessage(balanceCents: number): string {
+  const estimatedMinutes = Math.floor(balanceCents / CENTS_PER_MINUTE);
+  return `Low balance: ${formatBalance(balanceCents)}. You have about ${estimatedMinutes} minutes of call time remaining.`;
+}
+
+/**
+ * Generate grace usage warning message
+ *
+ * @param graceUsedCents - Grace credits used in cents
+ * @returns Warning message string
+ */
+export function getGraceUsageMessage(graceUsedCents: number): string {
+  const dollars = (graceUsedCents / 100).toFixed(2);
+  return `You have $${dollars} in grace credits that will be settled on your next purchase.`;
 }

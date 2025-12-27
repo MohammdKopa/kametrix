@@ -12,9 +12,15 @@ import { calculateCallCost, CENTS_PER_MINUTE } from '@/lib/credits-utils';
 // Re-export utility functions for server-side convenience
 export {
   CENTS_PER_MINUTE,
+  LOW_BALANCE_THRESHOLD_CENTS,
+  LOW_BALANCE_THRESHOLD_MINUTES,
   calculateCallCost,
   formatBalance,
   formatCallCost,
+  isLowBalance,
+  hasGraceUsage,
+  getLowBalanceMessage,
+  getGraceUsageMessage,
 } from '@/lib/credits-utils';
 
 /**

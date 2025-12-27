@@ -3,17 +3,9 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { CreditPackCard } from '@/components/dashboard/credit-pack-card';
 import { CreditsNotification } from './credits-notification';
+import { formatBalance } from '@/lib/credits-utils';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Format balance in the standard "$X.XX (~Y min)" format
- */
-function formatBalance(cents: number): string {
-  const dollars = (cents / 100).toFixed(2);
-  const minutes = Math.floor(cents / 15); // $0.15/min
-  return `$${dollars} (~${minutes} min)`;
-}
 
 interface PageProps {
   searchParams: Promise<{ success?: string; canceled?: string }>;
@@ -92,33 +84,28 @@ export default async function CreditsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Grace Credits Warning */}
+      {/* Grace Period Banner - Prominent when active */}
       {userWithCredits.graceCreditsUsed > 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-yellow-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Grace Credits Used
-              </h3>
-              <div className="mt-1 text-sm text-yellow-700">
-                <p>
-                  You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits that will be settled on your next purchase.
-                </p>
-              </div>
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-6 w-6 text-amber-500 flex-shrink-0"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <p className="text-amber-800 font-medium">Grace Period Active</p>
+              <p className="text-amber-700 text-sm">
+                You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits
+                that will be automatically settled on your next purchase.
+              </p>
             </div>
           </div>
         </div>
@@ -138,6 +125,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
               credits={pack.credits}
               priceInCents={pack.priceInCents}
               isPopular={pack.id === popularPackId}
+              graceCreditsUsed={userWithCredits.graceCreditsUsed}
             />
           ))}
         </div>

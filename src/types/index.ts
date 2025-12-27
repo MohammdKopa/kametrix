@@ -9,6 +9,7 @@ export interface AuthUser {
   name: string | null;
   role: Role;
   creditBalance: number;
+  graceCreditsUsed: number;
   googleConnectedAt: Date | null;
   googleSheetId: string | null;
 }
