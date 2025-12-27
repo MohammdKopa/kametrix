@@ -7,32 +7,17 @@ interface VoiceStepProps {
   onChange: (data: Partial<WizardState['voice']>) => void;
 }
 
+// Azure German voices for German market
 const VOICE_PROVIDERS = [
   {
-    id: 'elevenlabs' as const,
-    name: 'ElevenLabs',
-    description: 'High-quality, natural-sounding voices (Recommended)',
+    id: 'azure' as const,
+    name: 'Azure',
+    description: 'High-quality German voices optimized for phone calls (Recommended)',
     voices: [
-      { id: 'marissa', name: 'Marissa', description: 'Warm, professional female voice' },
-      { id: 'josh', name: 'Josh', description: 'Friendly, clear male voice' },
-      { id: 'bella', name: 'Bella', description: 'Energetic, upbeat female voice' },
-      { id: 'rachel', name: 'Rachel', description: 'Calm, soothing female voice' },
-    ],
-  },
-  {
-    id: 'vapi' as const,
-    name: 'Vapi',
-    description: 'Fast, reliable default voices',
-    voices: [
-      { id: 'vapi-default', name: 'Vapi Default', description: 'Standard voice optimized for speed' },
-    ],
-  },
-  {
-    id: 'cartesia' as const,
-    name: 'Cartesia',
-    description: 'Low-latency, expressive voices',
-    voices: [
-      { id: 'sonic-english', name: 'Sonic English', description: 'Natural-sounding English voice' },
+      { id: 'de-DE-KatjaNeural', name: 'Katja', description: 'Professional female voice, ideal for business' },
+      { id: 'de-DE-ConradNeural', name: 'Conrad', description: 'Professional male voice, clear and authoritative' },
+      { id: 'de-DE-AmalaNeural', name: 'Amala', description: 'Warm, friendly female voice' },
+      { id: 'de-DE-KillianNeural', name: 'Killian', description: 'Friendly, approachable male voice' },
     ],
   },
 ];
@@ -82,7 +67,7 @@ export function VoiceStep({ data, onChange }: VoiceStepProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">{provider.name}</span>
-                    {provider.id === 'elevenlabs' && (
+                    {provider.id === 'azure' && (
                       <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
                         Recommended
                       </span>

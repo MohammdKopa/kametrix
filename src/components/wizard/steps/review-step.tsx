@@ -13,12 +13,7 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
     (faq) => faq.question.trim() && faq.answer.trim()
   );
 
-  const voiceProviderName =
-    data.voice.voiceProvider === 'elevenlabs'
-      ? 'ElevenLabs'
-      : data.voice.voiceProvider === 'vapi'
-      ? 'Vapi'
-      : 'Cartesia';
+  const voiceProviderName = 'Azure';
 
   return (
     <div className="space-y-6">

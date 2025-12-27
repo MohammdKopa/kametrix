@@ -9,13 +9,12 @@ interface AgentFormProps {
   mode: 'create' | 'edit';
 }
 
+// Azure German voices for German market
 const VOICE_OPTIONS = [
-  { id: 'alloy', name: 'Alloy' },
-  { id: 'echo', name: 'Echo' },
-  { id: 'fable', name: 'Fable' },
-  { id: 'onyx', name: 'Onyx' },
-  { id: 'nova', name: 'Nova' },
-  { id: 'shimmer', name: 'Shimmer' },
+  { id: 'de-DE-KatjaNeural', name: 'Katja (Female, Professional)' },
+  { id: 'de-DE-ConradNeural', name: 'Conrad (Male, Professional)' },
+  { id: 'de-DE-AmalaNeural', name: 'Amala (Female, Friendly)' },
+  { id: 'de-DE-KillianNeural', name: 'Killian (Male, Friendly)' },
 ];
 
 export function AgentForm({ agent, mode }: AgentFormProps) {
@@ -29,7 +28,7 @@ export function AgentForm({ agent, mode }: AgentFormProps) {
     businessDescription: agent?.businessDescription || '',
     greeting: agent?.greeting || '',
     systemPrompt: agent?.systemPrompt || '',
-    voiceId: agent?.voiceId || 'alloy',
+    voiceId: agent?.voiceId || 'de-DE-KatjaNeural',
   });
 
   const handleChange = (

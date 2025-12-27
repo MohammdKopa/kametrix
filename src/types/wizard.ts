@@ -16,7 +16,7 @@ export interface WizardState {
   };
   voice: {
     voiceId: string;
-    voiceProvider: 'elevenlabs' | 'vapi' | 'cartesia';
+    voiceProvider: 'azure';
   };
   greeting: {
     agentName: string;
@@ -42,12 +42,12 @@ export const DEFAULT_WIZARD_STATE: WizardState = {
     policies: '',
   },
   voice: {
-    voiceId: 'marissa',
-    voiceProvider: 'elevenlabs',
+    voiceId: 'de-DE-KatjaNeural',
+    voiceProvider: 'azure',
   },
   greeting: {
     agentName: '',
     greeting: '',
-    endCallMessage: 'Thank you for calling. Have a great day!',
+    endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',
   },
 };
