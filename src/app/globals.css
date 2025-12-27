@@ -1,72 +1,125 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-/* ============================================
-   Theme CSS Custom Properties
-   ============================================ */
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Light mode (default) - Clean whites and grays */
-  --background: #ffffff;
-  --background-secondary: #f9fafb;
-  --foreground: #111827;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --border: #e5e7eb;
-  --accent: #3b82f6;
-  --accent-secondary: #2563eb;
-  --card: #ffffff;
-  --card-foreground: #111827;
+  --radius: 0.75rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
-  /* Dark mode - Proximab-inspired palette */
-  --background: #06040d;
-  --background-secondary: #0c0512;
-  --foreground: #f8fafc;
-  --muted: #1a1425;
-  --muted-foreground: #a1a1aa;
-  --border: #2d1f3d;
-  --accent: #983ad6;
-  --accent-secondary: #681ee0;
-  --card: rgba(15, 10, 25, 0.8);
-  --card-foreground: #f8fafc;
+  /* Proximab-inspired purple/pink dark theme */
+  --radius: 0.75rem;
+  --background: oklch(0.08 0.03 285);
+  --foreground: oklch(0.98 0.01 285);
+  --card: oklch(0.12 0.04 285);
+  --card-foreground: oklch(0.98 0.01 285);
+  --popover: oklch(0.1 0.04 285);
+  --popover-foreground: oklch(0.98 0.01 285);
+  --primary: oklch(0.55 0.25 300);
+  --primary-foreground: oklch(0.98 0.01 285);
+  --secondary: oklch(0.18 0.05 285);
+  --secondary-foreground: oklch(0.98 0.01 285);
+  --muted: oklch(0.15 0.04 285);
+  --muted-foreground: oklch(0.65 0.02 285);
+  --accent: oklch(0.45 0.3 305);
+  --accent-foreground: oklch(0.98 0.01 285);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.98 0.01 285);
+  --border: oklch(0.25 0.05 285);
+  --input: oklch(0.2 0.04 285);
+  --ring: oklch(0.55 0.25 300);
+  --chart-1: oklch(0.8 0.2 320);
+  --chart-2: oklch(0.55 0.25 300);
+  --chart-3: oklch(0.45 0.3 305);
+  --chart-4: oklch(0.6 0.15 200);
+  --chart-5: oklch(0.7 0.18 150);
+  --sidebar: oklch(0.1 0.04 285);
+  --sidebar-foreground: oklch(0.98 0.01 285);
+  --sidebar-primary: oklch(0.55 0.25 300);
+  --sidebar-primary-foreground: oklch(0.98 0.01 285);
+  --sidebar-accent: oklch(0.18 0.05 285);
+  --sidebar-accent-foreground: oklch(0.98 0.01 285);
+  --sidebar-border: oklch(0.25 0.05 285);
+  --sidebar-ring: oklch(0.55 0.25 300);
 }
 
-/* ============================================
-   Glassmorphism & Utility Classes
-   ============================================ */
-
-.glass-card {
-  background: var(--card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-.dark .glass-card {
-  background: rgba(15, 10, 25, 0.6);
-  border-color: rgba(45, 31, 61, 0.5);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-}
-
-/* ============================================
-   Theme Transition Classes
-   ============================================ */
-
-/* Smooth color transitions for theme switching */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color;
-  transition-timing-function: ease-in-out;
-  transition-duration: 150ms;
-}
-
-/* Disable transitions for elements that shouldn't animate */
-.no-transition,
-.no-transition *,
-[data-no-transition],
-[data-no-transition] * {
-  transition: none !important;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
