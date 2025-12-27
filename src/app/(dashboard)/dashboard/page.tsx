@@ -5,6 +5,7 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { GoogleConnectButton } from '@/components/dashboard/google-connect-button';
 import { DashboardNotification } from '@/components/dashboard/dashboard-notification';
+import { prisma } from '@/lib/prisma';
 import {
   formatBalance,
   isLowBalance,
@@ -26,6 +27,40 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   if (!user) {
     redirect('/login');
   }
+
+  // Get first day of current month
+  const now = new Date();
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Fetch real stats
+  const [activeAgentCount, callsThisMonth, recentCalls] = await Promise.all([
+    prisma.agent.count({
+      where: {
+        userId: user.id,
+        isActive: true,
+      },
+    }),
+    prisma.call.count({
+      where: {
+        userId: user.id,
+        startedAt: {
+          gte: firstOfMonth,
+        },
+      },
+    }),
+    prisma.call.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        agent: true,
+      },
+      orderBy: {
+        startedAt: 'desc',
+      },
+      take: 5,
+    }),
+  ]);
 
   // Map URL params to notification messages
   const getNotification = () => {
@@ -112,13 +147,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         />
         <StatsCard
           title="Active Agents"
-          value={0}
+          value={activeAgentCount}
           subtitle="currently running"
           icon="bot"
         />
         <StatsCard
           title="Calls This Month"
-          value={0}
+          value={callsThisMonth}
           subtitle="total calls"
           icon="phone"
         />
@@ -138,7 +173,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       </div>
 
       {/* Recent Activity */}
-      <RecentActivity />
+      <RecentActivity calls={recentCalls} />
     </div>
   );
 }
