@@ -87,7 +87,7 @@ Plans:
 
 Plans:
 - [x] 05-01: Stripe integration and credit pack products
-- [ ] 05-02: Credit purchase flow with Checkout
+- [x] 05-02: Credit purchase flow with Checkout
 - [ ] 05-03: Credit deduction on call completion
 - [ ] 05-04: Grace period logic and low balance notifications
 
@@ -158,7 +158,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Core Dashboard | v1.0 | 4/4 | Complete | 2025-12-24 |
 | 3. Vapi Integration | v1.0 | 4/4 | Complete | 2025-12-24 |
 | 4. Google Integrations | v1.0 | 3/3 | Complete | 2025-12-25 |
-| 5. Payments & Credits | v1.0 | 1/4 | In progress | - |
+| 5. Payments & Credits | v1.0 | 2/4 | In progress | - |
 | 6. Polish & Launch | v1.0 | 0/4 | Not started | - |
 | 7. German Voice Setup | v1.1 | 0/? | Not started | - |
 | 8. German Prompts & Localization | v1.1 | 0/? | Not started | - |

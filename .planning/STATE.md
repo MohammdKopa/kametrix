@@ -21,18 +21,18 @@
 ## Current Position
 
 Phase: 5 of 6 (Payments & Credits) - IN PROGRESS
-Plan: 1 of 4 in current phase
-Status: Plan 05-01 complete
-Last activity: 2025-12-27 - Completed 05-01-PLAN.md (Stripe SDK, webhook, credit packs)
+Plan: 2 of 4 in current phase
+Status: Plan 05-02 complete
+Last activity: 2025-12-27 - Completed 05-02-PLAN.md (Credit purchase flow)
 
 Progress: ██████████████████░░ 88%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: 17 min
-- Total execution time: 4.2 hours
+- Total plans completed: 16
+- Average duration: 19 min
+- Total execution time: 5.0 hours
 
 **By Phase:**
 
@@ -42,11 +42,11 @@ Progress: ██████████████████░░ 88%
 | 2 | 4 | 44 min | 11 min |
 | 3 | 4 | 63 min | 16 min |
 | 4 | 3 | 105 min | 35 min |
-| 5 | 1 | 15 min | 15 min |
+| 5 | 2 | 60 min | 30 min |
 
 **Recent Trend:**
-- Last 5 plans: 12 min, 8 min, 70 min, 27 min, 15 min
-- Trend: Phase 5 starting with straightforward SDK integration
+- Last 5 plans: 8 min, 70 min, 27 min, 15 min, 45 min
+- Trend: Phase 5 includes VPS testing and webhook verification
 
 *Updated after each plan completion*
 
@@ -87,6 +87,8 @@ Progress: ██████████████████░░ 88%
 | 4 | Date header prepended to systemPrompt | GPT-4o needs current date for correct year |
 | 5 | Lazy Stripe client initialization | Prevents build errors when STRIPE_SECRET_KEY not set |
 | 5 | Proxy pattern for stripe export | Backward compatibility with lazy initialization |
+| 5 | Balance format "$X.XX (~Y min)" | User clarity with 15 cents/minute rate |
+| 5 | Separate CreditsNotification component | Clean URL cleanup logic for credits page |
 
 ### Deferred Issues
 
@@ -110,6 +112,6 @@ Drift notes: None
 ## Session Continuity
 
 Last session: 2025-12-27
-Stopped at: Phase 05-01 complete
+Stopped at: Phase 05-02 complete
 Resume file: None
-Next: Execute 05-02-PLAN.md (Credit purchase flow)
+Next: Execute 05-03-PLAN.md (Credit deduction on call completion)
