@@ -59,6 +59,7 @@ export async function createBusinessAssistant(
   const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   // Build calendar tools if Google is connected (Vapi SDK format)
+  // Tool descriptions in German for consistency with system prompt
   const tools = hasCalendarTools ? [
     {
       type: 'function',
@@ -68,17 +69,17 @@ export async function createBusinessAssistant(
       },
       function: {
         name: 'check_availability',
-        description: 'Check calendar availability for a specific date. Use this when a caller asks about available appointment times.',
+        description: 'Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum. Verwende dies, wenn ein Anrufer nach freien Terminen fragt. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
         parameters: {
           type: 'object',
           properties: {
             date: {
               type: 'string',
-              description: 'Date to check in YYYY-MM-DD format (e.g., 2024-03-15)',
+              description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!',
             },
             timeZone: {
               type: 'string',
-              description: 'IANA timezone (e.g., Europe/Berlin). Optional, defaults to Europe/Berlin.',
+              description: 'IANA-Zeitzone (z.B. Europe/Berlin). Optional, Standard ist Europe/Berlin.',
             },
           },
           required: ['date'],
@@ -93,37 +94,37 @@ export async function createBusinessAssistant(
       },
       function: {
         name: 'book_appointment',
-        description: 'Book an appointment on the calendar. Use this after confirming the date, time, and caller details.',
+        description: 'Bucht einen Termin im Kalender. Verwende dies nach Bestätigung von Datum, Uhrzeit und Anruferdaten. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
         parameters: {
           type: 'object',
           properties: {
             date: {
               type: 'string',
-              description: 'Date in YYYY-MM-DD format (e.g., 2024-03-15)',
+              description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!',
             },
             time: {
               type: 'string',
-              description: 'Time in HH:MM AM/PM format (e.g., 10:00 AM) or 24-hour format (e.g., 14:30)',
+              description: 'Uhrzeit im 24-Stunden-Format (z.B. 14:30)',
             },
             callerName: {
               type: 'string',
-              description: "Caller's full name (required)",
+              description: 'Vollständiger Name des Anrufers (erforderlich)',
             },
             callerPhone: {
               type: 'string',
-              description: "Caller's phone number (optional)",
+              description: 'Telefonnummer des Anrufers (optional)',
             },
             callerEmail: {
               type: 'string',
-              description: "Caller's email address (optional, will send calendar invite if provided)",
+              description: 'E-Mail-Adresse des Anrufers (optional, erhält Kalendereinladung)',
             },
             summary: {
               type: 'string',
-              description: 'Brief description of the appointment (optional, defaults to "Appointment")',
+              description: 'Kurze Beschreibung des Termins (optional, Standard ist "Termin")',
             },
             timeZone: {
               type: 'string',
-              description: 'IANA timezone (e.g., Europe/Berlin). Optional, defaults to Europe/Berlin.',
+              description: 'IANA-Zeitzone (z.B. Europe/Berlin). Optional, Standard ist Europe/Berlin.',
             },
           },
           required: ['date', 'time', 'callerName'],

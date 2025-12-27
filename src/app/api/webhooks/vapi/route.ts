@@ -517,7 +517,8 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     // Build dynamic system prompt with current date prepended to stored prompt
     const today = new Date();
     const currentDateStr = today.toISOString().split('T')[0];
-    const dateHeader = `[CURRENT DATE: ${currentDateStr}. Always use year ${today.getFullYear()} for appointments.]\n\n`;
+    const year = today.getFullYear();
+    const dateHeader = `[AKTUELLES DATUM: ${currentDateStr}. WICHTIG: Heute ist der ${today.getDate()}.${today.getMonth() + 1}.${year}. Bei allen Terminbuchungen IMMER das Jahr ${year} verwenden, niemals ein vergangenes Jahr wie 2023 oder 2024.]\n\n`;
 
     // Use agent's stored system prompt with date header
     const systemPrompt = dateHeader + agent.systemPrompt;
@@ -535,12 +536,12 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'check_availability',
-          description: 'Check calendar availability for a specific date.',
+          description: 'Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
-              timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+              date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!' },
+              timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
             },
             required: ['date'],
           },
@@ -552,17 +553,17 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'book_appointment',
-          description: 'Book an appointment on the calendar.',
+          description: 'Bucht einen Termin im Kalender. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
-              time: { type: 'string', description: 'Time in HH:MM AM/PM or 24-hour format' },
-              callerName: { type: 'string', description: "Caller's full name (required)" },
-              callerPhone: { type: 'string', description: "Caller's phone number (optional)" },
-              callerEmail: { type: 'string', description: "Caller's email (optional)" },
-              summary: { type: 'string', description: 'Brief description (optional)' },
-              timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+              date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!' },
+              time: { type: 'string', description: 'Uhrzeit im Format HH:MM (24-Stunden-Format, z.B. 14:30)' },
+              callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
+              callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },
+              callerEmail: { type: 'string', description: 'E-Mail-Adresse des Anrufers (optional)' },
+              summary: { type: 'string', description: 'Kurze Beschreibung des Termins (optional)' },
+              timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
             },
             required: ['date', 'time', 'callerName'],
           },
