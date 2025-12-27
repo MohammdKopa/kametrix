@@ -20,12 +20,11 @@ export function StatsCard({ title, value, subtitle, warning, icon }: StatsCardPr
   return (
     <div
       className={`
-        rounded-xl border p-6 transition-all duration-200
-        bg-white hover:shadow-md
-        dark:glass-card dark:hover:shadow-[0_0_20px_rgba(152,58,214,0.15)]
+        glass-card p-6 transition-all duration-200
+        hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(152,58,214,0.15)]
         ${warning
           ? 'border-amber-300 dark:border-amber-500/50'
-          : 'border-gray-200 dark:border-[var(--border)]'
+          : ''
         }
       `}
     >

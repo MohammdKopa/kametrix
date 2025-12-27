@@ -101,7 +101,7 @@ export function GoogleConnectButton({
 
   if (isConnected) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6 dark:glass-card dark:border-[var(--border)]">
+      <div className="glass-card p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center">
@@ -193,7 +193,7 @@ export function GoogleConnectButton({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 dark:glass-card dark:border-[var(--border)]">
+    <div className="glass-card p-6">
       <div className="flex items-center gap-3 mb-4">
         <GoogleLogo className="w-8 h-8" />
         <div>

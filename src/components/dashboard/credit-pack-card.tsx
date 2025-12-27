@@ -68,10 +68,9 @@ export function CreditPackCard({
   return (
     <div
       className={`
-        relative bg-white rounded-xl border-2 p-6 flex flex-col transition-all duration-200
-        dark:glass-card
+        relative glass-card border-2 p-6 flex flex-col transition-all duration-200
         ${isPopular
-          ? 'border-blue-500 shadow-lg dark:border-[var(--accent)] dark:shadow-[0_0_25px_rgba(152,58,214,0.25)]'
+          ? 'border-[var(--accent)] shadow-lg dark:shadow-[0_0_25px_rgba(152,58,214,0.25)]'
           : 'border-gray-200 hover:border-gray-300 dark:border-[var(--border)] dark:hover:border-[var(--accent)]/50'
         }
       `}

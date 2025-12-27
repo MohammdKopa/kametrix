@@ -15,7 +15,7 @@ export function CreditBalance({ balance, graceCreditsUsed }: CreditBalanceProps)
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 dark:glass-card dark:border-[var(--border)]">
+    <div className="glass-card p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2.5 rounded-lg bg-gray-100 text-gray-600 dark:bg-[var(--accent)]/20 dark:text-[var(--accent)]">
           <Wallet className="w-5 h-5" />

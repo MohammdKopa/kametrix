@@ -73,7 +73,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Current Balance */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 dark:glass-card dark:border-[var(--border)]">
+      <div className="glass-card p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]">Current Balance</p>

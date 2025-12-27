@@ -2,7 +2,7 @@ import { Phone } from 'lucide-react';
 
 export function RecentActivity() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 dark:glass-card dark:border-[var(--border)]">
+    <div className="glass-card">
       <div className="p-6 border-b border-gray-200 dark:border-[var(--border)]">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)]">Recent Activity</h2>
       </div>

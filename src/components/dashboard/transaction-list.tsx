@@ -98,7 +98,7 @@ export function TransactionList({
 
   if (transactions.length === 0 && page === 1) {
     return (
-      <div className="text-center py-12 bg-white border border-gray-200 rounded-xl dark:glass-card dark:border-[var(--border)]">
+      <div className="text-center py-12 glass-card">
         <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 dark:bg-[var(--muted)] flex items-center justify-center mb-4">
           <svg
             className="h-8 w-8 text-gray-400 dark:text-[var(--muted-foreground)]"
@@ -124,7 +124,7 @@ export function TransactionList({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden dark:glass-card dark:border-[var(--border)]">
+    <div className="glass-card overflow-hidden">
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-[var(--border)]">
@@ -162,7 +162,7 @@ export function TransactionList({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200 dark:bg-transparent dark:divide-[var(--border)]">
+          <tbody className="divide-y divide-gray-200 dark:divide-[var(--border)]">
             {transactions.map((transaction) => (
               <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-[var(--muted)]/50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--foreground)]">
