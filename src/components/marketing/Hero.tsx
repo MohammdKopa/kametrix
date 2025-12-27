@@ -1,15 +1,30 @@
+"use client";
+
 import Link from "next/link";
+import { motion, useScroll, useTransform } from "motion/react";
 
 export function Hero() {
+  const { scrollYProgress } = useScroll();
+  const glowOpacity = useTransform(scrollYProgress, [0, 0.3], [0.2, 0]);
+  const glowScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.7]);
+
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      {/* Purple glow effect behind headline */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-purple-600/20 rounded-full blur-[128px] pointer-events-none" />
+      {/* Purple glow effect behind headline - scroll-linked */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-purple-600 rounded-full blur-[128px] pointer-events-none"
+        style={{ opacity: glowOpacity, scale: glowScale }}
+      />
 
-      {/* Secondary glow - smaller, offset */}
+      {/* Secondary glow - smaller, offset (static) */}
       <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="relative z-10 max-w-4xl mx-auto text-center">
+      <motion.div
+        className="relative z-10 max-w-4xl mx-auto text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
           <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
@@ -110,7 +125,7 @@ export function Hero() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

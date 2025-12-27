@@ -82,10 +82,11 @@ Plans:
 **Goal**: Rebuild landing page with shadcn/ui, add scroll effects, radial glows, and premium dark theme styling
 **Depends on**: Phase 12
 **Research**: Unlikely (established patterns from Phase 12)
-**Plans**: TBD
+**Plans**: 2
 
 Plans:
-- [ ] 13-01: TBD (run /gsd:plan-phase 13 to break down)
+- [x] 13-01: Motion Setup & Hero Enhancement
+- [ ] 13-02: Section Animations & Polish
 
 ## Progress
 
@@ -106,4 +107,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 10. Landing & Legal Pages | v1.1 | 2/2 | Complete | 2025-12-27 |
 | 11. shadcn/ui Setup | v1.2 | 2/2 | Complete | 2025-12-27 |
 | 12. Dashboard Redesign | v1.2 | 4/4 | Complete | 2025-12-27 |
-| 13. Landing Redesign | v1.2 | 0/? | Not started | - |
+| 13. Landing Redesign | v1.2 | 1/2 | In Progress | - |
