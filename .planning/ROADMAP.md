@@ -100,8 +100,8 @@ Plans:
 Plans:
 - [x] 06-01: Email notifications (signup, low credits, call summaries)
 - [x] 06-02: Health check endpoint and deployment documentation
-- [ ] 06-03: Deployment configuration and environment setup
-- [ ] 06-04: End-to-end testing and final polish
+- [x] 06-03: End-to-end testing and bug fixes
+- [ ] 06-04: Final polish and launch readiness
 
 ---
 
@@ -159,7 +159,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Vapi Integration | v1.0 | 4/4 | Complete | 2025-12-24 |
 | 4. Google Integrations | v1.0 | 3/3 | Complete | 2025-12-25 |
 | 5. Payments & Credits | v1.0 | 4/4 | Complete | 2025-12-27 |
-| 6. Polish & Launch | v1.0 | 2/4 | In progress | - |
+| 6. Polish & Launch | v1.0 | 3/4 | In progress | - |
 | 7. German Voice Setup | v1.1 | 0/? | Not started | - |
 | 8. German Prompts & Localization | v1.1 | 0/? | Not started | - |
 | 9. Dashboard UI Polish | v1.1 | 0/? | Not started | - |
