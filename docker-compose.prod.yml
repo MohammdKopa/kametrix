@@ -25,6 +25,8 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_ENCRYPTION_KEY=${GOOGLE_ENCRYPTION_KEY}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
     ports:
       - "3000:3000"
     depends_on:
@@ -49,6 +51,24 @@ services:
     command: npx prisma migrate deploy
     profiles:
       - migrate
+
+  # Seed runner - uses builder stage with full node_modules
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: kametrix-seed
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+    depends_on:
+      - postgres
+    networks:
+      - kametrix-network
+    command: npm run db:seed
+    profiles:
+      - seed
 
 volumes:
   kametrix_postgres_data:
