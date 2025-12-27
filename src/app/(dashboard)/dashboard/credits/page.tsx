@@ -1,0 +1,159 @@
+import { getCurrentUser } from '@/lib/auth-guard';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
+import { CreditPackCard } from '@/components/dashboard/credit-pack-card';
+import { CreditsNotification } from './credits-notification';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * Format balance in the standard "$X.XX (~Y min)" format
+ */
+function formatBalance(cents: number): string {
+  const dollars = (cents / 100).toFixed(2);
+  const minutes = Math.floor(cents / 15); // $0.15/min
+  return `$${dollars} (~${minutes} min)`;
+}
+
+interface PageProps {
+  searchParams: Promise<{ success?: string; canceled?: string }>;
+}
+
+export default async function CreditsPage({ searchParams }: PageProps) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  // Await searchParams as required by Next.js 15
+  const params = await searchParams;
+
+  // Fetch user with credit info and all active credit packs
+  const [userWithCredits, creditPacks] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        creditBalance: true,
+        graceCreditsUsed: true,
+      },
+    }),
+    prisma.creditPack.findMany({
+      where: { isActive: true },
+      orderBy: { priceInCents: 'asc' },
+    }),
+  ]);
+
+  if (!userWithCredits) {
+    redirect('/login');
+  }
+
+  // Determine which pack is "popular" (second pack by price, or mark by name)
+  const popularPackIndex = creditPacks.findIndex(
+    (pack) => pack.name.toLowerCase().includes('popular')
+  );
+  const popularPackId = popularPackIndex >= 0
+    ? creditPacks[popularPackIndex].id
+    : creditPacks[1]?.id; // Default to second pack if no "popular" in name
+
+  return (
+    <div className="space-y-6">
+      {/* Success/Cancel Notifications */}
+      {params.success === 'true' && (
+        <CreditsNotification
+          type="success"
+          message="Credits added successfully! Your balance has been updated."
+        />
+      )}
+      {params.canceled === 'true' && (
+        <CreditsNotification
+          type="info"
+          message="Purchase canceled. No charges were made."
+        />
+      )}
+
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">Buy Credits</h1>
+        <p className="text-gray-500 mt-1">
+          Purchase credits to power your AI phone agents
+        </p>
+      </div>
+
+      {/* Current Balance */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Current Balance</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1">
+              {formatBalance(userWithCredits.creditBalance)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Grace Credits Warning */}
+      {userWithCredits.graceCreditsUsed > 0 && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-yellow-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Grace Credits Used
+              </h3>
+              <div className="mt-1 text-sm text-yellow-700">
+                <p>
+                  You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits that will be settled on your next purchase.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credit Packs Grid */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Choose a Credit Pack
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {creditPacks.map((pack) => (
+            <CreditPackCard
+              key={pack.id}
+              id={pack.id}
+              name={pack.name}
+              credits={pack.credits}
+              priceInCents={pack.priceInCents}
+              isPopular={pack.id === popularPackId}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Info section */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <h3 className="text-sm font-medium text-gray-900 mb-2">
+          How credits work
+        </h3>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>Credits are charged at $0.15 per minute of call time</li>
+          <li>Unused credits never expire</li>
+          <li>Grace credits allow calls to continue even when your balance is low</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
