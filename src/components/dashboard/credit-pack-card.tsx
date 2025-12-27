@@ -67,16 +67,19 @@ export function CreditPackCard({
 
   return (
     <div
-      className={`relative bg-white rounded-lg border-2 p-6 flex flex-col ${
-        isPopular
-          ? 'border-blue-500 shadow-lg'
-          : 'border-gray-200 hover:border-gray-300'
-      } transition-all`}
+      className={`
+        relative bg-white rounded-xl border-2 p-6 flex flex-col transition-all duration-200
+        dark:glass-card
+        ${isPopular
+          ? 'border-blue-500 shadow-lg dark:border-[var(--accent)] dark:shadow-[0_0_25px_rgba(152,58,214,0.25)]'
+          : 'border-gray-200 hover:border-gray-300 dark:border-[var(--border)] dark:hover:border-[var(--accent)]/50'
+        }
+      `}
     >
       {/* Popular badge */}
       {isPopular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500 text-white">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500 text-white dark:bg-[var(--accent)]">
             <Sparkles className="w-3 h-3" />
             Most Popular
           </span>
@@ -84,28 +87,28 @@ export function CreditPackCard({
       )}
 
       {/* Pack name */}
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{name}</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-2">{name}</h3>
 
       {/* Price */}
       <div className="mb-4">
-        <span className="text-3xl font-bold text-gray-900">
+        <span className="text-3xl font-bold text-gray-900 dark:text-[var(--foreground)]">
           {formatPrice(priceInCents)}
         </span>
       </div>
 
       {/* Credits and minutes */}
-      <div className="mb-6 text-sm text-gray-600">
+      <div className="mb-6 text-sm text-gray-600 dark:text-[var(--muted-foreground)]">
         <p className="font-medium">{credits.toLocaleString()} credits</p>
         <p>~{estimatedMinutes} minutes of calls</p>
         {/* Settlement preview when grace period is active */}
         {hasGrace && canCoverGrace && (
-          <p className="text-amber-600 text-xs mt-2">
+          <p className="text-amber-600 dark:text-amber-400 text-xs mt-2">
             After ${(graceCreditsUsed / 100).toFixed(2)} grace settlement,
             you&apos;ll receive {effectiveCredits.toLocaleString()} credits (~{effectiveMinutes} min)
           </p>
         )}
         {hasGrace && !canCoverGrace && (
-          <p className="text-red-600 text-xs mt-2">
+          <p className="text-red-600 dark:text-red-400 text-xs mt-2">
             Pack does not cover ${(graceCreditsUsed / 100).toFixed(2)} grace balance
           </p>
         )}
@@ -115,11 +118,15 @@ export function CreditPackCard({
       <button
         onClick={handleBuy}
         disabled={isLoading}
-        className={`mt-auto w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md text-white transition-colors ${
-          isPopular
-            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-            : 'bg-gray-800 hover:bg-gray-900 focus:ring-gray-500'
-        } focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+        className={`
+          mt-auto w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white transition-colors
+          focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+          ${isPopular
+            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 dark:bg-[var(--accent)] dark:hover:bg-[var(--accent-secondary)] dark:focus:ring-[var(--accent)]'
+            : 'bg-gray-800 hover:bg-gray-900 focus:ring-gray-500 dark:bg-[var(--muted)] dark:hover:bg-[var(--border)] dark:focus:ring-[var(--border)]'
+          }
+          dark:focus:ring-offset-[var(--background)]
+        `}
       >
         {isLoading ? (
           <>

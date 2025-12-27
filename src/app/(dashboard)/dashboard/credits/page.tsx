@@ -66,18 +66,18 @@ export default async function CreditsPage({ searchParams }: PageProps) {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Buy Credits</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-[var(--foreground)]">Buy Credits</h1>
+        <p className="text-gray-500 dark:text-[var(--muted-foreground)] mt-1">
           Purchase credits to power your AI phone agents
         </p>
       </div>
 
       {/* Current Balance */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 dark:glass-card dark:border-[var(--border)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Current Balance</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
+            <p className="text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]">Current Balance</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-[var(--accent)] mt-1">
               {formatBalance(userWithCredits.creditBalance)}
             </p>
           </div>
@@ -86,10 +86,10 @@ export default async function CreditsPage({ searchParams }: PageProps) {
 
       {/* Grace Period Banner - Prominent when active */}
       {userWithCredits.graceCreditsUsed > 0 && (
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 dark:bg-amber-500/10 dark:border-[var(--accent)]/50">
           <div className="flex items-center gap-3">
             <svg
-              className="h-6 w-6 text-amber-500 flex-shrink-0"
+              className="h-6 w-6 text-amber-500 dark:text-amber-400 flex-shrink-0"
               viewBox="0 0 20 20"
               fill="currentColor"
               aria-hidden="true"
@@ -101,8 +101,8 @@ export default async function CreditsPage({ searchParams }: PageProps) {
               />
             </svg>
             <div>
-              <p className="text-amber-800 font-medium">Grace Period Active</p>
-              <p className="text-amber-700 text-sm">
+              <p className="text-amber-800 dark:text-amber-300 font-medium">Grace Period Active</p>
+              <p className="text-amber-700 dark:text-amber-400 text-sm">
                 You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits
                 that will be automatically settled on your next purchase.
               </p>
@@ -113,7 +113,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
 
       {/* Credit Packs Grid */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-4">
           Choose a Credit Pack
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -132,14 +132,23 @@ export default async function CreditsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Info section */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 className="text-sm font-medium text-gray-900 mb-2">
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 dark:bg-[var(--muted)] dark:border-[var(--border)]">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)] mb-3">
           How credits work
         </h3>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>Credits are charged at $0.15 per minute of call time</li>
-          <li>Unused credits never expire</li>
-          <li>Grace credits allow calls to continue even when your balance is low</li>
+        <ul className="text-sm text-gray-600 dark:text-[var(--muted-foreground)] space-y-2">
+          <li className="flex items-start gap-2">
+            <span className="text-[var(--accent)] mt-1">&#8226;</span>
+            <span>Credits are charged at $0.15 per minute of call time</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[var(--accent)] mt-1">&#8226;</span>
+            <span>Unused credits never expire</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[var(--accent)] mt-1">&#8226;</span>
+            <span>Grace credits allow calls to continue even when your balance is low</span>
+          </li>
         </ul>
       </div>
     </div>

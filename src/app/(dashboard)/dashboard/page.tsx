@@ -55,20 +55,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-[var(--foreground)]">
           Welcome back, {user.name || user.email.split('@')[0]}
         </h1>
-        <p className="text-gray-500 mt-1">
-          Here's what's happening with your voice agents
+        <p className="text-gray-500 dark:text-[var(--muted-foreground)] mt-1">
+          Here&apos;s what&apos;s happening with your voice agents
         </p>
       </div>
 
       {/* Low Balance / Grace Usage Warning */}
       {(isLowBalance(user.creditBalance) || hasGraceUsage(user.graceCreditsUsed)) && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 dark:bg-amber-500/10 dark:border-[var(--accent)]/50">
           <div className="flex items-start gap-3">
             <svg
-              className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0"
+              className="h-5 w-5 text-amber-500 dark:text-amber-400 mt-0.5 flex-shrink-0"
               viewBox="0 0 20 20"
               fill="currentColor"
               aria-hidden="true"
@@ -81,18 +81,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </svg>
             <div>
               {isLowBalance(user.creditBalance) && (
-                <p className="text-amber-800 text-sm">
+                <p className="text-amber-800 dark:text-amber-300 text-sm">
                   {getLowBalanceMessage(user.creditBalance)}
                 </p>
               )}
               {hasGraceUsage(user.graceCreditsUsed) && (
-                <p className="text-amber-800 text-sm mt-1">
+                <p className="text-amber-800 dark:text-amber-300 text-sm mt-1">
                   {getGraceUsageMessage(user.graceCreditsUsed)}
                 </p>
               )}
               <Link
                 href="/dashboard/credits"
-                className="text-amber-700 text-sm font-medium hover:underline mt-2 inline-block"
+                className="text-amber-700 dark:text-[var(--accent)] text-sm font-medium hover:underline mt-2 inline-block"
               >
                 Buy more credits &rarr;
               </Link>
@@ -108,22 +108,25 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           value={formatBalance(user.creditBalance)}
           subtitle={isLowBalance(user.creditBalance) ? "low balance" : "available"}
           warning={isLowBalance(user.creditBalance)}
+          icon="wallet"
         />
         <StatsCard
           title="Active Agents"
           value={0}
           subtitle="currently running"
+          icon="bot"
         />
         <StatsCard
           title="Calls This Month"
           value={0}
           subtitle="total calls"
+          icon="phone"
         />
       </div>
 
       {/* Google Integration */}
       <div>
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Integrations</h2>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-[var(--foreground)] mb-4">Integrations</h2>
         <div className="max-w-md">
           <GoogleConnectButton
             isConnected={!!user.googleConnectedAt}

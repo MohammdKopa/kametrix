@@ -101,19 +101,19 @@ export function GoogleConnectButton({
 
   if (isConnected) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 dark:glass-card dark:border-[var(--border)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <Check className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center">
+              <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <GoogleLogo className="w-5 h-5" />
-                <span className="font-medium text-gray-900">Google Connected</span>
+                <span className="font-medium text-gray-900 dark:text-[var(--foreground)]">Google Connected</span>
               </div>
               {connectedAt && (
-                <p className="text-sm text-gray-500 mt-0.5">
+                <p className="text-sm text-gray-500 dark:text-[var(--muted-foreground)] mt-0.5">
                   Connected {new Date(connectedAt).toLocaleDateString()}
                 </p>
               )}
@@ -122,7 +122,7 @@ export function GoogleConnectButton({
           <button
             onClick={handleDisconnect}
             disabled={isDisconnecting}
-            className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            className="text-sm text-gray-500 hover:text-gray-700 dark:text-[var(--muted-foreground)] dark:hover:text-[var(--foreground)] disabled:opacity-50"
           >
             {isDisconnecting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -134,12 +134,12 @@ export function GoogleConnectButton({
 
         {/* Integration Status */}
         <div className="mt-4 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-[var(--muted-foreground)]">
+            <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
             <span>Calendar: Ready for bookings</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-[var(--muted-foreground)]">
+            <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
             <span>
               {googleSheetId
                 ? 'Call Logging: Active'
@@ -149,8 +149,8 @@ export function GoogleConnectButton({
         </div>
 
         {/* Appointment Duration Setting */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <label htmlFor="appointment-duration" className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[var(--border)]">
+          <label htmlFor="appointment-duration" className="block text-sm font-medium text-gray-700 dark:text-[var(--foreground)] mb-2">
             Appointment Duration
           </label>
           <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function GoogleConnectButton({
               value={duration}
               onChange={(e) => handleDurationChange(Number(e.target.value))}
               disabled={isSavingDuration}
-              className="block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+              className="block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 dark:bg-[var(--muted)] dark:border-[var(--border)] dark:text-[var(--foreground)] dark:focus:border-[var(--accent)] dark:focus:ring-[var(--accent)]"
             >
               {DURATION_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -167,21 +167,21 @@ export function GoogleConnectButton({
                 </option>
               ))}
             </select>
-            {isSavingDuration && <Loader2 className="w-4 h-4 animate-spin text-gray-500" />}
+            {isSavingDuration && <Loader2 className="w-4 h-4 animate-spin text-gray-500 dark:text-[var(--muted-foreground)]" />}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-[var(--muted-foreground)] mt-1">
             Length of appointments booked by your voice agent
           </p>
         </div>
 
         {/* Sheet Link */}
         {googleSheetId && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[var(--border)]">
             <a
               href={`https://docs.google.com/spreadsheets/d/${googleSheetId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-[var(--accent)] dark:hover:text-[var(--accent-secondary)] font-medium"
             >
               View Call Log
               <ExternalLink className="w-4 h-4" />
@@ -193,25 +193,25 @@ export function GoogleConnectButton({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 dark:glass-card dark:border-[var(--border)]">
       <div className="flex items-center gap-3 mb-4">
         <GoogleLogo className="w-8 h-8" />
         <div>
-          <h3 className="font-medium text-gray-900">Connect Google Account</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="font-medium text-gray-900 dark:text-[var(--foreground)]">Connect Google Account</h3>
+          <p className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">
             Enable Calendar booking and Sheets logging
           </p>
         </div>
       </div>
       <a
         href="/api/auth/google"
-        className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:bg-[var(--muted)] dark:border-[var(--border)] dark:text-[var(--foreground)] dark:hover:bg-[var(--border)]"
       >
         <GoogleLogo className="w-5 h-5" />
         Connect Google
       </a>
-      <p className="text-xs text-gray-400 mt-3">
-        We'll request access to your Calendar and Sheets to enable agent features.
+      <p className="text-xs text-gray-400 dark:text-[var(--muted-foreground)] mt-3">
+        We&apos;ll request access to your Calendar and Sheets to enable agent features.
       </p>
     </div>
   );

@@ -51,24 +51,31 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-        <p className="text-gray-500 mt-1">Manage your account and credits</p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-[var(--foreground)]">Settings</h1>
+        <p className="text-gray-500 dark:text-[var(--muted-foreground)] mt-1">Manage your account and credits</p>
       </div>
 
       {/* Account Info Section */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Account Information
-        </h2>
+      <div className="bg-white border border-gray-200 rounded-xl p-6 dark:glass-card dark:border-[var(--border)]">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2.5 rounded-lg bg-gray-100 text-gray-600 dark:bg-[var(--accent)]/20 dark:text-[var(--accent)]">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)]">
+            Account Information
+          </h2>
+        </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <p className="mt-1 text-sm text-gray-900">{userWithCredits.email}</p>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--muted-foreground)]">Email</label>
+            <p className="mt-1 text-sm text-gray-900 dark:text-[var(--foreground)]">{userWithCredits.email}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <p className="mt-1 text-sm text-gray-900">
-              {userWithCredits.name || 'Not set'}
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--muted-foreground)]">Name</label>
+            <p className="mt-1 text-sm text-gray-900 dark:text-[var(--foreground)]">
+              {userWithCredits.name || <span className="text-gray-400 dark:text-[var(--muted-foreground)] italic">Not set</span>}
             </p>
           </div>
         </div>
@@ -76,7 +83,7 @@ export default async function SettingsPage() {
 
       {/* Credits Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Credits</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)]">Credits</h2>
 
         {/* Credit Balance Card */}
         <CreditBalance
@@ -86,7 +93,7 @@ export default async function SettingsPage() {
 
         {/* Transaction History */}
         <div>
-          <h3 className="text-md font-medium text-gray-900 mb-3">
+          <h3 className="text-md font-medium text-gray-900 dark:text-[var(--foreground)] mb-3">
             Transaction History
           </h3>
           <TransactionList
@@ -95,16 +102,6 @@ export default async function SettingsPage() {
             initialHasMore={hasMore}
           />
         </div>
-      </div>
-
-      {/* Future Settings Placeholder */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Additional Settings
-        </h2>
-        <p className="text-sm text-gray-500">
-          More settings options will be available here soon.
-        </p>
       </div>
     </div>
   );
