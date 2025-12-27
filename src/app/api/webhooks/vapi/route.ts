@@ -12,7 +12,8 @@ import { CallStatus } from '@/generated/prisma/client';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { getAvailableSlots, bookAppointment, parseDateTime } from '@/lib/google/calendar';
 import { prisma } from '@/lib/prisma';
-import { deductCreditsForCall } from '@/lib/credits';
+import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
+import { sendLowCreditEmail } from '@/lib/email';
 
 /**
  * Tool call payload from Vapi
@@ -203,12 +204,51 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
         });
 
         if (callRecord) {
+          // Get user state BEFORE deduction to check if this is first low balance event
+          const userBefore = await prisma.user.findUnique({
+            where: { id: agent.userId },
+            select: { email: true, name: true, creditBalance: true, graceCreditsUsed: true },
+          });
+
+          const wasLowBefore = userBefore ? isLowBalance(userBefore.creditBalance) : false;
+          const hadGraceUsageBefore = userBefore ? userBefore.graceCreditsUsed > 0 : false;
+
           await deductCreditsForCall(
             agent.userId,
             callRecord.id,
             durationSeconds
           );
           console.log(`Deducted credits for call ${call.id}: ${durationSeconds}s`);
+
+          // Send low credit email when crossing threshold for the first time
+          // Only send if: now low balance AND wasn't low before AND no grace usage before
+          if (userBefore) {
+            const userAfter = await prisma.user.findUnique({
+              where: { id: agent.userId },
+              select: { creditBalance: true, graceCreditsUsed: true },
+            });
+
+            if (userAfter) {
+              const isNowLow = isLowBalance(userAfter.creditBalance);
+              // Send email only when first crossing threshold (wasn't low before, is low now)
+              // OR when first entering grace (no grace before, has grace now)
+              const justCrossedThreshold = !wasLowBefore && isNowLow;
+              const justEnteredGrace = !hadGraceUsageBefore && userAfter.graceCreditsUsed > 0;
+
+              if (justCrossedThreshold || justEnteredGrace) {
+                // Fire and forget - don't await
+                sendLowCreditEmail({
+                  email: userBefore.email,
+                  name: userBefore.name,
+                  currentBalance: userAfter.creditBalance,
+                  graceCreditsUsed: userAfter.graceCreditsUsed,
+                }).catch((err) => {
+                  console.error('Failed to send low credit email:', err);
+                });
+                console.log(`Low credit email triggered for user ${agent.userId}`);
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('Error deducting credits:', error);

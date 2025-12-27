@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Vapi Integration** - Voice agent creation, phone number provisioning, call handling
 - [x] **Phase 4: Google Integrations** - Calendar booking, Sheets logging, OAuth flow
 - [ ] **Phase 5: Payments & Credits** - Stripe integration, credit packs, usage tracking, grace period
-- [ ] **Phase 6: Polish & Launch** - Email notifications, webhooks, final testing, deployment config
+- [ ] **Phase 6: Polish & Launch** - Email notifications, webhooks, final testing, deployment config (In progress)
 
 ## Phase Details
 
@@ -98,7 +98,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: Email notifications (signup, low credits, call summaries)
+- [x] 06-01: Email notifications (signup, low credits, call summaries)
 - [ ] 06-02: Webhook support for custom integrations
 - [ ] 06-03: Deployment configuration and environment setup
 - [ ] 06-04: End-to-end testing and final polish
@@ -159,7 +159,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Vapi Integration | v1.0 | 4/4 | Complete | 2025-12-24 |
 | 4. Google Integrations | v1.0 | 3/3 | Complete | 2025-12-25 |
 | 5. Payments & Credits | v1.0 | 4/4 | Complete | 2025-12-27 |
-| 6. Polish & Launch | v1.0 | 0/4 | Not started | - |
+| 6. Polish & Launch | v1.0 | 1/4 | In progress | - |
 | 7. German Voice Setup | v1.1 | 0/? | Not started | - |
 | 8. German Prompts & Localization | v1.1 | 0/? | Not started | - |
 | 9. Dashboard UI Polish | v1.1 | 0/? | Not started | - |

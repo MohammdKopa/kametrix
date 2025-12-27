@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
 import { createSession, setSessionCookie } from '@/lib/auth';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +71,11 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
     setSessionCookie(response, session.token, session.expiresAt);
+
+    // Send welcome email (fire and forget - don't block registration)
+    sendWelcomeEmail(user.email, user.name).catch((err) => {
+      console.error('Failed to send welcome email:', err);
+    });
 
     return response;
   } catch (error) {
