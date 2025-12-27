@@ -57,6 +57,7 @@ model User {
   googleRefreshToken  String?             // encrypted refresh token for Google OAuth
   googleSheetId       String?             // auto-created logging spreadsheet ID
   googleConnectedAt   DateTime?           // when Google was connected
+  appointmentDuration Int                 @default(30) // appointment duration in minutes
 
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt

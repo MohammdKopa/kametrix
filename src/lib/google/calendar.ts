@@ -39,7 +39,7 @@ export interface BookedEvent {
 // Business hours configuration
 const DEFAULT_BUSINESS_START_HOUR = 9; // 9 AM
 const DEFAULT_BUSINESS_END_HOUR = 17; // 5 PM
-const APPOINTMENT_DURATION_MINUTES = 30;
+const DEFAULT_APPOINTMENT_DURATION_MINUTES = 30;
 
 /**
  * Get available time slots for a given date
@@ -47,12 +47,14 @@ const APPOINTMENT_DURATION_MINUTES = 30;
  * @param oauth2Client - Authenticated OAuth2 client
  * @param date - Date to check availability for
  * @param timeZone - IANA timezone (e.g., "America/New_York")
- * @returns Array of available 30-minute time slots
+ * @param durationMinutes - Appointment duration in minutes (default 30)
+ * @returns Array of available time slots with specified duration
  */
 export async function getAvailableSlots(
   oauth2Client: OAuth2Client,
   date: Date,
-  timeZone: string = 'America/New_York'
+  timeZone: string = 'America/New_York',
+  durationMinutes: number = DEFAULT_APPOINTMENT_DURATION_MINUTES
 ): Promise<TimeSlot[]> {
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
@@ -76,13 +78,13 @@ export async function getAvailableSlots(
 
     const busyPeriods = freebusyResponse.data.calendars?.primary?.busy || [];
 
-    // Generate all possible 30-minute slots within business hours
+    // Generate all possible slots within business hours
     const allSlots: TimeSlot[] = [];
     let currentTime = new Date(startOfDay);
 
     while (currentTime < endOfDay) {
       const slotEnd = new Date(currentTime);
-      slotEnd.setMinutes(slotEnd.getMinutes() + APPOINTMENT_DURATION_MINUTES);
+      slotEnd.setMinutes(slotEnd.getMinutes() + durationMinutes);
 
       // Don't include slots that would end after business hours
       if (slotEnd <= endOfDay) {

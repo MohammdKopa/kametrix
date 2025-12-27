@@ -129,6 +129,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             isConnected={!!user.googleConnectedAt}
             connectedAt={user.googleConnectedAt}
             googleSheetId={user.googleSheetId}
+            appointmentDuration={user.appointmentDuration}
           />
         </div>
       </div>

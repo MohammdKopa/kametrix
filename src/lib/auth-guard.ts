@@ -33,6 +33,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       graceCreditsUsed: user.graceCreditsUsed,
       googleConnectedAt: user.googleConnectedAt,
       googleSheetId: user.googleSheetId,
+      appointmentDuration: user.appointmentDuration,
     };
   } catch (error) {
     console.error('Error getting auth user:', error);
@@ -69,6 +70,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       graceCreditsUsed: user.graceCreditsUsed,
       googleConnectedAt: user.googleConnectedAt,
       googleSheetId: user.googleSheetId,
+      appointmentDuration: user.appointmentDuration,
     };
   } catch (error) {
     console.error('Error getting current user:', error);

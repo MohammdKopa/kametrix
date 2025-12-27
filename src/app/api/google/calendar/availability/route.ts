@@ -73,8 +73,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get available slots
-    const slots = await getAvailableSlots(oauth2Client, requestedDate, timeZone);
+    // Get available slots using user's configured appointment duration
+    const appointmentDuration = agent.user.appointmentDuration || 30;
+    const slots = await getAvailableSlots(oauth2Client, requestedDate, timeZone, appointmentDuration);
 
     // Format response for voice agent
     if (slots.length === 0) {

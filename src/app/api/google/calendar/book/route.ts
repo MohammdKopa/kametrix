@@ -89,9 +89,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Calculate end time (30 minutes after start)
+    // Calculate end time based on user's configured appointment duration
+    const appointmentDuration = agent.user.appointmentDuration || 30;
     const endDateTime = new Date(startDateTime);
-    endDateTime.setMinutes(endDateTime.getMinutes() + 30);
+    endDateTime.setMinutes(endDateTime.getMinutes() + appointmentDuration);
 
     // Build appointment title with caller name if provided
     const appointmentTitle = callerName

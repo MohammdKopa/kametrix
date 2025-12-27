@@ -12,6 +12,7 @@ export interface AuthUser {
   graceCreditsUsed: number;
   googleConnectedAt: Date | null;
   googleSheetId: string | null;
+  appointmentDuration: number;
 }
 
 /**

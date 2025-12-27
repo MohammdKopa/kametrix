@@ -7,6 +7,7 @@ interface GoogleConnectButtonProps {
   isConnected: boolean;
   connectedAt?: Date | null;
   googleSheetId?: string | null;
+  appointmentDuration?: number;
 }
 
 // Google logo SVG component
@@ -33,12 +34,24 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
+const DURATION_OPTIONS = [
+  { value: 15, label: '15 minutes' },
+  { value: 30, label: '30 minutes' },
+  { value: 45, label: '45 minutes' },
+  { value: 60, label: '1 hour' },
+  { value: 90, label: '1.5 hours' },
+  { value: 120, label: '2 hours' },
+];
+
 export function GoogleConnectButton({
   isConnected,
   connectedAt,
   googleSheetId,
+  appointmentDuration = 30,
 }: GoogleConnectButtonProps) {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [duration, setDuration] = useState(appointmentDuration);
+  const [isSavingDuration, setIsSavingDuration] = useState(false);
 
   const handleDisconnect = async () => {
     if (!confirm('Are you sure you want to disconnect your Google account? This will disable Calendar booking and Sheets logging.')) {
@@ -61,6 +74,28 @@ export function GoogleConnectButton({
       alert('Failed to disconnect Google account');
     } finally {
       setIsDisconnecting(false);
+    }
+  };
+
+  const handleDurationChange = async (newDuration: number) => {
+    setDuration(newDuration);
+    setIsSavingDuration(true);
+    try {
+      const response = await fetch('/api/settings/appointment-duration', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: newDuration }),
+      });
+
+      if (!response.ok) {
+        alert('Failed to save appointment duration');
+        setDuration(appointmentDuration); // Revert on failure
+      }
+    } catch {
+      alert('Failed to save appointment duration');
+      setDuration(appointmentDuration); // Revert on failure
+    } finally {
+      setIsSavingDuration(false);
     }
   };
 
@@ -111,6 +146,32 @@ export function GoogleConnectButton({
                 : 'Call Logging: Sheet will be created on first call'}
             </span>
           </div>
+        </div>
+
+        {/* Appointment Duration Setting */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <label htmlFor="appointment-duration" className="block text-sm font-medium text-gray-700 mb-2">
+            Appointment Duration
+          </label>
+          <div className="flex items-center gap-2">
+            <select
+              id="appointment-duration"
+              value={duration}
+              onChange={(e) => handleDurationChange(Number(e.target.value))}
+              disabled={isSavingDuration}
+              className="block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {DURATION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {isSavingDuration && <Loader2 className="w-4 h-4 animate-spin text-gray-500" />}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Length of appointments booked by your voice agent
+          </p>
         </div>
 
         {/* Sheet Link */}

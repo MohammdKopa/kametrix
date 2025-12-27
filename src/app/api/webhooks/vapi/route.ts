@@ -376,7 +376,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
                 const date = new Date(args.date);
-                const slots = await getAvailableSlots(oauth2Client, date, timeZone);
+                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                const slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
 
                 if (slots.length === 0) {
                   result = `I don't see any available slots on ${args.date}. Would you like to try a different day?`;
@@ -412,16 +413,16 @@ async function handleToolCalls(message: WebhookToolCalls) {
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
                 const start = parseDateTime(args.date, args.time, timeZone);
-                // Add 30 minutes for default appointment duration
-                // Parse the local time and add 30 minutes, keeping local format
+
+                // Use user's configured appointment duration
+                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+
+                // Calculate end time based on configured duration
                 const [datePart, timePart] = start.split('T');
                 const [hh, mm] = timePart.split(':').map(Number);
-                let endHour = hh;
-                let endMin = mm + 30;
-                if (endMin >= 60) {
-                  endMin -= 60;
-                  endHour += 1;
-                }
+                let totalMinutes = hh * 60 + mm + appointmentDuration;
+                const endHour = Math.floor(totalMinutes / 60) % 24;
+                const endMin = totalMinutes % 60;
                 const end = `${datePart}T${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
 
                 const event = await bookAppointment(oauth2Client, {
