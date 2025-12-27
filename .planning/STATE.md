@@ -4,7 +4,7 @@
 
 **Building:** Self-serve platform that lets small businesses deploy AI voice agents in minutes for phone support and appointment booking.
 
-**Current status:** v1.2 React Conversion & Landing Complete in progress.
+**Current status:** v1.2 shadcn/ui & Premium Dark Theme in progress.
 
 **Core requirements (v1.0 - COMPLETE):**
 - [x] End-to-end flow: signup → create agent → assign phone number → receive test call
@@ -22,10 +22,10 @@
 
 ## Current Position
 
-Phase: 11 of 13 (Dashboard JSX Conversion)
+Phase: 11 of 13 (shadcn/ui Setup)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2025-12-27 - Milestone v1.2 created
+Last activity: 2025-12-27 - Milestone v1.2 revised (shadcn/ui & Premium Dark Theme)
 
 Progress: v1.2 ░░░░░░░░░░░ 0%
 
@@ -91,11 +91,11 @@ Drift notes: None
 
 - v1.0 milestone completed: 6 phases (1-6), 21 plans, shipped 2025-12-27
 - v1.1 milestone completed: 4 phases (7-10), 7 plans, shipped 2025-12-27
-- v1.2 milestone created: React Conversion & Landing Complete, 3 phases (11-13)
+- v1.2 milestone revised: shadcn/ui & Premium Dark Theme (Proximab-inspired), 3 phases (11-13)
 
 ## Session Continuity
 
 Last session: 2025-12-27
-Stopped at: Milestone v1.2 initialization
+Stopped at: Milestone v1.2 revised
 Resume file: None
-Next: /gsd:plan-phase 11
+Next: /gsd:research-phase 11 (shadcn/ui integration)

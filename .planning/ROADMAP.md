@@ -8,7 +8,7 @@ Kametrix evolves from an empty Next.js project to a complete self-serve voice AI
 
 - [v1.0 MVP](milestones/v1.0-ROADMAP.md) - Phases 1-6 (SHIPPED 2025-12-27)
 - [v1.1 German Market & Polish](milestones/v1.1-ROADMAP.md) - Phases 7-10 (SHIPPED 2025-12-27)
-- v1.2 React Conversion & Landing Complete - Phases 11-13 (in progress)
+- v1.2 shadcn/ui & Premium Dark Theme - Phases 11-13 (in progress)
 
 ## Domain Expertise
 
@@ -44,32 +44,40 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v1.2 React Conversion & Landing Complete (In Progress)
+### v1.2 shadcn/ui & Premium Dark Theme (In Progress)
 
-**Milestone Goal:** Convert frontend from TypeScript (.tsx) to plain React (.jsx), complete the landing page with Pricing, CTA, and Footer sections using frontend-design skill for premium visuals.
+**Milestone Goal:** Redesign the entire app with shadcn/ui components and a Proximab-inspired premium dark theme featuring purple/pink gradients, radial glows, glassmorphism, and scroll effects. Visual polish only — no new features.
 
-#### Phase 11: Dashboard JSX Conversion
-**Goal**: Convert all dashboard components from .tsx to .jsx (remove TypeScript, keep functionality)
+**Reference:** https://proximab.framer.website/
+- Purple/pink accent gradients on dark backgrounds (#06040d base)
+- Glassmorphic cards with blur effects and subtle borders
+- Radial glow effects for atmosphere
+- Smooth scroll animations and sticky elements
+- Typography: Poppins + Inter
+
+#### Phase 11: shadcn/ui Setup
+**Goal**: Install shadcn/ui, configure Proximab-inspired theme (purple/pink gradients, dark mode), set up component foundation
 **Depends on**: Phase 10 (v1.1 complete)
-**Research**: Unlikely (internal refactoring)
+**Research**: Likely (new library integration)
+**Research topics**: shadcn/ui installation with Next.js, theme customization, CSS variables for dark mode
 **Plans**: TBD
 
 Plans:
 - [ ] 11-01: TBD (run /gsd:plan-phase 11 to break down)
 
-#### Phase 12: Landing JSX Conversion
-**Goal**: Convert marketing/landing page components from .tsx to .jsx
+#### Phase 12: Dashboard Redesign
+**Goal**: Rebuild dashboard components with shadcn/ui, apply Proximab dark theme with glassmorphism and gradient accents
 **Depends on**: Phase 11
-**Research**: Unlikely (internal refactoring)
+**Research**: Unlikely (internal patterns + shadcn docs from Phase 11)
 **Plans**: TBD
 
 Plans:
 - [ ] 12-01: TBD (run /gsd:plan-phase 12 to break down)
 
-#### Phase 13: Landing Completion
-**Goal**: Add Pricing, CTA, Footer sections to landing page with frontend-design skill for premium visuals
+#### Phase 13: Landing Redesign
+**Goal**: Rebuild landing page with shadcn/ui, add scroll effects, radial glows, and premium dark theme styling
 **Depends on**: Phase 12
-**Research**: Unlikely (established patterns + frontend-design skill)
+**Research**: Unlikely (established patterns from Phase 12)
 **Plans**: TBD
 
 Plans:
@@ -92,6 +100,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. German Prompts & Localization | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 9. Dashboard UI Polish | v1.1 | 3/3 | Complete | 2025-12-27 |
 | 10. Landing & Legal Pages | v1.1 | 2/2 | Complete | 2025-12-27 |
-| 11. Dashboard JSX Conversion | v1.2 | 0/? | Not started | - |
-| 12. Landing JSX Conversion | v1.2 | 0/? | Not started | - |
-| 13. Landing Completion | v1.2 | 0/? | Not started | - |
+| 11. shadcn/ui Setup | v1.2 | 0/? | Not started | - |
+| 12. Dashboard Redesign | v1.2 | 0/? | Not started | - |
+| 13. Landing Redesign | v1.2 | 0/? | Not started | - |
