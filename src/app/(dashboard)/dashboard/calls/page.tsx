@@ -55,8 +55,10 @@ export default async function CallsPage({ searchParams }: CallsPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Call History</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-[var(--foreground)]">
+            Call History
+          </h1>
+          <p className="text-gray-500 dark:text-[var(--muted-foreground)] mt-1">
             View all calls handled by your agents
           </p>
         </div>

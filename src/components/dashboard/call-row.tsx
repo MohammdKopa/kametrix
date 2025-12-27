@@ -7,6 +7,30 @@ interface CallRowProps {
   call: Call & { agent: Agent };
 }
 
+// Get status dot color
+const getStatusDot = (status: CallStatus) => {
+  const dots: Record<CallStatus, string> = {
+    COMPLETED: 'bg-green-500',
+    FAILED: 'bg-red-500',
+    IN_PROGRESS: 'bg-yellow-500',
+    RINGING: 'bg-blue-500',
+    NO_ANSWER: 'bg-gray-400',
+  };
+  return dots[status] || 'bg-gray-400';
+};
+
+// Get status badge styling with dark mode
+const getStatusBadge = (status: CallStatus) => {
+  const badges: Record<CallStatus, string> = {
+    COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400',
+    FAILED: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400',
+    IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400',
+    RINGING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400',
+    NO_ANSWER: 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]',
+  };
+  return badges[status] || 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]';
+};
+
 export function CallRow({ call }: CallRowProps) {
   // Format date and time
   const formattedDate = new Date(call.startedAt).toLocaleDateString('en-US', {
@@ -30,51 +54,32 @@ export function CallRow({ call }: CallRowProps) {
     return `${mins}m ${secs}s`;
   };
 
-  // Get status badge styling
-  const getStatusBadge = (status: CallStatus) => {
-    const badges = {
-      COMPLETED: 'bg-green-100 text-green-800',
-      FAILED: 'bg-red-100 text-red-800',
-      IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-      RINGING: 'bg-blue-100 text-blue-800',
-      NO_ANSWER: 'bg-gray-100 text-gray-800',
-    };
-    return badges[status] || 'bg-gray-100 text-gray-800';
-  };
-
   // Format credits (cents to dollars)
   const formatCredits = (cents: number) => {
     return `$${(cents / 100).toFixed(2)}`;
   };
 
-  // Truncate transcript for preview
-  const truncateTranscript = (text: string | null, maxLength: number = 100) => {
-    if (!text) return '-';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
       <td className="px-6 py-4 whitespace-nowrap">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm text-gray-900">{formattedDate}</div>
-          <div className="text-sm text-gray-500">{formattedTime}</div>
+          <div className="text-sm text-gray-900 dark:text-[var(--foreground)]">{formattedDate}</div>
+          <div className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">{formattedTime}</div>
         </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm font-medium text-gray-900">{call.agent.name}</div>
+          <div className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)]">{call.agent.name}</div>
         </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm text-gray-900">{call.phoneNumber}</div>
+          <div className="text-sm text-gray-900 dark:text-[var(--foreground)]">{call.phoneNumber}</div>
         </Link>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm text-gray-900">
+          <div className="text-sm text-gray-900 dark:text-[var(--foreground)]">
             {call.durationSeconds !== null && call.durationSeconds > 0
               ? (call.creditsUsed > 0
                   ? formatCallCost(call.durationSeconds, call.creditsUsed)
@@ -86,15 +91,16 @@ export function CallRow({ call }: CallRowProps) {
       <td className="px-6 py-4 whitespace-nowrap">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge(
               call.status
             )}`}
           >
+            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(call.status)}`} />
             {call.status.replace('_', ' ')}
           </span>
         </Link>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--foreground)]">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
           {formatCredits(call.creditsUsed)}
         </Link>

@@ -6,11 +6,19 @@ interface StatusFilterProps {
   currentStatus?: string;
 }
 
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'FAILED', label: 'Failed' },
+  { value: 'NO_ANSWER', label: 'No Answer' },
+  { value: 'RINGING', label: 'Ringing' },
+];
+
 export function StatusFilter({ currentStatus }: StatusFilterProps) {
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleClick = (value: string) => {
     const url = new URL(window.location.href);
     if (value === 'all') {
       url.searchParams.delete('status');
@@ -20,25 +28,23 @@ export function StatusFilter({ currentStatus }: StatusFilterProps) {
     router.push(url.pathname + url.search);
   };
 
+  const activeValue = currentStatus || 'all';
+
   return (
-    <div className="flex items-center gap-4">
-      <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
-        Filter by status:
-      </label>
-      <select
-        id="status-filter"
-        name="status"
-        value={currentStatus || 'all'}
-        onChange={handleChange}
-        className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-      >
-        <option value="all">All</option>
-        <option value="COMPLETED">Completed</option>
-        <option value="IN_PROGRESS">In Progress</option>
-        <option value="FAILED">Failed</option>
-        <option value="NO_ANSWER">No Answer</option>
-        <option value="RINGING">Ringing</option>
-      </select>
+    <div className="flex flex-wrap items-center gap-2">
+      {STATUS_OPTIONS.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => handleClick(option.value)}
+          className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+            activeValue === option.value
+              ? 'bg-[var(--accent)] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-[var(--foreground)] dark:hover:bg-white/20'
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

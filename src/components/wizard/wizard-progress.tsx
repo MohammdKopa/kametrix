@@ -33,10 +33,10 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                   <div
                     className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
                       isCompleted
-                        ? 'bg-blue-600 border-blue-600 text-white'
+                        ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
                         : isCurrent
-                        ? 'border-blue-600 text-blue-600 bg-white'
-                        : 'border-gray-300 text-gray-400 bg-white'
+                        ? 'border-[var(--accent)] text-[var(--accent)] bg-white dark:bg-[var(--background)]'
+                        : 'border-gray-300 dark:border-[var(--border)] text-gray-400 dark:text-[var(--muted-foreground)] bg-white dark:bg-[var(--background)]'
                     }`}
                   >
                     {isCompleted ? (
@@ -47,7 +47,11 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                   </div>
                   <span
                     className={`mt-2 text-xs font-medium ${
-                      isCurrent ? 'text-blue-600' : 'text-gray-500'
+                      isCurrent
+                        ? 'text-[var(--accent)]'
+                        : isCompleted
+                        ? 'text-gray-700 dark:text-[var(--foreground)]'
+                        : 'text-gray-500 dark:text-[var(--muted-foreground)]'
                     }`}
                   >
                     {label}
@@ -58,7 +62,9 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                 {index < totalSteps - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-4 transition-colors ${
-                      stepNumber < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+                      stepNumber < currentStep
+                        ? 'bg-[var(--accent)]'
+                        : 'bg-gray-300 dark:bg-[var(--border)]'
                     }`}
                   />
                 )}
@@ -71,14 +77,16 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
       {/* Mobile view - compact */}
       <div className="md:hidden">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-gray-700 dark:text-[var(--foreground)]">
             Step {currentStep} of {totalSteps}
           </span>
-          <span className="text-sm text-gray-500">{STEP_LABELS[currentStep - 1]}</span>
+          <span className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">
+            {STEP_LABELS[currentStep - 1]}
+          </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-[var(--border)] rounded-full h-2">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            className="bg-[var(--accent)] h-2 rounded-full transition-all duration-300"
             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
           />
         </div>
