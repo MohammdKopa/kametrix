@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { UserList } from '@/components/admin/user-list';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, Bot, Phone } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +21,7 @@ export default async function AdminPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Admin Dashboard</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Admin Dashboard</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -27,24 +29,31 @@ export default async function AdminPage() {
           title="Total Users"
           value={stats.totalUsers}
           subtitle="All registered users"
+          icon={Users}
         />
         <StatsCard
           title="Total Agents"
           value={stats.totalAgents}
           subtitle="Across all users"
+          icon={Bot}
         />
         <StatsCard
           title="Total Calls"
           value={stats.totalCalls}
           subtitle="Platform-wide"
+          icon={Phone}
         />
       </div>
 
       {/* User List */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">All Users</h2>
-        <UserList />
-      </div>
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg font-medium text-foreground">All Users</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <UserList />
+        </CardContent>
+      </Card>
     </div>
   );
 }

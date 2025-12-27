@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 interface StatusFilterProps {
   currentStatus?: string;
@@ -33,17 +34,19 @@ export function StatusFilter({ currentStatus }: StatusFilterProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {STATUS_OPTIONS.map((option) => (
-        <button
+        <Button
           key={option.value}
           onClick={() => handleClick(option.value)}
-          className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+          variant={activeValue === option.value ? 'default' : 'ghost'}
+          size="sm"
+          className={
             activeValue === option.value
-              ? 'bg-[var(--accent)] text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-[var(--foreground)] dark:hover:bg-white/20'
-          }`}
+              ? 'shadow-[0_0_12px_oklch(0.55_0.25_300_/_0.3)]'
+              : ''
+          }
         >
           {option.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

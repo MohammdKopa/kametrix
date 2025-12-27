@@ -2,33 +2,35 @@ import type { Call, Agent } from '@/generated/prisma/client';
 import { CallStatus } from '@/generated/prisma/client';
 import Link from 'next/link';
 import { formatCallCost } from '@/lib/credits-utils';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface CallRowProps {
   call: Call & { agent: Agent };
 }
 
-// Get status dot color
-const getStatusDot = (status: CallStatus) => {
-  const dots: Record<CallStatus, string> = {
-    COMPLETED: 'bg-green-500',
-    FAILED: 'bg-red-500',
-    IN_PROGRESS: 'bg-yellow-500',
-    RINGING: 'bg-blue-500',
-    NO_ANSWER: 'bg-gray-400',
+// Get status badge styling with OKLCH colors for dark mode
+const getStatusBadgeStyle = (status: CallStatus) => {
+  const styles: Record<CallStatus, string> = {
+    COMPLETED: 'bg-green-500/20 text-green-400 border-green-500/30',
+    FAILED: 'bg-red-500/20 text-red-400 border-red-500/30',
+    IN_PROGRESS: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    RINGING: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    NO_ANSWER: 'bg-muted text-muted-foreground border-border',
   };
-  return dots[status] || 'bg-gray-400';
+  return styles[status] || 'bg-muted text-muted-foreground border-border';
 };
 
-// Get status badge styling with dark mode
-const getStatusBadge = (status: CallStatus) => {
-  const badges: Record<CallStatus, string> = {
-    COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400',
-    FAILED: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400',
-    RINGING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400',
-    NO_ANSWER: 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]',
+// Get status dot with OKLCH glow
+const getStatusDotStyle = (status: CallStatus) => {
+  const dots: Record<CallStatus, string> = {
+    COMPLETED: 'bg-green-500 shadow-[0_0_6px_oklch(0.7_0.2_142)]',
+    FAILED: 'bg-red-500 shadow-[0_0_6px_oklch(0.6_0.25_25)]',
+    IN_PROGRESS: 'bg-amber-500 shadow-[0_0_6px_oklch(0.75_0.18_85)]',
+    RINGING: 'bg-blue-500 shadow-[0_0_6px_oklch(0.6_0.2_250)]',
+    NO_ANSWER: 'bg-muted-foreground',
   };
-  return badges[status] || 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]';
+  return dots[status] || 'bg-muted-foreground';
 };
 
 export function CallRow({ call }: CallRowProps) {
@@ -60,26 +62,26 @@ export function CallRow({ call }: CallRowProps) {
   };
 
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap">
+    <TableRow className="hover:bg-muted/50 transition-colors">
+      <TableCell className="px-6 py-4">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm text-gray-900 dark:text-[var(--foreground)]">{formattedDate}</div>
-          <div className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">{formattedTime}</div>
+          <div className="text-sm text-foreground">{formattedDate}</div>
+          <div className="text-sm text-muted-foreground">{formattedTime}</div>
         </Link>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      </TableCell>
+      <TableCell className="px-6 py-4">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)]">{call.agent.name}</div>
+          <div className="text-sm font-medium text-foreground">{call.agent.name}</div>
         </Link>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      </TableCell>
+      <TableCell className="px-6 py-4">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm text-gray-900 dark:text-[var(--foreground)]">{call.phoneNumber}</div>
+          <div className="text-sm text-muted-foreground">{call.phoneNumber}</div>
         </Link>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      </TableCell>
+      <TableCell className="px-6 py-4">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <div className="text-sm text-gray-900 dark:text-[var(--foreground)]">
+          <div className="text-sm text-foreground">
             {call.durationSeconds !== null && call.durationSeconds > 0
               ? (call.creditsUsed > 0
                   ? formatCallCost(call.durationSeconds, call.creditsUsed)
@@ -87,24 +89,23 @@ export function CallRow({ call }: CallRowProps) {
               : '-'}
           </div>
         </Link>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      </TableCell>
+      <TableCell className="px-6 py-4">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge(
-              call.status
-            )}`}
+          <Badge
+            variant="outline"
+            className={`${getStatusBadgeStyle(call.status)} inline-flex items-center gap-1.5`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(call.status)}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotStyle(call.status)}`} />
             {call.status.replace('_', ' ')}
-          </span>
+          </Badge>
         </Link>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--foreground)]">
+      </TableCell>
+      <TableCell className="px-6 py-4 text-sm text-foreground">
         <Link href={`/dashboard/calls/${call.id}`} className="block">
           {formatCredits(call.creditsUsed)}
         </Link>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

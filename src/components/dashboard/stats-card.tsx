@@ -1,4 +1,4 @@
-import { Wallet, Bot, Phone, LucideIcon } from 'lucide-react';
+import { Wallet, Bot, Phone, Users, DollarSign, CreditCard, LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface StatsCardProps {
@@ -6,17 +6,21 @@ interface StatsCardProps {
   value: string | number;
   subtitle?: string;
   warning?: boolean;
-  icon?: 'wallet' | 'bot' | 'phone';
+  icon?: 'wallet' | 'bot' | 'phone' | 'users' | 'dollar' | 'credit' | LucideIcon;
 }
 
 const iconMap: Record<string, LucideIcon> = {
   wallet: Wallet,
   bot: Bot,
   phone: Phone,
+  users: Users,
+  dollar: DollarSign,
+  credit: CreditCard,
 };
 
 export function StatsCard({ title, value, subtitle, warning, icon }: StatsCardProps) {
-  const Icon = icon ? iconMap[icon] : null;
+  // Resolve the icon: if it's a string, look it up in the map; if it's a component, use it directly
+  const Icon = typeof icon === 'string' ? iconMap[icon] : icon || null;
 
   return (
     <Card

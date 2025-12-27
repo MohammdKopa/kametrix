@@ -3,6 +3,27 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { StatsCard } from '@/components/dashboard/stats-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  ArrowLeft,
+  DollarSign,
+  CreditCard,
+  Bot,
+  Phone,
+  Loader2,
+} from 'lucide-react';
 
 interface User {
   id: string;
@@ -128,7 +149,10 @@ export default function AdminUserDetailPage({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading user...</p>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading user...
+        </div>
       </div>
     );
   }
@@ -136,7 +160,7 @@ export default function AdminUserDetailPage({
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">User not found</p>
+        <p className="text-muted-foreground">User not found</p>
       </div>
     );
   }
@@ -149,24 +173,25 @@ export default function AdminUserDetailPage({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <Link
-            href="/admin"
-            className="text-sm text-purple-600 hover:text-purple-800 mb-2 inline-block"
-          >
-            ← Back to Users
-          </Link>
-          <h1 className="text-2xl font-semibold text-gray-900">{user.email}</h1>
-          {user.name && <p className="text-gray-500">{user.name}</p>}
+          <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
+            <Link href="/admin">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Users
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">{user.email}</h1>
+          {user.name && <p className="text-muted-foreground">{user.name}</p>}
         </div>
-        <span
-          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+        <Badge
+          variant="outline"
+          className={
             user.role === 'ADMIN'
-              ? 'bg-purple-100 text-purple-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
+              ? 'bg-primary/20 text-primary border-primary/30'
+              : 'bg-muted text-muted-foreground border-border'
+          }
         >
           {user.role}
-        </span>
+        </Badge>
       </div>
 
       {/* Stats */}
@@ -175,231 +200,256 @@ export default function AdminUserDetailPage({
           title="Credit Balance"
           value={`$${creditDollars}`}
           subtitle="Current balance"
+          icon={DollarSign}
         />
         <StatsCard
           title="Grace Credits Used"
           value={`$${graceDollars}`}
           subtitle="Owed amount"
+          icon={CreditCard}
         />
         <StatsCard
           title="Agents"
           value={user._count.agents}
           subtitle="Total agents"
+          icon={Bot}
         />
         <StatsCard
           title="Calls"
           value={user._count.calls}
           subtitle="Total calls"
+          icon={Phone}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Credit Adjustment */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Adjust Credits</h2>
-          <form onSubmit={handleCreditAdjustment}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (in dollars)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={adjustAmount}
-                onChange={(e) => setAdjustAmount(e.target.value)}
-                placeholder="e.g., 10.00 or -5.00"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Use positive for adding credits, negative for deducting
-              </p>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description (optional)
-              </label>
-              <input
-                type="text"
-                value={adjustDescription}
-                onChange={(e) => setAdjustDescription(e.target.value)}
-                placeholder="e.g., Refund for issue #123"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={adjusting || !adjustAmount}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-            >
-              {adjusting ? 'Adjusting...' : 'Adjust Credits'}
-            </button>
-          </form>
-        </div>
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-lg font-medium text-foreground">Adjust Credits</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreditAdjustment} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (in dollars)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={adjustAmount}
+                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  placeholder="e.g., 10.00 or -5.00"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use positive for adding credits, negative for deducting
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (optional)</Label>
+                <Input
+                  id="description"
+                  type="text"
+                  value={adjustDescription}
+                  onChange={(e) => setAdjustDescription(e.target.value)}
+                  placeholder="e.g., Refund for issue #123"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={adjusting || !adjustAmount}
+                className="w-full"
+              >
+                {adjusting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adjusting...
+                  </>
+                ) : (
+                  'Adjust Credits'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Recent Transactions */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Transactions</h2>
-          {user.creditTransactions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No transactions yet</p>
-          ) : (
-            <div className="space-y-3">
-              {user.creditTransactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {tx.type.replace('_', ' ')}
-                    </p>
-                    {tx.description && (
-                      <p className="text-xs text-gray-500">{tx.description}</p>
-                    )}
-                    <p className="text-xs text-gray-400">
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-sm font-medium ${
-                      tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-lg font-medium text-foreground">Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user.creditTransactions.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No transactions yet</p>
+            ) : (
+              <div className="space-y-3">
+                {user.creditTransactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
-                    {tx.amount >= 0 ? '+' : ''}${(tx.amount / 100).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {tx.type.replace('_', ' ')}
+                      </p>
+                      {tx.description && (
+                        <p className="text-xs text-muted-foreground">{tx.description}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(tx.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-sm font-medium ${
+                        tx.amount >= 0 ? 'text-green-400' : 'text-red-400'
+                      }`}
+                    >
+                      {tx.amount >= 0 ? '+' : ''}${(tx.amount / 100).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Agents */}
-      <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Agents</h2>
-        {user.agents.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No agents yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Phone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Created
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {user.agents.map((agent) => (
-                  <tr key={agent.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {agent.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {agent.phoneNumber?.number || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          agent.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {agent.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(agent.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Card className="glass-card mt-8">
+        <CardHeader>
+          <CardTitle className="text-lg font-medium text-foreground">Agents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {user.agents.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No agents yet</p>
+          ) : (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Name
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Phone
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Status
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Created
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {user.agents.map((agent) => (
+                    <TableRow key={agent.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="px-6 py-4 text-sm font-medium text-foreground">
+                        {agent.name}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                        {agent.phoneNumber?.number || '-'}
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <Badge
+                          variant="outline"
+                          className={
+                            agent.isActive
+                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                              : 'bg-muted text-muted-foreground border-border'
+                          }
+                        >
+                          {agent.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                        {new Date(agent.createdAt).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Calls */}
-      <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Calls</h2>
-        {user.calls.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No calls yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Agent
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Phone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Duration
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Credits
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {user.calls.map((call) => (
-                  <tr key={call.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {call.agent.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {call.phoneNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          call.status === 'COMPLETED'
-                            ? 'bg-green-100 text-green-800'
-                            : call.status === 'FAILED'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {call.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {call.durationSeconds
-                        ? `${Math.floor(call.durationSeconds / 60)}:${String(
-                            call.durationSeconds % 60
-                          ).padStart(2, '0')}`
-                        : '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${(call.creditsUsed / 100).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(call.startedAt).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Card className="glass-card mt-8">
+        <CardHeader>
+          <CardTitle className="text-lg font-medium text-foreground">Recent Calls</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {user.calls.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No calls yet</p>
+          ) : (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Agent
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Phone
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Status
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Duration
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Credits
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase">
+                      Date
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {user.calls.map((call) => (
+                    <TableRow key={call.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="px-6 py-4 text-sm font-medium text-foreground">
+                        {call.agent.name}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                        {call.phoneNumber}
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <Badge
+                          variant="outline"
+                          className={
+                            call.status === 'COMPLETED'
+                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                              : call.status === 'FAILED'
+                              ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          }
+                        >
+                          {call.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                        {call.durationSeconds
+                          ? `${Math.floor(call.durationSeconds / 60)}:${String(
+                              call.durationSeconds % 60
+                            ).padStart(2, '0')}`
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                        ${(call.creditsUsed / 100).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                        {new Date(call.startedAt).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

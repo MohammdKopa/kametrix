@@ -2,6 +2,33 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { RefreshCw, Plus, Loader2, CheckCircle } from 'lucide-react';
 
 interface PhoneNumber {
   id: string;
@@ -164,16 +191,16 @@ export function PhoneNumberList() {
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'AVAILABLE':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'ASSIGNED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'RELEASED':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground border-border';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -183,8 +210,9 @@ export function PhoneNumberList() {
     <div>
       {/* Sync Result Banner */}
       {syncResult && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800">
+        <div className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-green-400" />
+          <p className="text-sm text-green-400">
             Sync complete: {syncResult.added} added, {syncResult.updated} updated, {syncResult.released} released
           </p>
         </div>
@@ -192,207 +220,228 @@ export function PhoneNumberList() {
 
       {/* Actions */}
       <div className="mb-6 flex items-center justify-between">
-        <select
+        <Select
           value={filterStatus}
-          onChange={(e) => {
-            setFilterStatus(e.target.value);
+          onValueChange={(value) => {
+            setFilterStatus(value);
             setPage(1);
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         >
-          <option value="all">All Status</option>
-          <option value="AVAILABLE">Available</option>
-          <option value="ASSIGNED">Assigned</option>
-          <option value="RELEASED">Released</option>
-        </select>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="AVAILABLE">Available</SelectItem>
+            <SelectItem value="ASSIGNED">Assigned</SelectItem>
+            <SelectItem value="RELEASED">Released</SelectItem>
+          </SelectContent>
+        </Select>
 
         <div className="flex gap-3">
-          <button
+          <Button
+            variant="outline"
             onClick={handleSync}
             disabled={syncing}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
+            {syncing ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
             {syncing ? 'Syncing...' : 'Sync from Vapi'}
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Add Phone Number
-          </button>
+          </Button>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Number
+          </Button>
         </div>
       </div>
 
       {/* Add Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Add Phone Number</h3>
-            <form onSubmit={handleAddNumber}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number (E.164 format)
-                </label>
-                <input
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>Add Phone Number</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddNumber}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number (E.164 format)</Label>
+                <Input
+                  id="phone"
                   type="text"
                   value={newNumber}
                   onChange={(e) => setNewNumber(e.target.value)}
                   placeholder="+14155551234"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Must start with + followed by country code and number
                 </p>
               </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={adding || !newNumber.trim()}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {adding ? 'Adding...' : 'Add'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={adding || !newNumber.trim()}
+              >
+                {adding ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      <div className="rounded-xl border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Assigned To
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 User
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Created
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                  Loading phone numbers...
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading phone numbers...
+                  </div>
+                </TableCell>
+              </TableRow>
             ) : phoneNumbers.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+              <TableRow>
+                <TableCell colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                   No phone numbers found
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               phoneNumbers.map((phone) => (
-                <tr key={phone.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-900">
+                <TableRow key={phone.id} className="hover:bg-muted/50 transition-colors">
+                  <TableCell className="px-6 py-4">
+                    <span className="text-sm font-medium text-foreground">
                       {phone.number}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                        phone.status
-                      )}`}
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Badge
+                      variant="outline"
+                      className={getStatusBadgeStyle(phone.status)}
                     >
                       {phone.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {phone.agent?.name || '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                    {phone.agent?.name || '-'}
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     {phone.agent ? (
                       <Link
                         href={`/admin/users/${phone.agent.user.id}`}
-                        className="text-sm text-purple-600 hover:text-purple-800"
+                        className="text-sm text-primary hover:underline"
                       >
                         {phone.agent.user.email}
                       </Link>
                     ) : (
-                      <span className="text-sm text-gray-500">—</span>
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-sm text-muted-foreground">
                     {new Date(phone.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
                     })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                       {phone.status === 'ASSIGNED' && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleRelease(phone.id)}
-                          className="text-yellow-600 hover:text-yellow-800"
+                          className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
                         >
                           Release
-                        </button>
+                        </Button>
                       )}
                       {phone.status !== 'ASSIGNED' && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDelete(phone.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           Delete
-                        </button>
+                        </Button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} phone numbers
           </p>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
-            </button>
-            <span className="px-3 py-1 text-sm text-gray-600">
+            </Button>
+            <span className="px-3 py-1 text-sm text-muted-foreground flex items-center">
               Page {page} of {totalPages}
             </span>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPage((p) => p + 1)}
               disabled={!hasMore}
-              className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       )}

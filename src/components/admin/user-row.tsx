@@ -1,6 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
 
 interface UserRowProps {
   user: {
@@ -28,46 +32,47 @@ export function UserRow({ user }: UserRowProps) {
   const creditDollars = (user.creditBalance / 100).toFixed(2);
 
   return (
-    <tr className="hover:bg-gray-50">
-      <td className="px-6 py-4 whitespace-nowrap">
+    <TableRow className="hover:bg-muted/50 transition-colors">
+      <TableCell className="px-6 py-4">
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-gray-900">{user.email}</span>
+          <span className="text-sm font-medium text-foreground">{user.email}</span>
           {user.name && (
-            <span className="text-sm text-gray-500">{user.name}</span>
+            <span className="text-sm text-muted-foreground">{user.name}</span>
           )}
         </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+      </TableCell>
+      <TableCell className="px-6 py-4">
+        <Badge
+          variant="outline"
+          className={
             user.role === 'ADMIN'
-              ? 'bg-purple-100 text-purple-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
+              ? 'bg-primary/20 text-primary border-primary/30'
+              : 'bg-muted text-muted-foreground border-border'
+          }
         >
           {user.role}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        </Badge>
+      </TableCell>
+      <TableCell className="px-6 py-4 text-sm text-foreground">
         ${creditDollars}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      </TableCell>
+      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
         {user._count.agents}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      </TableCell>
+      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
         {user._count.calls}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      </TableCell>
+      <TableCell className="px-6 py-4 text-sm text-muted-foreground">
         {formattedDate}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <Link
-          href={`/admin/users/${user.id}`}
-          className="text-gray-600 hover:text-gray-900"
-        >
-          View
-        </Link>
-      </td>
-    </tr>
+      </TableCell>
+      <TableCell className="px-6 py-4 text-right">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href={`/admin/users/${user.id}`}>
+            <Eye className="w-4 h-4" />
+            <span className="sr-only">View user</span>
+          </Link>
+        </Button>
+      </TableCell>
+    </TableRow>
   );
 }
