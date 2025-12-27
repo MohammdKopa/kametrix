@@ -41,7 +41,7 @@ export default async function AgentsPage() {
         </div>
         <Link
           href="/dashboard/agents/new"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl text-white bg-[var(--accent)] hover:bg-[var(--accent-secondary)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)] dark:focus:ring-offset-[var(--background)] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-background transition-colors"
         >
           <Plus className="w-4 h-4" />
           Create Agent
@@ -63,7 +63,7 @@ export default async function AgentsPage() {
           <div className="mt-6">
             <Link
               href="/dashboard/agents/new"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-[var(--accent)] hover:bg-[var(--accent-secondary)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)] dark:focus:ring-offset-[var(--background)] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-background transition-colors"
             >
               <Plus className="w-4 h-4" />
               Create Agent
