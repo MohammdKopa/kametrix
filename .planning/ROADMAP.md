@@ -50,10 +50,10 @@ Plans:
 **Goal**: German system prompts for agents, localized UI strings, German date/time/number formatting
 **Depends on**: Phase 7
 **Research**: Unlikely (internal patterns, i18n setup)
-**Plans**: TBD
+**Plans**: 1/1
 
 Plans:
-- [ ] 08-01: TBD (run /gsd:plan-phase 8 to break down)
+- [x] 08-01: Native German localization helpers, system prompts with Sie-form, webhook responses
 
 #### Phase 9: Dashboard UI Polish
 **Goal**: Redesign dashboard UI based on provided v0 designs, improve overall UX
@@ -88,6 +88,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Payments & Credits | v1.0 | 4/4 | Complete | 2025-12-27 |
 | 6. Polish & Launch | v1.0 | 3/3 | Complete | 2025-12-27 |
 | 7. German Voice Setup | v1.1 | 1/1 | Complete | 2025-12-27 |
-| 8. German Prompts & Localization | v1.1 | 0/? | Not started | - |
+| 8. German Prompts & Localization | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 9. Dashboard UI Polish | v1.1 | 0/? | Not started | - |
 | 10. Landing & Legal Pages | v1.1 | 0/? | Not started | - |

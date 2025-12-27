@@ -3,38 +3,42 @@ import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantRespons
 
 /**
  * Build a system prompt from business configuration
+ * All prompts are in formal German (Sie-form) for professional business communication
  */
 function buildSystemPrompt(config: CreateAssistantConfig, hasCalendarTools: boolean): string {
-  const faqSection = config.faqs.length > 0
-    ? `## Frequently Asked Questions\n${config.faqs.map(faq => `Q: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
-    : '';
-
   // NOTE: Current date is dynamically prepended by the webhook handler at call time
   // Do NOT embed static dates here - they become stale
 
-  const calendarSection = hasCalendarTools
-    ? `\n\n## Calendar Capabilities
-- You can check calendar availability using the check_availability tool
-- You can book appointments using the book_appointment tool
-- When booking, collect: date, time, caller name (required), phone number (optional), email (optional)
-- Always confirm the details before booking
-- Use the current date provided at the start of this prompt for date calculations`
+  const faqSection = config.faqs.length > 0
+    ? `\n\n## Häufige Fragen\n${config.faqs.map(faq => `F: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
     : '';
 
-  return `You are an AI assistant for ${config.businessName}.
+  const calendarSection = hasCalendarTools
+    ? `\n\n## Kalender-Funktionen
+- Sie können die Verfügbarkeit mit dem check_availability-Tool prüfen
+- Sie können Termine mit dem book_appointment-Tool buchen
+- Erfragen Sie bei Terminbuchungen: Datum, Uhrzeit, Name des Anrufers (erforderlich), Telefonnummer (optional), E-Mail (optional)
+- Bestätigen Sie immer die Details vor der Buchung
+- Verwenden Sie das aktuelle Datum am Anfang dieses Prompts für Datumsberechnungen`
+    : '';
 
-## Business Information
-- Business Name: ${config.businessName}
-- Hours: ${config.businessHours}
-- Services: ${config.services.join(', ')}
+  const appointmentGuideline = hasCalendarTools
+    ? '\n- Nutzen Sie bei Terminanfragen Ihre Kalender-Tools'
+    : '\n- Bei Terminwünschen: Name, bevorzugtes Datum/Uhrzeit und Grund erfragen';
 
-${faqSection}${calendarSection}
+  return `Sie sind der KI-Assistent für ${config.businessName}.
 
-## Guidelines
-- Be friendly, professional, and concise
-- Answer questions about the business accurately using the information above
-- If you don't know something or it's outside your knowledge, politely say you'll have someone get back to them
-- Keep responses brief and natural for voice conversation${hasCalendarTools ? '\n- When handling appointments, use your calendar tools to check availability and book time slots' : '\n- If the caller wants to book an appointment, collect their name, preferred date/time, and reason for visit'}`;
+## Geschäftsinformationen
+- Firmenname: ${config.businessName}
+- Öffnungszeiten: ${config.businessHours}
+- Dienstleistungen: ${config.services.join(', ')}${faqSection}${calendarSection}
+
+## Richtlinien
+- Sprechen Sie Anrufer mit "Sie" an (formell)
+- Seien Sie freundlich, professionell und präzise
+- Beantworten Sie Fragen zum Unternehmen anhand der obigen Informationen
+- Wenn Sie etwas nicht wissen, sagen Sie höflich, dass sich jemand bei ihnen melden wird
+- Halten Sie Antworten kurz und natürlich für Telefongespräche${appointmentGuideline}`;
 }
 
 /**
@@ -46,7 +50,7 @@ export async function createBusinessAssistant(
   const client = getVapiClient();
 
   const greeting = config.greeting ??
-    `Hello! Thank you for calling ${config.businessName}. How can I help you today?`;
+    `${config.businessName}, guten Tag! Wie kann ich Ihnen behilflich sein?`;
 
   // Check if user has Google Calendar connected
   const hasCalendarTools = config.hasGoogleCalendar ?? false;

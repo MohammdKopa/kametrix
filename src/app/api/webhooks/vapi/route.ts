@@ -14,6 +14,7 @@ import { getAvailableSlots, bookAppointment, parseDateTime } from '@/lib/google/
 import { prisma } from '@/lib/prisma';
 import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
+import { formatDateGerman } from '@/lib/localization';
 
 /**
  * Tool call payload from Vapi
@@ -322,7 +323,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
       return NextResponse.json({
         results: toolCallList.map(tc => ({
           toolCallId: tc.id,
-          result: "I'm sorry, I'm having technical difficulties right now.",
+          result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',
         })),
       });
     }
@@ -335,7 +336,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
       return NextResponse.json({
         results: toolCallList.map(tc => ({
           toolCallId: tc.id,
-          result: "I'm sorry, I'm having technical difficulties right now.",
+          result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',
         })),
       });
     }
@@ -363,13 +364,13 @@ async function handleToolCalls(message: WebhookToolCalls) {
               });
 
               if (!agentWithUser?.user) {
-                result = "I'm sorry, I'm having technical difficulties right now.";
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
               const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
-                result = "I'm sorry, calendar booking isn't set up yet. Please call back later or leave your contact information.";
+                result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet. Bitte rufen Sie später noch einmal an oder hinterlassen Sie Ihre Kontaktdaten.';
                 break;
               }
 
@@ -379,15 +380,18 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
                 const slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
 
+                // Format date in German
+                const formattedDate = formatDateGerman(date);
+
                 if (slots.length === 0) {
-                  result = `I don't see any available slots on ${args.date}. Would you like to try a different day?`;
+                  result = `Am ${formattedDate} sind leider keine Termine mehr frei. Möchten Sie einen anderen Tag versuchen?`;
                 } else {
                   const slotList = slots.slice(0, 5).map(s => s.displayTime).join(', ');
-                  result = `I have the following times available on ${args.date}: ${slotList}. Which time works best for you?`;
+                  result = `Am ${formattedDate} habe ich folgende Zeiten verfügbar: ${slotList}. Welche Zeit passt Ihnen am besten?`;
                 }
               } catch (error) {
                 console.error('Calendar availability error:', error);
-                result = "I'm having trouble checking the calendar right now. Please try again.";
+                result = 'Ich habe gerade Schwierigkeiten, den Kalender zu prüfen. Bitte versuchen Sie es noch einmal.';
               }
               break;
             }
@@ -400,13 +404,13 @@ async function handleToolCalls(message: WebhookToolCalls) {
               });
 
               if (!agentWithUser?.user) {
-                result = "I'm sorry, I'm having technical difficulties right now.";
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
               const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
-                result = "I'm sorry, calendar booking isn't set up yet. Please call back later.";
+                result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet. Bitte rufen Sie später noch einmal an oder hinterlassen Sie Ihre Kontaktdaten.';
                 break;
               }
 
@@ -426,18 +430,21 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 const end = `${datePart}T${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
 
                 const event = await bookAppointment(oauth2Client, {
-                  summary: args.summary || `Appointment with ${args.callerName}`,
+                  summary: args.summary || `Termin mit ${args.callerName}`,
                   start,
                   end,
                   timeZone,
                   attendeeEmail: args.callerEmail,
-                  description: `Booked by voice agent.\n\nCaller: ${args.callerName}${args.callerPhone ? `\nPhone: ${args.callerPhone}` : ''}${args.callerEmail ? `\nEmail: ${args.callerEmail}` : ''}`,
+                  description: `Per Sprachassistent gebucht.\n\nAnrufer: ${args.callerName}${args.callerPhone ? `\nTelefon: ${args.callerPhone}` : ''}${args.callerEmail ? `\nE-Mail: ${args.callerEmail}` : ''}`,
                 });
 
-                result = `I've booked your appointment for ${args.date} at ${args.time}. You're all set, ${args.callerName}!`;
+                // Format date in German for confirmation
+                const bookingDate = new Date(args.date);
+                const formattedDate = formatDateGerman(bookingDate);
+                result = `Ihr Termin am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
               } catch (error) {
                 console.error('Calendar booking error:', error);
-                result = "I wasn't able to book that appointment. The time slot might be taken. Would you like to try a different time?";
+                result = 'Den Termin konnte ich leider nicht eintragen. Dieser Zeitpunkt ist möglicherweise bereits belegt. Möchten Sie eine andere Zeit versuchen?';
               }
               break;
             }
@@ -455,7 +462,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
           console.error(`Error executing tool ${toolCall.function.name}:`, error);
           return {
             toolCallId: toolCall.id,
-            result: "I'm sorry, I encountered an error. Could you please try that again?",
+            result: 'Es tut mir leid, es ist ein Fehler aufgetreten. Könnten Sie das bitte noch einmal versuchen?',
           };
         }
       })
@@ -469,7 +476,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
     return NextResponse.json({
       results: message.toolCallList.map(tc => ({
         toolCallId: tc.id,
-        result: "I'm sorry, I'm having technical difficulties right now.",
+        result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',
       })),
     });
   }
@@ -566,7 +573,7 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     // Return assistant config
     const assistantConfig = {
       name: agent.name,
-      firstMessage: agent.greeting || `Hello! Thank you for calling ${agent.businessName}. How can I help you today?`,
+      firstMessage: agent.greeting || `${agent.businessName}, guten Tag! Wie kann ich Ihnen behilflich sein?`,
       model: {
         provider: 'openai',
         model: 'gpt-4o',
@@ -574,16 +581,16 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
         ...(tools && { tools }),
       },
       voice: {
-        provider: '11labs',
-        voiceId: agent.voiceId || 'marissa',
+        provider: 'azure',
+        voiceId: agent.voiceId || 'de-DE-KatjaNeural',
       },
       transcriber: {
         provider: 'deepgram',
         model: 'nova-2',
-        language: 'en',
+        language: 'de',
       },
       maxDurationSeconds: 600,
-      endCallMessage: 'Thank you for calling. Have a great day!',
+      endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',
     };
 
     console.log(`Assistant request: returning dynamic config for ${agent.name} with date ${currentDateStr}`);
