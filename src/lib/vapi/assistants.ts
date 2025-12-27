@@ -138,16 +138,16 @@ export async function createBusinessAssistant(
       ...(tools && { tools }),
     },
     voice: {
-      provider: '11labs',
-      voiceId: config.voiceId ?? 'marissa',
+      provider: 'azure',
+      voiceId: config.voiceId ?? 'de-DE-KatjaNeural',
     },
     transcriber: {
       provider: 'deepgram',
       model: 'nova-2',
-      language: 'en',
+      language: 'de',
     },
     maxDurationSeconds: 600, // 10 minute max call
-    endCallMessage: 'Thank you for calling. Have a great day!',
+    endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',
   };
 
   const assistant = await client.assistants.create(assistantConfig);
@@ -188,7 +188,7 @@ export async function updateAssistant(
 
   if (config.voiceId) {
     updatePayload.voice = {
-      provider: '11labs',
+      provider: 'azure',
       voiceId: config.voiceId,
     };
   }
