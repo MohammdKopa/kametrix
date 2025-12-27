@@ -17,17 +17,20 @@ export default async function DashboardNestedLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[var(--background)]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-[var(--background-secondary)] border-b border-gray-200 dark:border-[var(--border)] shadow-sm">
+    <div className="relative min-h-screen bg-background">
+      {/* Ambient glow effect */}
+      <div className="glow-accent" />
+
+      {/* Header with glassmorphism */}
+      <header className="glass glass-header-glow sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}
             <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-8 h-8 bg-gray-900 dark:bg-gradient-to-br dark:from-[var(--accent)] dark:to-[var(--accent-secondary)] rounded-lg shadow-sm">
-                <Activity className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md">
+                <Activity className="w-5 h-5 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-[var(--foreground)]">Kametrix</h1>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Kametrix</h1>
             </div>
 
             {/* Theme Toggle & User Menu */}
@@ -39,15 +42,15 @@ export default async function DashboardNestedLayout({
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white dark:bg-[var(--background-secondary)] border-b border-gray-200 dark:border-[var(--border)]">
+      {/* Navigation Tabs with glass effect */}
+      <div className="glass border-b border-border/50">
         <div className="max-w-7xl mx-auto px-8">
           <NavTabs />
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="relative max-w-7xl mx-auto px-8 py-8">
         {children}
       </main>
     </div>

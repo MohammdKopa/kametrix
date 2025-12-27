@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Bot, Phone, Coins, Settings, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Tab {
   name: string;
@@ -31,25 +32,27 @@ export function NavTabs() {
             ? pathname === tab.href
             : pathname.startsWith(tab.href);
           return (
-            <Link
+            <Button
               key={tab.href}
-              href={tab.href}
+              variant="ghost"
+              asChild
               className={`
-                relative flex items-center gap-2 py-3 px-4 text-sm font-medium transition-all duration-150
+                relative flex items-center gap-2 py-3 px-4 h-auto rounded-t-lg rounded-b-none transition-all duration-150
                 ${
                   isActive
-                    ? 'text-gray-900 dark:text-[var(--foreground)]'
-                    : 'text-gray-500 dark:text-[var(--muted-foreground)] hover:text-gray-700 dark:hover:text-[var(--foreground)] hover:bg-gray-50 dark:hover:bg-[var(--muted)]'
+                    ? 'bg-primary/10 text-primary hover:bg-primary/15 border-l-2 border-l-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }
-                rounded-t-lg
               `}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-gray-900 dark:text-[var(--accent)]' : 'text-gray-400 dark:text-[var(--muted-foreground)]'}`} />
-              {tab.name}
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-[var(--accent)] rounded-full" />
-              )}
-            </Link>
+              <Link href={tab.href}>
+                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
+                {tab.name}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full" />
+                )}
+              </Link>
+            </Button>
           );
         })}
       </div>

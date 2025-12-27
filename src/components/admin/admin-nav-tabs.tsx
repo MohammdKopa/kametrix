@@ -2,38 +2,54 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Users, Bot, Phone, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const tabs = [
-  { name: 'Users', href: '/admin' },
-  { name: 'Agents', href: '/admin/agents' },
-  { name: 'Phone Numbers', href: '/admin/phone-numbers' },
+interface Tab {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+const tabs: Tab[] = [
+  { name: 'Users', href: '/admin', icon: Users },
+  { name: 'Agents', href: '/admin/agents', icon: Bot },
+  { name: 'Phone Numbers', href: '/admin/phone-numbers', icon: Phone },
 ];
 
 export function AdminNavTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-gray-200">
-      <div className="flex gap-8">
+    <nav className="-mb-px">
+      <div className="flex gap-1">
         {tabs.map((tab) => {
+          const Icon = tab.icon;
           const isActive = tab.href === '/admin'
             ? pathname === tab.href
             : pathname.startsWith(tab.href);
           return (
-            <Link
+            <Button
               key={tab.href}
-              href={tab.href}
+              variant="ghost"
+              asChild
               className={`
-                py-4 px-1 border-b-2 text-sm font-medium transition-colors
+                relative flex items-center gap-2 py-3 px-4 h-auto rounded-t-lg rounded-b-none transition-all duration-150
                 ${
                   isActive
-                    ? 'border-purple-600 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-primary/10 text-primary hover:bg-primary/15 border-l-2 border-l-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }
               `}
             >
-              {tab.name}
-            </Link>
+              <Link href={tab.href}>
+                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
+                {tab.name}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full" />
+                )}
+              </Link>
+            </Button>
           );
         })}
       </div>

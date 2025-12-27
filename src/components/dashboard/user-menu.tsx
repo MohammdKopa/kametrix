@@ -1,28 +1,22 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import type { AuthUser } from '@/types';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface UserMenuProps {
   user: AuthUser;
 }
 
 export function UserMenu({ user }: UserMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const handleSignOut = async () => {
     try {
       const response = await fetch('/api/auth/logout', {
@@ -38,46 +32,34 @@ export function UserMenu({ user }: UserMenuProps) {
   };
 
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`
-          flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-150
-          ${isOpen
-            ? 'bg-gray-100 border-gray-300 dark:bg-[var(--muted)] dark:border-[var(--border)]'
-            : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 dark:bg-[var(--background-secondary)] dark:border-[var(--border)] dark:hover:bg-[var(--muted)]'
-          }
-        `}
-      >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 dark:from-[var(--accent)] dark:to-[var(--accent-secondary)] flex items-center justify-center text-sm font-semibold text-white shadow-sm">
-          {(user.name || user.email).charAt(0).toUpperCase()}
-        </div>
-        <div className="text-left">
-          <div className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)]">
-            {user.name || user.email}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-3 px-3 py-2 h-auto rounded-lg border border-border hover:bg-muted/50 hover:border-border/80 transition-all duration-150"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground shadow-sm">
+            {(user.name || user.email).charAt(0).toUpperCase()}
           </div>
-          <div className="text-xs text-gray-500 dark:text-[var(--muted-foreground)]">{user.email}</div>
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-[var(--muted-foreground)] transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[var(--background-secondary)] rounded-xl shadow-lg border border-gray-200 dark:border-[var(--border)] py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-          <div className="px-4 py-2 border-b border-gray-100 dark:border-[var(--border)]">
-            <p className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)]">{user.name || 'User'}</p>
-            <p className="text-xs text-gray-500 dark:text-[var(--muted-foreground)] truncate">{user.email}</p>
+          <div className="text-left">
+            <div className="text-sm font-medium text-foreground">
+              {user.name || user.email}
+            </div>
+            <div className="text-xs text-muted-foreground">{user.email}</div>
           </div>
-          <div className="py-1">
-            <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-[var(--foreground)] hover:bg-gray-50 dark:hover:bg-[var(--muted)] transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-gray-500 dark:text-[var(--muted-foreground)]" />
-              Sign out
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 glass">
+        <DropdownMenuLabel>
+          <p className="text-sm font-medium text-foreground">{user.name || 'User'}</p>
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+          <LogOut className="w-4 h-4" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
