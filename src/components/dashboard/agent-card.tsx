@@ -5,6 +5,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Copy, Check, Pencil, Trash2 } from 'lucide-react';
 import type { Agent, PhoneNumber } from '@/generated/prisma/client';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface AgentCardProps {
   agent: Agent & { phoneNumber: PhoneNumber | null };
@@ -89,74 +100,83 @@ export function AgentCard({ agent }: AgentCardProps) {
 
   return (
     <>
-      <div className="glass-card p-6 transition-all duration-200 hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(152,58,214,0.15)]">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-1">
-              {agent.name}
-            </h3>
-            {agent.phoneNumber ? (
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-base font-medium text-[var(--accent)]">
-                  {formatPhoneNumber(agent.phoneNumber.number)}
-                </span>
-                <button
-                  onClick={handleCopyPhone}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-                  title="Copy phone number"
-                >
-                  {isCopied ? (
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-gray-500 dark:text-[var(--muted-foreground)]" />
-                  )}
-                </button>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400 dark:text-[var(--muted-foreground)] mt-1">
-                No phone assigned
+      <Card className="glass-card border-0 py-0 transition-all duration-300 hover:shadow-[0_0_30px_oklch(0.55_0.25_300/0.15)]">
+        <CardContent className="p-6 pb-4">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                {agent.name}
+              </h3>
+              {agent.phoneNumber ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-base font-medium text-primary">
+                    {formatPhoneNumber(agent.phoneNumber.number)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={handleCopyPhone}
+                    className="h-7 w-7"
+                    title="Copy phone number"
+                  >
+                    {isCopied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-1">
+                  No phone assigned
+                </p>
+              )}
+            </div>
+
+            {/* Status Badge */}
+            <Badge
+              variant={agent.isActive ? 'default' : 'secondary'}
+              className={
+                agent.isActive
+                  ? 'bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30'
+                  : ''
+              }
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  agent.isActive
+                    ? 'bg-green-500 shadow-[0_0_6px_oklch(0.72_0.19_142)]'
+                    : 'bg-muted-foreground'
+                }`}
+              />
+              {agent.isActive ? 'Active' : 'Inactive'}
+            </Badge>
+          </div>
+
+          {/* Business Info */}
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {agent.businessName}
+            </p>
+            {agent.businessDescription && (
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                {agent.businessDescription}
               </p>
             )}
           </div>
-
-          {/* Status Badge */}
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-              agent.isActive
-                ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400'
-                : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-[var(--muted-foreground)]'
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              agent.isActive ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-500'
-            }`} />
-            {agent.isActive ? 'Active' : 'Inactive'}
-          </span>
-        </div>
-
-        {/* Business Info */}
-        <div className="mb-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-[var(--foreground)]">
-            {agent.businessName}
-          </p>
-          {agent.businessDescription && (
-            <p className="text-sm text-gray-500 dark:text-[var(--muted-foreground)] mt-1 line-clamp-2">
-              {agent.businessDescription}
-            </p>
-          )}
-        </div>
+        </CardContent>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-[var(--border)]">
+        <CardFooter className="px-6 py-4 border-t border-border">
           {/* Toggle Switch */}
           <button
             onClick={handleToggle}
             disabled={isToggling}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 dark:focus:ring-offset-[var(--background)] ${
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
               agent.isActive
-                ? 'bg-[var(--accent)]'
-                : 'bg-gray-200 dark:bg-white/20'
+                ? 'bg-primary'
+                : 'bg-muted'
             } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span
@@ -166,62 +186,63 @@ export function AgentCard({ agent }: AgentCardProps) {
             />
           </button>
 
-          <span className="text-sm text-gray-600 dark:text-[var(--muted-foreground)]">
+          <span className="text-sm text-muted-foreground ml-3">
             {isToggling ? 'Updating...' : agent.isActive ? 'Active' : 'Inactive'}
           </span>
 
           <div className="flex-1" />
 
           {/* Edit Button */}
-          <Link
-            href={`/dashboard/agents/${agent.id}/edit`}
-            className="p-2 text-gray-500 hover:text-[var(--accent)] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-            title="Edit agent"
-          >
-            <Pencil className="w-4 h-4" />
-          </Link>
+          <Button variant="ghost" size="icon-sm" asChild>
+            <Link
+              href={`/dashboard/agents/${agent.id}/edit`}
+              title="Edit agent"
+            >
+              <Pencil className="w-4 h-4" />
+            </Link>
+          </Button>
 
           {/* Delete Button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setShowDeleteConfirm(true)}
             disabled={isDeleting}
-            className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 dark:hover:bg-white/10 dark:hover:text-red-400 rounded-lg transition-colors disabled:opacity-50"
+            className="hover:text-destructive"
             title="Delete agent"
           >
             <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardFooter>
+      </Card>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-          <div className="glass-card p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-2">
-              Delete Agent
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-[var(--muted-foreground)] mb-6">
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="glass sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Agent</DialogTitle>
+            <DialogDescription>
               Are you sure you want to delete &ldquo;{agent.name}&rdquo;? This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-[var(--foreground)] bg-white dark:bg-white/10 border border-gray-300 dark:border-[var(--border)] rounded-xl hover:bg-gray-50 dark:hover:bg-white/20 disabled:opacity-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-600 rounded-xl hover:bg-red-700 dark:hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

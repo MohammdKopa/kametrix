@@ -2,6 +2,7 @@ import { Phone } from 'lucide-react';
 import Link from 'next/link';
 import type { Call, Agent } from '@/generated/prisma/client';
 import { CallStatus } from '@/generated/prisma/client';
+import { Card, CardHeader, CardTitle, CardContent, CardAction } from '@/components/ui/card';
 
 type CallWithAgent = Call & { agent: Agent };
 
@@ -9,16 +10,31 @@ interface RecentActivityProps {
   calls: CallWithAgent[];
 }
 
-// Get status dot color
-const getStatusDot = (status: CallStatus) => {
-  const dots: Record<CallStatus, string> = {
-    COMPLETED: 'bg-green-500',
-    FAILED: 'bg-red-500',
-    IN_PROGRESS: 'bg-yellow-500',
-    RINGING: 'bg-blue-500',
-    NO_ANSWER: 'bg-gray-400',
+// Get status dot color with glow effect
+const getStatusStyles = (status: CallStatus) => {
+  const styles: Record<CallStatus, { dot: string; glow: string }> = {
+    COMPLETED: {
+      dot: 'bg-green-500',
+      glow: 'shadow-[0_0_8px_oklch(0.72_0.19_142/0.5)]',
+    },
+    FAILED: {
+      dot: 'bg-destructive',
+      glow: 'shadow-[0_0_8px_oklch(0.55_0.2_25/0.5)]',
+    },
+    IN_PROGRESS: {
+      dot: 'bg-amber-500',
+      glow: 'shadow-[0_0_8px_oklch(0.7_0.15_85/0.5)]',
+    },
+    RINGING: {
+      dot: 'bg-blue-500',
+      glow: 'shadow-[0_0_8px_oklch(0.6_0.2_250/0.5)]',
+    },
+    NO_ANSWER: {
+      dot: 'bg-muted-foreground',
+      glow: '',
+    },
   };
-  return dots[status] || 'bg-gray-400';
+  return styles[status] || { dot: 'bg-muted-foreground', glow: '' };
 };
 
 // Format duration
@@ -50,75 +66,84 @@ const formatRelativeTime = (date: Date) => {
 export function RecentActivity({ calls }: RecentActivityProps) {
   if (calls.length === 0) {
     return (
-      <div className="glass-card">
-        <div className="p-6 border-b border-gray-200 dark:border-[var(--border)]">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)]">Recent Activity</h2>
-        </div>
-        <div className="p-12 text-center">
-          <div className="text-gray-400 dark:text-[var(--muted-foreground)] mb-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 dark:bg-[var(--muted)] flex items-center justify-center">
-              <Phone className="h-8 w-8" />
+      <Card className="glass-card border-0 py-0">
+        <CardHeader className="border-b border-border pb-4">
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent className="py-12">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
+              <Phone className="h-8 w-8 text-primary" />
             </div>
+            <p className="text-sm font-medium text-foreground mb-1">No recent activity</p>
+            <p className="text-sm text-muted-foreground">
+              Call activity will appear here once you have active agents
+            </p>
           </div>
-          <p className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)] mb-1">No recent activity</p>
-          <p className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">
-            Call activity will appear here once you have active agents
-          </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="glass-card">
-      <div className="p-6 border-b border-gray-200 dark:border-[var(--border)] flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--foreground)]">Recent Activity</h2>
-        <Link
-          href="/dashboard/calls"
-          className="text-sm text-[var(--accent)] hover:text-[var(--accent-secondary)] transition-colors"
-        >
-          View all
-        </Link>
-      </div>
-      <div className="divide-y divide-gray-100 dark:divide-[var(--border)]">
-        {calls.map((call) => (
+    <Card className="glass-card border-0 py-0">
+      <CardHeader className="border-b border-border pb-4">
+        <CardTitle className="text-lg">Recent Activity</CardTitle>
+        <CardAction>
           <Link
-            key={call.id}
-            href={`/dashboard/calls/${call.id}`}
-            className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+            href="/dashboard/calls"
+            className="text-sm text-primary hover:text-primary/80 transition-colors"
           >
-            {/* Status indicator */}
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[var(--accent)]/20 flex items-center justify-center">
-                <Phone className="w-5 h-5 text-gray-500 dark:text-[var(--accent)]" />
-              </div>
-            </div>
-
-            {/* Call info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)] truncate">
-                  {call.agent.name}
-                </p>
-                <span className={`w-2 h-2 rounded-full ${getStatusDot(call.status)}`} />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-[var(--muted-foreground)] truncate">
-                {call.phoneNumber}
-              </p>
-            </div>
-
-            {/* Duration and time */}
-            <div className="flex-shrink-0 text-right">
-              <p className="text-sm font-medium text-gray-900 dark:text-[var(--foreground)]">
-                {formatDuration(call.durationSeconds)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-[var(--muted-foreground)]">
-                {formatRelativeTime(new Date(call.startedAt))}
-              </p>
-            </div>
+            View all
           </Link>
-        ))}
-      </div>
-    </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="divide-y divide-border">
+          {calls.map((call) => {
+            const statusStyles = getStatusStyles(call.status);
+            return (
+              <Link
+                key={call.id}
+                href={`/dashboard/calls/${call.id}`}
+                className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors group"
+              >
+                {/* Status indicator */}
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Phone className="w-5 h-5 text-primary" />
+                  </div>
+                </div>
+
+                {/* Call info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {call.agent.name}
+                    </p>
+                    <span
+                      className={`w-2 h-2 rounded-full ${statusStyles.dot} ${statusStyles.glow}`}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {call.phoneNumber}
+                  </p>
+                </div>
+
+                {/* Duration and time */}
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-sm font-medium text-foreground">
+                    {formatDuration(call.durationSeconds)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatRelativeTime(new Date(call.startedAt))}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
