@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth-guard';
 import { redirect } from 'next/navigation';
 import { NavTabs } from '@/components/dashboard/nav-tabs';
 import { UserMenu } from '@/components/dashboard/user-menu';
+import { Activity } from 'lucide-react';
 
 export default async function DashboardNestedLayout({
   children,
@@ -17,12 +18,15 @@ export default async function DashboardNestedLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Kametrix</h1>
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-900 rounded-lg">
+                <Activity className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900">Kametrix</h1>
             </div>
 
             {/* User Menu */}
