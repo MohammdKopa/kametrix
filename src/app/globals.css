@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+/* ============================================
+   Theme CSS Custom Properties
+   ============================================ */
+
+:root {
+  /* Light mode (default) - Clean whites and grays */
+  --background: #ffffff;
+  --background-secondary: #f9fafb;
+  --foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --accent: #3b82f6;
+  --accent-secondary: #2563eb;
+  --card: #ffffff;
+  --card-foreground: #111827;
+}
+
+.dark {
+  /* Dark mode - Proximab-inspired palette */
+  --background: #06040d;
+  --background-secondary: #0c0512;
+  --foreground: #f8fafc;
+  --muted: #1a1425;
+  --muted-foreground: #a1a1aa;
+  --border: #2d1f3d;
+  --accent: #983ad6;
+  --accent-secondary: #681ee0;
+  --card: rgba(15, 10, 25, 0.8);
+  --card-foreground: #f8fafc;
+}
+
+/* ============================================
+   Glassmorphism & Utility Classes
+   ============================================ */
+
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.dark .glass-card {
+  background: rgba(15, 10, 25, 0.6);
+  border-color: rgba(45, 31, 61, 0.5);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   Theme Transition Classes
+   ============================================ */
+
+/* Smooth color transitions for theme switching */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color;
+  transition-timing-function: ease-in-out;
+  transition-duration: 150ms;
+}
+
+/* Disable transitions for elements that shouldn't animate */
+.no-transition,
+.no-transition *,
+[data-no-transition],
+[data-no-transition] * {
+  transition: none !important;
+}

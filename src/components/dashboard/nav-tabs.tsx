@@ -38,16 +38,16 @@ export function NavTabs() {
                 relative flex items-center gap-2 py-3 px-4 text-sm font-medium transition-all duration-150
                 ${
                   isActive
-                    ? 'text-gray-900'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-gray-900 dark:text-[var(--foreground)]'
+                    : 'text-gray-500 dark:text-[var(--muted-foreground)] hover:text-gray-700 dark:hover:text-[var(--foreground)] hover:bg-gray-50 dark:hover:bg-[var(--muted)]'
                 }
                 rounded-t-lg
               `}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-gray-900' : 'text-gray-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-gray-900 dark:text-[var(--accent)]' : 'text-gray-400 dark:text-[var(--muted-foreground)]'}`} />
               {tab.name}
               {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 rounded-full" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-[var(--accent)] rounded-full" />
               )}
             </Link>
           );
