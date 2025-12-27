@@ -64,7 +64,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 11-01: shadcn/ui Installation & Theme Foundation
-- [ ] 11-02: Core Components & Typography
+- [x] 11-02: Core Components & Typography
 
 #### Phase 12: Dashboard Redesign
 **Goal**: Rebuild dashboard components with shadcn/ui, apply Proximab dark theme with glassmorphism and gradient accents
@@ -101,6 +101,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. German Prompts & Localization | v1.1 | 1/1 | Complete | 2025-12-27 |
 | 9. Dashboard UI Polish | v1.1 | 3/3 | Complete | 2025-12-27 |
 | 10. Landing & Legal Pages | v1.1 | 2/2 | Complete | 2025-12-27 |
-| 11. shadcn/ui Setup | v1.2 | 1/2 | In progress | - |
+| 11. shadcn/ui Setup | v1.2 | 2/2 | Complete | 2025-12-27 |
 | 12. Dashboard Redesign | v1.2 | 0/? | Not started | - |
 | 13. Landing Redesign | v1.2 | 0/? | Not started | - |
