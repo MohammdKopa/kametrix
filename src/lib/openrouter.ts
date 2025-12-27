@@ -61,9 +61,14 @@ export async function generateWizardContent(
 
   const servicesText = services.filter(s => s.trim()).join(', ') || 'general services';
 
-  const systemPrompt = `You are an expert at creating content for AI voice agents that handle phone calls for small businesses. Generate helpful, professional, and friendly content.
+  const systemPrompt = `Du bist Experte für die Erstellung von Inhalten für KI-Sprachassistenten, die Telefonanrufe für kleine Unternehmen bearbeiten. Generiere hilfreiche, professionelle und freundliche Inhalte auf Deutsch.
 
-Always respond with valid JSON in this exact format:
+WICHTIG:
+- Alle Inhalte müssen auf Deutsch sein
+- Verwende die formelle Sie-Form (niemals "du")
+- Schreibe so, wie es natürlich am Telefon gesprochen wird
+
+Antworte immer mit gültigem JSON in genau diesem Format:
 {
   "faqs": [
     { "question": "...", "answer": "..." },
@@ -77,23 +82,23 @@ Always respond with valid JSON in this exact format:
   "endCallMessage": "..."
 }`;
 
-  const userPrompt = `Generate content for an AI voice agent for this business:
+  const userPrompt = `Generiere Inhalte für einen KI-Sprachassistenten für dieses Unternehmen:
 
-Business Name: ${businessName}
-Description: ${businessDescription}
-Business Hours: ${businessHours}
-Services Offered: ${servicesText}
+Firmenname: ${businessName}
+Beschreibung: ${businessDescription}
+Öffnungszeiten: ${businessHours}
+Dienstleistungen: ${servicesText}
 
-Generate:
-1. **5 FAQs**: Common questions callers might ask about this business. Include questions about hours, services, pricing, and location. Answers should be conversational and helpful (suitable for speaking aloud).
+Generiere:
+1. **5 FAQs**: Häufige Fragen, die Anrufer zu diesem Unternehmen stellen könnten. Schließe Fragen zu Öffnungszeiten, Dienstleistungen, Preisen und Standort ein. Die Antworten sollen gesprächsnah und hilfreich sein (geeignet zum Vorlesen am Telefon).
 
-2. **Policies**: A brief paragraph covering typical business policies (cancellation, refunds, booking requirements). Keep it concise and professional.
+2. **Policies (Richtlinien)**: Ein kurzer Absatz über typische Geschäftsrichtlinien (Stornierung, Rückerstattung, Buchungsanforderungen). Kurz und professionell halten.
 
-3. **Greeting**: The first thing the agent says when answering. Use {businessName} as a placeholder. Should be warm, professional, and mention the business name. Example: "Hello, thank you for calling {businessName}! My name is [agent name]. How can I help you today?"
+3. **Greeting (Begrüßung)**: Das Erste, was der Assistent beim Annehmen sagt. Verwende {businessName} als Platzhalter. Soll warm, professionell sein und den Firmennamen erwähnen. Beispiel: "${businessName}, guten Tag! Wie kann ich Ihnen behilflich sein?"
 
-4. **End Call Message**: What the agent says when ending the call. Should thank the caller and invite them back.
+4. **End Call Message (Verabschiedung)**: Was der Assistent zum Abschluss des Gesprächs sagt. Soll dem Anrufer danken.
 
-Make all content sound natural when spoken aloud - avoid overly formal or written language.`;
+Alle Inhalte sollen natürlich klingen, wenn sie am Telefon gesprochen werden - keine zu formelle oder schriftliche Sprache. Verwende die Sie-Form.`;
 
   const content = await callOpenRouter([
     { role: 'system', content: systemPrompt },
@@ -136,31 +141,32 @@ export async function generateGreetingOnly(
   const { businessName, businessDescription, services } = businessInfo;
   const servicesText = services.filter(s => s.trim()).join(', ') || 'general services';
 
-  const systemPrompt = `You are an expert at creating greetings for AI voice agents. Generate warm, professional greetings.
+  const systemPrompt = `Du bist Experte für die Erstellung von Begrüßungen für KI-Sprachassistenten. Generiere warme, professionelle Begrüßungen auf Deutsch mit Sie-Form.
 
-Always respond with valid JSON:
+Antworte immer mit gültigem JSON:
 {
   "greeting": "...",
   "endCallMessage": "..."
 }`;
 
-  const userPrompt = `Generate a greeting and end call message for an AI voice agent:
+  const userPrompt = `Generiere eine Begrüßung und Verabschiedung für einen KI-Sprachassistenten:
 
-Business Name: ${businessName}
-Agent Name: ${agentName}
-Description: ${businessDescription}
-Services: ${servicesText}
+Firmenname: ${businessName}
+Assistentenname: ${agentName}
+Beschreibung: ${businessDescription}
+Dienstleistungen: ${servicesText}
 
-The greeting should:
-- Use {businessName} as a placeholder for the business name
-- Mention the agent's name (${agentName})
-- Be warm and inviting
-- Ask how the agent can help
+Die Begrüßung soll:
+- {businessName} als Platzhalter für den Firmennamen verwenden
+- Den Namen des Assistenten (${agentName}) erwähnen
+- Warm und einladend sein
+- Fragen, wie der Assistent helfen kann
+- Die formelle Sie-Form verwenden
 
-The end call message should:
-- Thank the caller
-- Mention the business name
-- Invite them to call again`;
+Die Verabschiedung soll:
+- Dem Anrufer danken
+- Professionell und freundlich sein
+- Auf Deutsch mit Sie-Form sein`;
 
   const content = await callOpenRouter([
     { role: 'system', content: systemPrompt },
