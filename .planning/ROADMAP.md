@@ -6,8 +6,8 @@ Kametrix evolves from an empty Next.js project to a complete self-serve voice AI
 
 ## Milestones
 
-- 🚧 **v1.0 MVP** - Phases 1-6 (in progress)
-- 📋 **v1.1 German Market & Polish** - Phases 7-10 (planned)
+- [v1.0 MVP](milestones/v1.0-ROADMAP.md) - Phases 1-6 (SHIPPED 2025-12-27)
+- v1.1 German Market & Polish - Phases 7-10 (planned)
 
 ## Domain Expertise
 
@@ -21,91 +21,19 @@ None
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Foundation** - Project setup, database schema, authentication system
-- [x] **Phase 2: Core Dashboard** - User and admin dashboards, basic UI structure
-- [x] **Phase 3: Vapi Integration** - Voice agent creation, phone number provisioning, call handling
-- [x] **Phase 4: Google Integrations** - Calendar booking, Sheets logging, OAuth flow
-- [ ] **Phase 5: Payments & Credits** - Stripe integration, credit packs, usage tracking, grace period
-- [ ] **Phase 6: Polish & Launch** - Email notifications, webhooks, final testing, deployment config (In progress)
+<details>
+<summary>v1.0 MVP (Phases 1-6) - SHIPPED 2025-12-27</summary>
 
-## Phase Details
+- [x] **Phase 1: Foundation** - Project setup, database schema, authentication system (3/3 plans)
+- [x] **Phase 2: Core Dashboard** - User and admin dashboards, basic UI structure (4/4 plans)
+- [x] **Phase 3: Vapi Integration** - Voice agent creation, phone number provisioning, call handling (4/4 plans)
+- [x] **Phase 4: Google Integrations** - Calendar booking, Sheets logging, OAuth flow (3/3 plans)
+- [x] **Phase 5: Payments & Credits** - Stripe integration, credit packs, usage tracking, grace period (4/4 plans)
+- [x] **Phase 6: Polish & Launch** - Email notifications, webhooks, final testing, deployment config (3/3 plans)
 
-### Phase 1: Foundation
-**Goal**: Working Next.js project with PostgreSQL database, schema for all entities, and email/password authentication
-**Depends on**: Nothing (first phase)
-**Research**: Unlikely (established patterns)
-**Plans**: TBD
+</details>
 
-Plans:
-- [x] 01-01: Next.js project setup with TypeScript, Tailwind, PostgreSQL connection
-- [x] 01-02: Database schema (users, agents, calls, credits, phone numbers)
-- [x] 01-03: Email/password authentication with session management
-
-### Phase 2: Core Dashboard
-**Goal**: User dashboard to manage agents and view calls, admin dashboard with full control
-**Depends on**: Phase 1
-**Research**: Unlikely (internal UI patterns)
-**Plans**: TBD
-
-Plans:
-- [x] 02-01: User dashboard layout and navigation
-- [x] 02-02: Agent management UI (list, create stub, edit, delete)
-- [x] 02-03: Call history and credit balance views
-- [x] 02-04: Admin dashboard with user, agent, and phone number management
-
-### Phase 3: Vapi Integration
-**Goal**: Create and configure voice agents via Vapi, provision phone numbers, handle incoming calls
-**Depends on**: Phase 2
-**Research**: Likely (external API integration)
-**Research topics**: Vapi API documentation, voice agent configuration options, phone number provisioning via Vapi/Twilio, call webhook handling, assistant templates
-**Plans**: TBD
-
-Plans:
-- [x] 03-01: Vapi SDK integration and API setup
-- [x] 03-02: Agent creation flow (templates + custom builder)
-- [x] 03-03: Phone number provisioning and assignment
-- [x] 03-04: Call webhook handling and call logging
-
-### Phase 4: Google Integrations
-**Goal**: OAuth flow for Google, Calendar integration for booking, Sheets integration for logging
-**Depends on**: Phase 3
-**Research**: Likely (OAuth, external APIs)
-**Research topics**: Google OAuth2 flow, Calendar API for availability and booking, Sheets API for data logging, token refresh and storage patterns
-**Plans**: TBD
-
-Plans:
-- [x] 04-01: Google OAuth flow and token management
-- [x] 04-02: Google Calendar integration (availability check, appointment booking)
-- [x] 04-03: Google Sheets integration (call logging, data export)
-
-### Phase 5: Payments & Credits
-**Goal**: Stripe checkout for credit packs, credit usage tracking, grace period for low balance
-**Depends on**: Phase 3 (needs call data for credit deduction)
-**Research**: Likely (external API)
-**Research topics**: Stripe Checkout Sessions, webhook handling for payment events, credit pack products setup, usage-based billing patterns
-**Plans**: TBD
-
-Plans:
-- [x] 05-01: Stripe integration and credit pack products
-- [x] 05-02: Credit purchase flow with Checkout
-- [x] 05-03: Credit deduction on call completion
-- [x] 05-04: Grace period logic and low balance notifications
-
-### Phase 6: Polish & Launch
-**Goal**: Email notifications, webhook support for custom integrations, deployment configuration
-**Depends on**: Phase 5
-**Research**: Unlikely (internal patterns, deployment config)
-**Plans**: TBD
-
-Plans:
-- [x] 06-01: Email notifications (signup, low credits, call summaries)
-- [x] 06-02: Health check endpoint and deployment documentation
-- [x] 06-03: End-to-end testing and bug fixes
-- [ ] 06-04: Final polish and launch readiness
-
----
-
-### 📋 v1.1 German Market & Polish (Planned)
+### v1.1 German Market & Polish (Planned)
 
 **Milestone Goal:** Localize the platform for the German market with German voice agents and prompts, polish the dashboard UI, and add public-facing pages including landing page and legal compliance.
 
@@ -141,7 +69,7 @@ Plans:
 **Goal**: Public landing page (v0 design), Impressum, Datenschutz (privacy policy), AGB (terms), cookie consent banner
 **Depends on**: Phase 9
 **Research**: Likely (German legal requirements, GDPR compliance)
-**Research topics**: German Impressum requirements, Datenschutzerklärung template, AGB requirements, cookie consent GDPR patterns
+**Research topics**: German Impressum requirements, Datenschutzerklarung template, AGB requirements, cookie consent GDPR patterns
 **Plans**: TBD
 
 Plans:
@@ -159,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Vapi Integration | v1.0 | 4/4 | Complete | 2025-12-24 |
 | 4. Google Integrations | v1.0 | 3/3 | Complete | 2025-12-25 |
 | 5. Payments & Credits | v1.0 | 4/4 | Complete | 2025-12-27 |
-| 6. Polish & Launch | v1.0 | 3/4 | In progress | - |
+| 6. Polish & Launch | v1.0 | 3/3 | Complete | 2025-12-27 |
 | 7. German Voice Setup | v1.1 | 0/? | Not started | - |
 | 8. German Prompts & Localization | v1.1 | 0/? | Not started | - |
 | 9. Dashboard UI Polish | v1.1 | 0/? | Not started | - |

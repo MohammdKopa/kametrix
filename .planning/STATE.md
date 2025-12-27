@@ -4,13 +4,15 @@
 
 **Building:** Self-serve platform that lets small businesses deploy AI voice agents in minutes for phone support and appointment booking.
 
-**Core requirements:**
-- End-to-end flow: signup → create agent → assign phone number → receive test call
-- Agent books appointments to connected Google Calendar
-- Agent answers questions based on configured business info
-- Credit purchase and deduction system
-- User dashboard for agent management, call history, credit balance
-- Admin dashboard for full control
+**Current status:** v1.0 MVP shipped, v1.1 German Market & Polish planned.
+
+**Core requirements (v1.0 - COMPLETE):**
+- [x] End-to-end flow: signup → create agent → assign phone number → receive test call
+- [x] Agent books appointments to connected Google Calendar
+- [x] Agent answers questions based on configured business info
+- [x] Credit purchase and deduction system
+- [x] User dashboard for agent management, call history, credit balance
+- [x] Admin dashboard for full control
 
 **Constraints:**
 - Tech stack: Next.js + PostgreSQL
@@ -20,12 +22,12 @@
 
 ## Current Position
 
-Phase: 6 of 6 (Polish & Launch)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2025-12-27 - Completed 06-03-PLAN.md (E2E testing, bug fixes)
+Phase: v1.0 complete, v1.1 not started
+Plan: Ready for Phase 7 planning
+Status: Milestone shipped
+Last activity: 2025-12-27 - v1.0 MVP shipped
 
-Progress: █████████████████████ 98%
+Progress: v1.0 ██████████████████████████████ 100%
 
 ## Performance Metrics
 
@@ -45,15 +47,11 @@ Progress: █████████████████████ 98%
 | 5 | 4 | 110 min | 28 min |
 | 6 | 3 | 37 min | 12 min |
 
-**Recent Trend:**
-- Last 5 plans: 15 min, 35 min, 8 min, 4 min, 25 min
-- Trend: Bug fixes during E2E testing added time
-
 *Updated after each plan completion*
 
 ## Accumulated Context
 
-### Decisions Made
+### Key Decisions (v1.0)
 
 | Phase | Decision | Rationale |
 |-------|----------|-----------|
@@ -62,65 +60,37 @@ Progress: █████████████████████ 98%
 | 0 | Phone numbers: Kametrix provisions | Simpler UX than bring-your-own |
 | 0 | Out-of-credits: Grace period | Better UX than hard cutoff |
 | 1 | Tailwind CSS v4 with CSS-first config | Latest version, simpler setup |
-| 1 | Prisma output to src/generated/prisma | Collocated with app code |
-| 1 | Prisma 7 datasource in config.ts | Prisma 7 requirement |
-| 1 | Migration via migrate diff | Database not running locally |
-| 1 | Prisma 7 adapter-pg for client | Prisma 7 requires adapter |
-| 1 | Middleware cookie-check only | Edge runtime limitation |
+| 1 | Prisma 7 with adapter-pg | Database adapter requirement |
 | 2 | Two-level dashboard layout | Parent auth, child UI chrome |
-| 2 | Docker Compose for PostgreSQL | Local dev database setup |
-| 2 | Inline toggle/modal in AgentCard | Single-use, simpler than separate components |
-| 2 | Credits displayed as dollars | User clarity, stored as cents in DB |
-| 2 | Server + client pagination hybrid | SEO for initial load, smooth UX for navigation |
-| 3 | Same globalThis singleton as Prisma | Consistency, prevents multiple client instances |
-| 3 | gpt-4o, deepgram nova-2, 11labs defaults | Best quality per research, user can customize |
-| 3 | 10 min max call duration | Cost protection per research recommendations |
-| 3 | OpenRouter with gpt-4o-mini for AI generation | Fast, cost-effective content generation |
-| 3 | FIFO phone assignment from pool | Oldest available first, distributes usage |
-| 3 | Non-blocking phone assignment | Agent creation succeeds without phones |
-| 4 | AES-256-GCM for token encryption | Industry standard, includes authentication tag |
-| 4 | Force consent on every OAuth | Guarantees refresh token is returned |
-| 4 | Token refresh event listener | Auto-update stored tokens if Google issues new ones |
-| 4 | Default timezone Europe/Berlin | User's location |
-| 4 | 30-min appointment slots | Standard duration for quick appointments |
-| 4 | Local datetime format (no Z) | Google Calendar interprets with timeZone param |
-| 4 | Direct function calls in webhook | Avoids Docker networking issues with HTTP fetch |
-| 4 | Date header prepended to systemPrompt | GPT-4o needs current date for correct year |
-| 5 | Lazy Stripe client initialization | Prevents build errors when STRIPE_SECRET_KEY not set |
-| 5 | Proxy pattern for stripe export | Backward compatibility with lazy initialization |
-| 5 | Balance format "$X.XX (~Y min)" | User clarity with 15 cents/minute rate |
-| 5 | Separate CreditsNotification component | Clean URL cleanup logic for credits page |
-| 5 | Split credits module (utils vs server) | Client components cannot import prisma |
-| 5 | Grace period tracks in graceCreditsUsed | Soft warning, no hard cutoff per CONTEXT.md |
+| 3 | gpt-4o, deepgram nova-2, 11labs defaults | Best quality per research |
+| 4 | AES-256-GCM for token encryption | Industry standard |
 | 5 | $0.15/min with ceil rounding | Simple, user-friendly pricing |
 | 5 | Low balance threshold $5 (500 cents) | ~33 min warning gives time to buy more |
-| 5 | Amber warning colors (not red) | Soft warning per CONTEXT.md, no hard cutoff |
-| 6 | Lazy SMTP transporter initialization | Consistent with Stripe client pattern |
-| 6 | Fire-and-forget email sending | Don't block registration or webhook response |
-| 6 | Low credit email on threshold crossing | graceCreditsUsed === 0 check prevents spam |
+| 6 | Lazy initialization for external clients | Prevents build errors |
 
 ### Deferred Issues
 
-None yet.
+None.
 
 ### Blockers/Concerns Carried Forward
 
-None yet.
+None.
 
 ## Project Alignment
 
-Last checked: Project start
-Status: ✓ Aligned
-Assessment: No work done yet - baseline alignment.
+Last checked: 2025-12-27 (v1.0 shipped)
+Status: Aligned
+Assessment: All v1.0 success criteria met.
 Drift notes: None
 
 ### Roadmap Evolution
 
-- v1.1 milestone created: German Market & Polish, 4 phases (Phase 7-10)
+- v1.0 milestone completed: 6 phases (1-6), 21 plans, shipped 2025-12-27
+- v1.1 milestone planned: German Market & Polish, 4 phases (7-10)
 
 ## Session Continuity
 
 Last session: 2025-12-27
-Stopped at: Completed 06-03-PLAN.md
+Stopped at: v1.0 MVP shipped
 Resume file: None
-Next: Execute 06-04-PLAN.md (Final polish) - run /gsd:execute-plan
+Next: Plan v1.1 phases - run /gsd:discuss-milestone or /gsd:plan-phase 7

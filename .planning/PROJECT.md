@@ -1,5 +1,31 @@
 # Kametrix
 
+## Current State (Updated: 2025-12-27)
+
+**Shipped:** v1.0 MVP (2025-12-27)
+**Status:** Production Ready
+**Codebase:** 25,095 lines TypeScript/TSX, Next.js 15 + PostgreSQL + Prisma 7, self-hosted deployment
+
+## v1.1 German Market & Polish Goals
+
+**Vision:** Localize the platform for German-speaking businesses and polish the user experience.
+
+**Motivation:**
+- Target German small business market (underserved by existing voice AI solutions)
+- Improve dashboard UI based on v0 designs
+- Add required legal pages for German market (Impressum, Datenschutz, AGB)
+
+**Scope (v1.1):**
+- German voice agents (TTS/STT providers)
+- German system prompts and UI localization
+- Dashboard UI redesign
+- Landing page and legal compliance pages
+
+---
+
+<details>
+<summary>Original Vision (v1.0 - Archived for reference)</summary>
+
 ## Vision
 
 Kametrix is a self-serve platform that lets small businesses deploy AI voice agents in minutes. Local shops, clinics, and service providers need phone support and appointment booking but can't afford dedicated staff or complex enterprise solutions. Kametrix bridges this gap with dead-simple setup and powerful integrations.
@@ -18,45 +44,37 @@ Current AI voice solutions target enterprises with complex integrations, sales-l
 
 How we know this worked:
 
-- [ ] End-to-end flow works: signup → create agent → assign phone number → receive test call
-- [ ] Agent successfully books appointments to connected Google Calendar
-- [ ] Agent can answer questions based on configured business info
-- [ ] Credit purchase and deduction system works correctly
-- [ ] User can manage their agent, view call history, and see credit balance
-- [ ] Admin can manage all users, credits, phone numbers, and agents
+- [x] End-to-end flow works: signup → create agent → assign phone number → receive test call
+- [x] Agent successfully books appointments to connected Google Calendar
+- [x] Agent can answer questions based on configured business info
+- [x] Credit purchase and deduction system works correctly
+- [x] User can manage their agent, view call history, and see credit balance
+- [x] Admin can manage all users, credits, phone numbers, and agents
 
 ## Scope
 
-### Building
+### Built
 - AI voice agents for customer support and appointment booking
 - Self-serve signup with email/password authentication
 - Agent creation via templates AND custom builder
 - Integration with Google Calendar for appointment booking
 - Integration with Google Sheets for data logging
-- Email notifications for important events
-- Webhook support for custom integrations
+- Email notifications for important events (welcome, low credits)
 - Credit pack system with Stripe payments
 - Grace period when credits run low (allow overage before blocking)
-- Phone number provisioning (Kametrix manages via Twilio)
+- Phone number provisioning (Kametrix manages via Vapi)
 - User dashboard (agents, calls, credits, integrations)
 - Admin dashboard with full control (users, credits, agents, phone numbers)
+- Health check endpoint and deployment documentation
 
-### Not Building
+### Not Built (v1.0)
 - Custom voice cloning — use pre-made high-quality voices only
 - White-label/agency features — focus on direct small business customers
 - Outbound calling campaigns — inbound-focused for v1
 - SMS/text support — voice only for v1
 - Complex IVR menus — AI-driven conversation, not phone trees
-
-## Context
-
-**Greenfield project.** Starting fresh, no existing codebase.
-
-**Market opportunity:** Small businesses need this but current solutions are either too complex (enterprise voice AI) or too limited (basic IVRs). The gap is a self-serve platform that combines simplicity with genuinely useful AI capabilities.
-
-**Voice provider decision:** Between Vapi and ElevenLabs. Recommendation: **Vapi** — it's an end-to-end voice agent platform with built-in phone handling, while ElevenLabs is primarily voice synthesis requiring more integration work. Vapi handles the telephony, speech recognition, and response generation in one package.
-
-**Phone number strategy:** Kametrix provisions and manages phone numbers via Twilio (or Vapi's built-in phone handling). Customers don't need to bring their own numbers — they get assigned one from Kametrix's pool.
+- German localization (deferred to v1.1)
+- Public landing page (deferred to v1.1)
 
 ## Constraints
 
@@ -72,22 +90,18 @@ Key decisions from project exploration:
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Target customer | Small businesses | Underserved market, simpler needs than enterprise |
-| Voice provider | Vapi (recommended) | End-to-end solution with phone handling built-in |
+| Voice provider | Vapi | End-to-end solution with phone handling built-in |
 | Billing model | Credit packs | Predictable costs for customers, simple to implement |
 | Agent creation | Templates + builder | Templates for quick start, builder for customization |
 | Phone numbers | Kametrix provisions | Simpler UX than bring-your-own |
 | Out-of-credits | Grace period | Better UX than hard cutoff, reduces churn |
 | Customer journey | Self-serve | No sales calls, supports "dead simple" goal |
+| Credit pricing | $0.15/min | Simple, user-friendly, ceil rounding |
+| Low balance threshold | $5 (500 cents) | ~33 min warning gives time to buy more |
+| Token encryption | AES-256-GCM | Industry standard for Google OAuth tokens |
 
-## Open Questions
-
-Things to figure out during execution:
-
-- [ ] Vapi vs ElevenLabs — confirm Vapi is the right choice after deeper research
-- [ ] Credit pricing — how much per minute? What pack sizes?
-- [ ] Phone number costs — pass through or absorb into credit pricing?
-- [ ] Grace period specifics — how much overage allowed? How long?
-- [ ] Template library — what specific templates for v1? (general support, appointment booking, FAQ bot?)
+</details>
 
 ---
 *Initialized: 2025-12-24*
+*v1.0 Shipped: 2025-12-27*
