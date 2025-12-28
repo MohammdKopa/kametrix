@@ -8,7 +8,7 @@ Kametrix evolves from an empty Next.js project to a complete self-serve voice AI
 
 - [v1.0 MVP](milestones/v1.0-ROADMAP.md) - Phases 1-6 (SHIPPED 2025-12-27)
 - [v1.1 German Market & Polish](milestones/v1.1-ROADMAP.md) - Phases 7-10 (SHIPPED 2025-12-27)
-- v1.2 shadcn/ui & Premium Dark Theme - Phases 11-13 (in progress)
+- [v1.2 shadcn/ui & Premium Dark Theme](milestones/v1.2-ROADMAP.md) - Phases 11-13 (SHIPPED 2025-12-28)
 
 ## Domain Expertise
 
@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v1.2 shadcn/ui & Premium Dark Theme (In Progress)
+### v1.2 shadcn/ui & Premium Dark Theme (SHIPPED 2025-12-28)
 
 **Milestone Goal:** Redesign the entire app with shadcn/ui components and a Proximab-inspired premium dark theme featuring purple/pink gradients, radial glows, glassmorphism, and scroll effects. Visual polish only — no new features.
 
@@ -86,7 +86,7 @@ Plans:
 
 Plans:
 - [x] 13-01: Motion Setup & Hero Enhancement
-- [ ] 13-02: Section Animations & Polish
+- [x] 13-02: Section Animations & Polish
 
 ## Progress
 
@@ -107,4 +107,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 10. Landing & Legal Pages | v1.1 | 2/2 | Complete | 2025-12-27 |
 | 11. shadcn/ui Setup | v1.2 | 2/2 | Complete | 2025-12-27 |
 | 12. Dashboard Redesign | v1.2 | 4/4 | Complete | 2025-12-27 |
-| 13. Landing Redesign | v1.2 | 1/2 | In Progress | - |
+| 13. Landing Redesign | v1.2 | 2/2 | Complete | 2025-12-28 |
