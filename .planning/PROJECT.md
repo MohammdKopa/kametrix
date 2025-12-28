@@ -1,24 +1,26 @@
 # Kametrix
 
-## Current State (Updated: 2025-12-27)
+## Current State (Updated: 2025-12-28)
 
-**Shipped:** v1.1 German Market & Polish (2025-12-27)
+**Shipped:** v1.2 shadcn/ui & Premium Dark Theme (2025-12-28)
 **Status:** Production Ready
 **Users:** German small business market
-**Codebase:** ~31,000 lines TypeScript/TSX, Next.js 15 + PostgreSQL + Prisma 7, self-hosted deployment
+**Codebase:** ~28,500 lines TypeScript/TSX, Next.js 15 + PostgreSQL + Prisma 7, self-hosted deployment
+**Design:** Proximab-inspired premium dark theme with glassmorphism, radial glows, and scroll animations
 
-## v1.2 Goals
+## v1.3 Goals
 
-**Vision:** Complete the landing page experience and add English localization.
+**Vision:** To be determined based on user feedback and market needs.
 
-**Motivation:**
-- Landing page needs Pricing, CTA, and Footer sections
-- Expand to English-speaking markets
+**Potential directions:**
+- English localization for international markets
+- Pricing page and billing improvements
+- Analytics and reporting features
+- Multi-agent support
+- Outbound calling capabilities
 
-**Scope (v1.2):**
-- Complete landing page (Pricing preview, CTA section, Footer with legal links)
-- English language option
-- Additional landing page polish
+**Scope (v1.3):**
+- TBD - run /gsd:new-milestone when ready to plan
 
 ---
 

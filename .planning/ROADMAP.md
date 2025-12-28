@@ -44,49 +44,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v1.2 shadcn/ui & Premium Dark Theme (SHIPPED 2025-12-28)
+<details>
+<summary>v1.2 shadcn/ui & Premium Dark Theme (Phases 11-13) - SHIPPED 2025-12-28</summary>
 
-**Milestone Goal:** Redesign the entire app with shadcn/ui components and a Proximab-inspired premium dark theme featuring purple/pink gradients, radial glows, glassmorphism, and scroll effects. Visual polish only — no new features.
+- [x] **Phase 11: shadcn/ui Setup** - Install shadcn/ui, configure Proximab OKLCH dark theme, Poppins/Inter typography (2/2 plans)
+- [x] **Phase 12: Dashboard Redesign** - Glassmorphic cards, gradient accents, premium hover effects (4/4 plans)
+- [x] **Phase 13: Landing Redesign** - Motion library, atmospheric glows, floating orbs, scroll animations (2/2 plans)
 
-**Reference:** https://proximab.framer.website/
-- Purple/pink accent gradients on dark backgrounds (#06040d base)
-- Glassmorphic cards with blur effects and subtle borders
-- Radial glow effects for atmosphere
-- Smooth scroll animations and sticky elements
-- Typography: Poppins + Inter
-
-#### Phase 11: shadcn/ui Setup
-**Goal**: Install shadcn/ui, configure Proximab-inspired theme (purple/pink gradients, dark mode), set up component foundation
-**Depends on**: Phase 10 (v1.1 complete)
-**Research**: Likely (new library integration)
-**Research topics**: shadcn/ui installation with Next.js, theme customization, CSS variables for dark mode
-**Plans**: TBD
-
-Plans:
-- [x] 11-01: shadcn/ui Installation & Theme Foundation
-- [x] 11-02: Core Components & Typography
-
-#### Phase 12: Dashboard Redesign
-**Goal**: Rebuild dashboard components with shadcn/ui, apply Proximab dark theme with glassmorphism and gradient accents
-**Depends on**: Phase 11
-**Research**: Unlikely (internal patterns + shadcn docs from Phase 11)
-**Plans**: 4
-
-Plans:
-- [x] 12-01: Layout Shell & Navigation
-- [x] 12-02: Stats & Cards
-- [x] 12-03: Forms & Inputs
-- [x] 12-04: Tables & Final Polish
-
-#### Phase 13: Landing Redesign
-**Goal**: Rebuild landing page with shadcn/ui, add scroll effects, radial glows, and premium dark theme styling
-**Depends on**: Phase 12
-**Research**: Unlikely (established patterns from Phase 12)
-**Plans**: 2
-
-Plans:
-- [x] 13-01: Motion Setup & Hero Enhancement
-- [x] 13-02: Section Animations & Polish
+</details>
 
 ## Progress
 
