@@ -44,7 +44,22 @@ const DEFAULT_APPOINTMENT_DURATION_MINUTES = 30;
 /**
  * Validate and correct date string to ensure the date is not in the past.
  * LLMs can sometimes hallucinate incorrect dates (e.g., 2023 instead of 2025,
- * or wrong months entirely). This function auto-corrects past dates.
+ * or wrong months entirely). This function auto-corrects past dates using
+ * smart year inference.
+ *
+ * Logic:
+ * 1. If incoming year is clearly wrong (past years like 2023, 2024 when we're in 2025), ignore it
+ * 2. Use month/day to determine the correct year:
+ *    - If month/day is in the future THIS year -> use current year
+ *    - If month/day has already passed THIS year -> use next year
+ * 3. If incoming year matches current or next year AND date is in future -> trust it
+ * 4. If incoming year is future but > 1 year away -> log warning but allow
+ *
+ * Examples (assuming today is 2025-12-29):
+ * - Input: 2023-10-06 -> Output: 2026-10-06 (October has passed this year)
+ * - Input: 2023-01-15 -> Output: 2026-01-15 (January is coming but year was wrong)
+ * - Input: 2025-12-30 -> Output: 2025-12-30 (tomorrow, correct as-is)
+ * - Input: 2025-12-28 -> Output: 2026-12-28 (yesterday -> next year)
  *
  * @param dateStr - Date string in YYYY-MM-DD format
  * @returns Corrected date string in YYYY-MM-DD format
@@ -63,34 +78,55 @@ export function validateAndCorrectDate(dateStr: string): string {
   }
 
   const [, yearStr, monthStr, dayStr] = match;
-  let year = parseInt(yearStr, 10);
+  const inputYear = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10);
   const day = parseInt(dayStr, 10);
 
-  // First, correct obviously wrong years (past years)
-  if (year < currentYear) {
-    console.warn(`Date year corrected from ${year} to ${currentYear}: ${dateStr}`);
-    year = currentYear;
-  }
+  // Helper: check if a given month/day is in the future relative to today
+  const isDateInFuture = (m: number, d: number): boolean => {
+    if (m > currentMonth) return true;
+    if (m === currentMonth && d >= currentDay) return true;
+    return false;
+  };
 
-  // Now check if the corrected date is still in the past
-  // If the month/day has already passed this year, move to next year
-  if (year === currentYear) {
-    const isDateInPast = (month < currentMonth) ||
-                         (month === currentMonth && day < currentDay);
+  let correctedYear: number;
 
-    if (isDateInPast) {
-      year = currentYear + 1;
-      console.warn(`Date ${dateStr} is in the past, moved to next year: ${year}-${monthStr}-${dayStr}`);
+  // Case 1: Input year is in the past (e.g., 2023, 2024 when we're in 2025)
+  // The LLM hallucinated a wrong year - ignore it entirely and infer from month/day
+  if (inputYear < currentYear) {
+    console.warn(`Date has past year ${inputYear}, ignoring and inferring correct year`);
+    if (isDateInFuture(month, day)) {
+      // Month/day hasn't passed yet this year
+      correctedYear = currentYear;
+    } else {
+      // Month/day has already passed this year -> schedule for next year
+      correctedYear = currentYear + 1;
     }
   }
-
-  // Warn about far future dates but allow them
-  if (year > currentYear + 1) {
-    console.warn(`Date is more than a year in the future: ${year}-${monthStr}-${dayStr}`);
+  // Case 2: Input year matches current year
+  else if (inputYear === currentYear) {
+    if (isDateInFuture(month, day)) {
+      // Date is in the future this year - keep it
+      correctedYear = currentYear;
+    } else {
+      // Date has already passed this year -> move to next year
+      correctedYear = currentYear + 1;
+      console.warn(`Date ${dateStr} has passed this year, moving to next year`);
+    }
+  }
+  // Case 3: Input year is next year
+  else if (inputYear === currentYear + 1) {
+    // Trust it - the LLM correctly identified a date for next year
+    correctedYear = inputYear;
+  }
+  // Case 4: Input year is more than 1 year in the future
+  else {
+    // Log warning but allow it - user might genuinely want a far future date
+    console.warn(`Date is more than a year in the future: ${dateStr}`);
+    correctedYear = inputYear;
   }
 
-  const correctedDate = `${year}-${monthStr}-${dayStr}`;
+  const correctedDate = `${correctedYear}-${monthStr}-${dayStr}`;
   if (correctedDate !== dateStr) {
     console.log(`Date validation: ${dateStr} -> ${correctedDate}`);
   }

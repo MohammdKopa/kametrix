@@ -536,9 +536,36 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
 
     // Build dynamic system prompt with current date prepended to stored prompt
     const today = new Date();
-    const currentDateStr = today.toISOString().split('T')[0];
+    const currentDateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
     const year = today.getFullYear();
-    const dateHeader = `[AKTUELLES DATUM: ${currentDateStr}. WICHTIG: Heute ist der ${today.getDate()}.${today.getMonth() + 1}.${year}. Bei allen Terminbuchungen IMMER das Jahr ${year} verwenden, niemals ein vergangenes Jahr wie 2023 oder 2024.]\n\n`;
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+
+    // Calculate tomorrow's date
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const tomorrowDay = tomorrow.getDate();
+    const tomorrowMonth = tomorrow.getMonth() + 1;
+    const tomorrowYear = tomorrow.getFullYear();
+
+    // Format dates in German style (DD.MM.YYYY)
+    const todayGerman = `${day}.${month}.${year}`;
+    const tomorrowGerman = `${tomorrowDay}.${tomorrowMonth}.${tomorrowYear}`;
+
+    const dateHeader = `[AKTUELLES DATUM UND ZEIT-KONTEXT:
+- Heute ist ${todayGerman} (ISO: ${currentDateStr})
+- Morgen ist ${tomorrowGerman} (ISO: ${tomorrowStr})
+- Aktuelles Jahr: ${year}
+
+WICHTIG FUR TERMINBUCHUNGEN:
+- Wenn der Anrufer "morgen" sagt, verwende ${tomorrowStr}
+- Wenn der Anrufer einen Monat nennt (z.B. "Januar", "Oktober"), bestimme das richtige Jahr:
+  * Wenn der Monat noch nicht vorbei ist dieses Jahr -> verwende ${year}
+  * Wenn der Monat bereits vorbei ist dieses Jahr -> verwende ${tomorrowYear}
+- NIEMALS vergangene Jahre wie 2023 oder 2024 verwenden
+- Datumsformat fur Tools: JJJJ-MM-TT (z.B. ${currentDateStr})
+]\n\n`;
 
     // Use agent's stored system prompt with date header
     const systemPrompt = dateHeader + agent.systemPrompt;
@@ -548,6 +575,10 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+    // Build dynamic date examples for tool descriptions
+    const exampleDate = currentDateStr; // Today's date as example
+    const exampleTomorrowDate = tomorrowStr; // Tomorrow's date as example
+
     // Build tools if calendar connected
     const tools = hasCalendarTools ? [
       {
@@ -556,11 +587,11 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'check_availability',
-          description: 'Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
+          description: `Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum. Verwende immer das korrekte Jahr basierend auf dem aktuellen Datum (${todayGerman}).`,
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!' },
+              date: { type: 'string', description: `Datum im Format JJJJ-MM-TT. Heute: ${exampleDate}, Morgen: ${exampleTomorrowDate}. Verwende ${year} für zukünftige Termine dieses Jahres, ${tomorrowYear} für Termine im nächsten Jahr.` },
               timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
             },
             required: ['date'],
@@ -573,11 +604,11 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'book_appointment',
-          description: 'Bucht einen Termin im Kalender. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
+          description: `Bucht einen Termin im Kalender. Verwende immer das korrekte Jahr basierend auf dem aktuellen Datum (${todayGerman}).`,
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!' },
+              date: { type: 'string', description: `Datum im Format JJJJ-MM-TT. Heute: ${exampleDate}, Morgen: ${exampleTomorrowDate}. Verwende ${year} für zukünftige Termine dieses Jahres, ${tomorrowYear} für Termine im nächsten Jahr.` },
               time: { type: 'string', description: 'Uhrzeit im Format HH:MM (24-Stunden-Format, z.B. 14:30)' },
               callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
               callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },

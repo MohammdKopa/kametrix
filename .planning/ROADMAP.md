@@ -96,10 +96,19 @@ Plans:
 - [x] 17-01: Database & API (SiteSetting model, admin settings endpoint)
 - [x] 17-02: UI & Integration (Settings page, dynamic rate in credit functions)
 
+#### Phase 18: Fix the Appointment
+**Goal**: Fix appointment booking date/time validation and correction
+**Depends on**: Phase 17
+**Research**: Unlikely (internal patterns)
+**Plans**: 1
+
+Plans:
+- [x] 18-01: Fix date validation logic and enhance AI date instructions
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -120,3 +129,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 15. Security Hardening | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 16. Auth UI Polish | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 17. Admin Price Control | v2.0 | 2/2 | Complete | 2025-12-29 |
+| 18. Fix the Appointment | v2.0 | 1/1 | Complete | 2025-12-29 |
