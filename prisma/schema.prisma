@@ -159,3 +159,9 @@ model PhoneNumber {
   // Relations
   agent       Agent?      @relation(fields: [agentId], references: [id], onDelete: SetNull)
 }
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

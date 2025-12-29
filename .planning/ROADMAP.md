@@ -90,10 +90,11 @@ Plans:
 **Goal**: Admin dashboard for per-minute rate management
 **Depends on**: Phase 16
 **Research**: Unlikely (internal patterns)
-**Plans**: TBD
+**Plans**: 2
 
 Plans:
-- [ ] 17-01: TBD
+- [x] 17-01: Database & API (SiteSetting model, admin settings endpoint)
+- [ ] 17-02: UI & Integration (Settings page, dynamic rate in credit functions)
 
 ## Progress
 
@@ -118,4 +119,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 14. Critical Bug Fixes | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 15. Security Hardening | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 16. Auth UI Polish | v2.0 | 1/1 | Complete | 2025-12-29 |
-| 17. Admin Price Control | v2.0 | 0/? | Not started | - |
+| 17. Admin Price Control | v2.0 | 1/2 | In progress | - |
