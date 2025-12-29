@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Build system prompt from wizard data
+      // Build system prompt from wizard data (includes Vapi dynamic date variables if calendar enabled)
       const systemPrompt = buildSystemPrompt({
         businessName: wizardData.businessInfo.businessName,
         businessDescription: wizardData.businessInfo.businessDescription,
@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
         services: validServices,
         faqs: validFaqs,
         policies: wizardData.knowledge.policies,
+        hasGoogleCalendar,
       });
 
       try {
@@ -219,6 +220,9 @@ export async function POST(request: NextRequest) {
 
 /**
  * Build system prompt from wizard data
+ *
+ * Uses Vapi dynamic variables for real-time date/time substitution:
+ * https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
  */
 function buildSystemPrompt(config: {
   businessName: string;
@@ -227,41 +231,69 @@ function buildSystemPrompt(config: {
   services: string[];
   faqs: { question: string; answer: string }[];
   policies: string;
+  hasGoogleCalendar?: boolean;
 }): string {
   const parts: string[] = [];
 
-  parts.push(`You are an AI assistant for ${config.businessName}.`);
+  // Add Vapi dynamic date header for calendar-enabled agents
+  // These variables are substituted by Vapi at call time
+  if (config.hasGoogleCalendar) {
+    parts.push(`[AKTUELLES DATUM UND UHRZEIT]
+Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
+Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
+Wochentag: {{"now" | date: "%A", "Europe/Berlin"}}
+Jahr: {{"now" | date: "%Y", "Europe/Berlin"}}
+
+WICHTIG - DATUMSREGELN:
+- Das aktuelle Jahr ist {{"now" | date: "%Y", "Europe/Berlin"}} - NIEMALS 2023 oder 2024 verwenden!
+- Wenn der Kunde "morgen" sagt, berechne das korrekte Datum basierend auf heute
+- Wenn der Kunde "Montag" sagt, nimm den NÄCHSTEN Montag (nicht vergangene)
+- Übergib Datumsangaben im Format JJJJ-MM-TT an die Tools
+`);
+  }
+
+  parts.push(`Sie sind der KI-Assistent für ${config.businessName}.`);
 
   if (config.businessDescription) {
     parts.push(`\n${config.businessDescription}`);
   }
 
-  parts.push('\n## Business Information');
-  parts.push(`- Business Name: ${config.businessName}`);
-  parts.push(`- Hours: ${config.businessHours}`);
+  parts.push('\n## Geschäftsinformationen');
+  parts.push(`- Firmenname: ${config.businessName}`);
+  parts.push(`- Öffnungszeiten: ${config.businessHours}`);
   if (config.services.length > 0) {
-    parts.push(`- Services: ${config.services.join(', ')}`);
+    parts.push(`- Dienstleistungen: ${config.services.join(', ')}`);
   }
 
   if (config.faqs.length > 0) {
-    parts.push('\n## Frequently Asked Questions');
+    parts.push('\n## Häufige Fragen');
     config.faqs.forEach((faq) => {
-      parts.push(`Q: ${faq.question}`);
+      parts.push(`F: ${faq.question}`);
       parts.push(`A: ${faq.answer}`);
       parts.push('');
     });
   }
 
   if (config.policies) {
-    parts.push('## Policies');
+    parts.push('## Richtlinien');
     parts.push(config.policies);
   }
 
-  parts.push('\n## Guidelines');
-  parts.push('- Be friendly, professional, and concise');
-  parts.push('- Answer questions about the business accurately using the information above');
-  parts.push("- If you don't know something or it's outside your knowledge, politely say you'll have someone get back to them");
-  parts.push('- Keep responses brief and natural for voice conversation');
+  if (config.hasGoogleCalendar) {
+    parts.push('\n## Kalender-Funktionen');
+    parts.push('- Sie können die Verfügbarkeit mit dem check_availability-Tool prüfen');
+    parts.push('- Sie können Termine mit dem book_appointment-Tool buchen');
+    parts.push('- Erfragen Sie bei Terminbuchungen: Datum, Uhrzeit, Name des Anrufers (erforderlich), Telefonnummer (optional), E-Mail (optional)');
+    parts.push('- Bestätigen Sie immer die Details vor der Buchung');
+    parts.push('- Berechnen Sie relative Datumsangaben (morgen, nächsten Montag) anhand des aktuellen Datums oben');
+  }
+
+  parts.push('\n## Richtlinien');
+  parts.push('- Sprechen Sie Anrufer mit "Sie" an (formell)');
+  parts.push('- Seien Sie freundlich, professionell und präzise');
+  parts.push('- Beantworten Sie Fragen zum Unternehmen anhand der obigen Informationen');
+  parts.push('- Wenn Sie etwas nicht wissen, sagen Sie höflich, dass sich jemand bei ihnen melden wird');
+  parts.push('- Halten Sie Antworten kurz und natürlich für Telefongespräche');
 
   return parts.join('\n');
 }

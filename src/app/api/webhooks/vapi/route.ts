@@ -504,7 +504,10 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
 /**
  * Handle assistant-request events
- * Returns dynamic assistant config with current date in system prompt
+ * Returns dynamic assistant config with Vapi dynamic variables for real-time date
+ *
+ * Uses Vapi dynamic variables which are substituted at call time:
+ * https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
  */
 async function handleAssistantRequest(message: { call?: { assistantId?: string; phoneNumberId?: string } }) {
   try {
@@ -534,42 +537,26 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    // Build dynamic system prompt with ACTUAL current date (Vapi variables don't work in webhook responses)
-    const now = new Date();
-    const berlinTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
-    const year = berlinTime.getFullYear();
-    const month = berlinTime.getMonth() + 1;
-    const day = berlinTime.getDate();
-    const hours = berlinTime.getHours();
-    const minutes = berlinTime.getMinutes();
+    // Check if the stored prompt already has Vapi dynamic variables
+    const hasVapiVariables = agent.systemPrompt.includes('{{"now"');
 
-    // Calculate tomorrow
-    const tomorrow = new Date(berlinTime);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowYear = tomorrow.getFullYear();
-    const tomorrowMonth = tomorrow.getMonth() + 1;
-    const tomorrowDay = tomorrow.getDate();
+    // Build date header with Vapi dynamic variables (substituted by Vapi at call time)
+    // Only add if the stored prompt doesn't already have them
+    const dateHeader = hasVapiVariables ? '' : `[AKTUELLES DATUM UND UHRZEIT]
+Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
+Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
+Wochentag: {{"now" | date: "%A", "Europe/Berlin"}}
+Jahr: {{"now" | date: "%Y", "Europe/Berlin"}}
 
-    // Format dates
-    const todayISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const tomorrowISO = `${tomorrowYear}-${String(tomorrowMonth).padStart(2, '0')}-${String(tomorrowDay).padStart(2, '0')}`;
-    const todayGerman = `${day}.${month}.${year}`;
-    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-
-    const dateHeader = `[AKTUELLES DATUM: ${todayGerman} | ISO: ${todayISO} | Uhrzeit: ${timeStr}]
-
-WICHTIG - DATUMSREGELN FÜR TERMINE:
-- HEUTE ist ${todayISO} (${todayGerman})
-- MORGEN ist ${tomorrowISO}
-- Aktuelles Jahr: ${year}
-- Wenn Kunde "morgen" sagt → verwende "${tomorrowISO}"
-- Wenn Kunde "heute" sagt → verwende "${todayISO}"
-- Du kannst auch "morgen", "heute", "Montag" etc. direkt übergeben - der Server versteht das
-- NIEMALS 2023 oder 2024 verwenden!
+WICHTIG - DATUMSREGELN:
+- Das aktuelle Jahr ist {{"now" | date: "%Y", "Europe/Berlin"}} - NIEMALS 2023 oder 2024 verwenden!
+- Wenn der Kunde "morgen" sagt, berechne das korrekte Datum basierend auf heute
+- Wenn der Kunde "Montag" sagt, nimm den NÄCHSTEN Montag (nicht vergangene)
+- Übergib Datumsangaben im Format JJJJ-MM-TT an die Tools
 
 `;
 
-    // Use agent's stored system prompt with date header
+    // Use agent's stored system prompt with date header (if needed)
     const systemPrompt = dateHeader + agent.systemPrompt;
 
     // Check if user has Google Calendar connected
@@ -644,7 +631,7 @@ WICHTIG - DATUMSREGELN FÜR TERMINE:
       endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',
     };
 
-    console.log(`Assistant request: returning config for ${agent.name} | Today: ${todayISO} | Tomorrow: ${tomorrowISO}`);
+    console.log(`Assistant request: returning config for ${agent.name} | Using Vapi dynamic date variables`);
     return NextResponse.json({ assistant: assistantConfig });
   } catch (error) {
     console.error('Error handling assistant request:', error);

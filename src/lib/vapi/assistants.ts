@@ -4,10 +4,26 @@ import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantRespons
 /**
  * Build a system prompt from business configuration
  * All prompts are in formal German (Sie-form) for professional business communication
+ *
+ * Uses Vapi dynamic variables for real-time date/time:
+ * https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
  */
 function buildSystemPrompt(config: CreateAssistantConfig, hasCalendarTools: boolean): string {
-  // NOTE: Current date is dynamically prepended by the webhook handler at call time
-  // Do NOT embed static dates here - they become stale
+  // Vapi dynamic variables - substituted at call time by Vapi
+  // Format: {{"now" | date: "format_string", "timezone"}}
+  const dateHeader = hasCalendarTools ? `[AKTUELLES DATUM UND UHRZEIT]
+Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
+Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
+Wochentag: {{"now" | date: "%A", "Europe/Berlin"}}
+Jahr: {{"now" | date: "%Y", "Europe/Berlin"}}
+
+WICHTIG - DATUMSREGELN:
+- Das aktuelle Jahr ist {{"now" | date: "%Y", "Europe/Berlin"}} - NIEMALS 2023 oder 2024 verwenden!
+- Wenn der Kunde "morgen" sagt, berechne das korrekte Datum basierend auf heute
+- Wenn der Kunde "Montag" sagt, nimm den NÄCHSTEN Montag (nicht vergangene)
+- Übergib Datumsangaben im Format JJJJ-MM-TT an die Tools
+
+` : '';
 
   const faqSection = config.faqs.length > 0
     ? `\n\n## Häufige Fragen\n${config.faqs.map(faq => `F: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
@@ -19,14 +35,14 @@ function buildSystemPrompt(config: CreateAssistantConfig, hasCalendarTools: bool
 - Sie können Termine mit dem book_appointment-Tool buchen
 - Erfragen Sie bei Terminbuchungen: Datum, Uhrzeit, Name des Anrufers (erforderlich), Telefonnummer (optional), E-Mail (optional)
 - Bestätigen Sie immer die Details vor der Buchung
-- Verwenden Sie das aktuelle Datum am Anfang dieses Prompts für Datumsberechnungen`
+- Berechnen Sie relative Datumsangaben (morgen, nächsten Montag) anhand des aktuellen Datums oben`
     : '';
 
   const appointmentGuideline = hasCalendarTools
     ? '\n- Nutzen Sie bei Terminanfragen Ihre Kalender-Tools'
     : '\n- Bei Terminwünschen: Name, bevorzugtes Datum/Uhrzeit und Grund erfragen';
 
-  return `Sie sind der KI-Assistent für ${config.businessName}.
+  return `${dateHeader}Sie sind der KI-Assistent für ${config.businessName}.
 
 ## Geschäftsinformationen
 - Firmenname: ${config.businessName}
@@ -234,8 +250,8 @@ export async function deleteAssistant(assistantId: string): Promise<void> {
 }
 
 /**
- * Refresh an assistant's system prompt with current date
- * Call this to update the date for agents created days/weeks ago
+ * Refresh an assistant's system prompt with Vapi dynamic date variables
+ * Call this to update existing agents to use Vapi's native date substitution
  */
 export async function refreshAssistantDate(
   assistantId: string,
@@ -246,7 +262,7 @@ export async function refreshAssistantDate(
 
   const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Rebuild tools with current server URL
+  // Rebuild tools with current server URL and German descriptions
   const tools = hasCalendarTools ? [
     {
       type: 'function' as const,
@@ -254,12 +270,12 @@ export async function refreshAssistantDate(
       server: { url: `${serverUrl}/api/webhooks/vapi` },
       function: {
         name: 'check_availability',
-        description: 'Check calendar availability for a specific date.',
+        description: 'Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum.',
         parameters: {
           type: 'object' as const,
           properties: {
-            date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
-            timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+            date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15)' },
+            timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
           },
           required: ['date'],
         },
@@ -271,17 +287,17 @@ export async function refreshAssistantDate(
       server: { url: `${serverUrl}/api/webhooks/vapi` },
       function: {
         name: 'book_appointment',
-        description: 'Book an appointment on the calendar.',
+        description: 'Bucht einen Termin im Kalender.',
         parameters: {
           type: 'object' as const,
           properties: {
-            date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
-            time: { type: 'string', description: 'Time in HH:MM AM/PM or 24-hour format' },
-            callerName: { type: 'string', description: "Caller's full name (required)" },
-            callerPhone: { type: 'string', description: "Caller's phone number (optional)" },
-            callerEmail: { type: 'string', description: "Caller's email (optional)" },
-            summary: { type: 'string', description: 'Brief description (optional)' },
-            timeZone: { type: 'string', description: 'IANA timezone. Defaults to Europe/Berlin.' },
+            date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15)' },
+            time: { type: 'string', description: 'Uhrzeit im 24-Stunden-Format (z.B. 14:30)' },
+            callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
+            callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },
+            callerEmail: { type: 'string', description: 'E-Mail-Adresse des Anrufers (optional)' },
+            summary: { type: 'string', description: 'Kurze Beschreibung des Termins (optional)' },
+            timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
           },
           required: ['date', 'time', 'callerName'] as const,
         },
@@ -299,7 +315,7 @@ export async function refreshAssistantDate(
     } as any,
   });
 
-  console.log(`Refreshed assistant ${assistantId} with current date`);
+  console.log(`Refreshed assistant ${assistantId} with Vapi dynamic date variables`);
 
   return {
     id: assistant.id,
