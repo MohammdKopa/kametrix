@@ -608,8 +608,8 @@ TERMINBUCHUNG - WICHTIGE REGELN:
       name: agent.name,
       firstMessage: agent.greeting || `${agent.businessName}, guten Tag! Wie kann ich Ihnen behilflich sein?`,
       model: {
-        provider: 'openai',
-        model: 'gpt-4o',
+        provider: 'anthropic',
+        model: 'claude-3-5-sonnet-20241022',
         messages: [{ role: 'system', content: systemPrompt }],
         ...(tools && { tools }),
       },
