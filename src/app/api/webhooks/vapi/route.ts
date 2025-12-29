@@ -534,22 +534,40 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    // Build dynamic system prompt using Vapi's built-in dynamic variables
-    // These get populated by Vapi at call time with correct current date/time
-    // See: https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
-    const dateHeader = `[AKTUELLES DATUM UND UHRZEIT:
-Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
-Aktuelle Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
-Jahr: {{year}}
+    // Build dynamic system prompt with ACTUAL current date (Vapi variables don't work in webhook responses)
+    const now = new Date();
+    const berlinTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    const year = berlinTime.getFullYear();
+    const month = berlinTime.getMonth() + 1;
+    const day = berlinTime.getDate();
+    const hours = berlinTime.getHours();
+    const minutes = berlinTime.getMinutes();
 
-TERMINBUCHUNG - WICHTIGE REGELN:
-- Bei "morgen": Nimm das heutige Datum und addiere 1 Tag
-- Bei "übermorgen": Nimm das heutige Datum und addiere 2 Tage
-- Bei Wochentagen (z.B. "Montag"): Berechne den nächsten Montag ab heute
-- Verwende IMMER das aktuelle Jahr {{year}} oder {{year}}+1 für Termine
-- NIEMALS Jahre wie 2023 oder 2024 verwenden!
-- Du kannst relative Begriffe wie "morgen", "übermorgen", "Montag" direkt an die Tools übergeben
-]\n\n`;
+    // Calculate tomorrow
+    const tomorrow = new Date(berlinTime);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowYear = tomorrow.getFullYear();
+    const tomorrowMonth = tomorrow.getMonth() + 1;
+    const tomorrowDay = tomorrow.getDate();
+
+    // Format dates
+    const todayISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const tomorrowISO = `${tomorrowYear}-${String(tomorrowMonth).padStart(2, '0')}-${String(tomorrowDay).padStart(2, '0')}`;
+    const todayGerman = `${day}.${month}.${year}`;
+    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+    const dateHeader = `[AKTUELLES DATUM: ${todayGerman} | ISO: ${todayISO} | Uhrzeit: ${timeStr}]
+
+WICHTIG - DATUMSREGELN FÜR TERMINE:
+- HEUTE ist ${todayISO} (${todayGerman})
+- MORGEN ist ${tomorrowISO}
+- Aktuelles Jahr: ${year}
+- Wenn Kunde "morgen" sagt → verwende "${tomorrowISO}"
+- Wenn Kunde "heute" sagt → verwende "${todayISO}"
+- Du kannst auch "morgen", "heute", "Montag" etc. direkt übergeben - der Server versteht das
+- NIEMALS 2023 oder 2024 verwenden!
+
+`;
 
     // Use agent's stored system prompt with date header
     const systemPrompt = dateHeader + agent.systemPrompt;
@@ -626,7 +644,7 @@ TERMINBUCHUNG - WICHTIGE REGELN:
       endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',
     };
 
-    console.log(`Assistant request: returning dynamic config for ${agent.name} with Vapi dynamic date variables`);
+    console.log(`Assistant request: returning config for ${agent.name} | Today: ${todayISO} | Tomorrow: ${tomorrowISO}`);
     return NextResponse.json({ assistant: assistantConfig });
   } catch (error) {
     console.error('Error handling assistant request:', error);
