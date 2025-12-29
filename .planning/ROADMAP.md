@@ -67,15 +67,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 14-01: Fix appointment year bug with date validation
 
-#### Phase 15: Security Hardening
+#### Phase 15: Security Hardening ✓
 **Goal**: Add rate limiting and authentication to protect APIs
 **Depends on**: Phase 14
 **Research**: Likely (rate limiting library patterns)
 **Research topics**: Rate limiting libraries for Next.js, Vapi webhook signature verification
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 15-01: TBD
+- [x] 15-01: Rate limiting and Vapi webhook signature verification
 
 #### Phase 16: Auth UI Polish
 **Goal**: Update login/signup pages to match website theme
@@ -116,6 +116,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 12. Dashboard Redesign | v1.2 | 4/4 | Complete | 2025-12-27 |
 | 13. Landing Redesign | v1.2 | 2/2 | Complete | 2025-12-28 |
 | 14. Critical Bug Fixes | v2.0 | 1/1 | Complete | 2025-12-29 |
-| 15. Security Hardening | v2.0 | 0/? | Not started | - |
+| 15. Security Hardening | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 16. Auth UI Polish | v2.0 | 0/? | Not started | - |
 | 17. Admin Price Control | v2.0 | 0/? | Not started | - |

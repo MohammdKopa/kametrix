@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma';
 import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
 import { formatDateGerman } from '@/lib/localization';
+import { verifyVapiSignature } from '@/lib/webhook-auth';
 
 /**
  * Tool call payload from Vapi
@@ -47,10 +48,27 @@ interface WebhookToolCalls {
  * - tool-calls: Custom function calls (calendar booking, etc.)
  *
  * CRITICAL: Must respond within 7.5 seconds or Vapi will timeout
+ * CRITICAL: Uses request.text() NOT request.json() for signature verification
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Get raw body FIRST for signature verification
+    const rawBody = await req.text();
+
+    // Verify signature if VAPI_WEBHOOK_SECRET is configured
+    const secret = process.env.VAPI_WEBHOOK_SECRET;
+    if (secret) {
+      const signature = req.headers.get('x-vapi-signature');
+      const isValid = verifyVapiSignature(rawBody, signature, secret);
+
+      if (!isValid) {
+        console.error('Vapi webhook: signature verification failed');
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+      }
+    }
+
+    // Parse JSON AFTER signature verification
+    const body = JSON.parse(rawBody);
     const { message } = body;
 
     // Log event type for debugging

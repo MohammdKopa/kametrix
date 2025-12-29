@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { generateWizardContent, generateGreetingOnly } from '@/lib/openrouter';
 import type { WizardState } from '@/types/wizard';
+import { generateLimiter, applyRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (10 requests per minute)
+    const ip = getClientIp(request);
+    const rateLimitResponse = await applyRateLimit(generateLimiter, `generate:${ip}`);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     await requireAuth(request);
 
     const body = await request.json();

@@ -3,9 +3,17 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
 import { createSession, setSessionCookie } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email';
+import { registerLimiter, applyRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (3 requests per hour)
+    const ip = getClientIp(request);
+    const rateLimitResponse = await applyRateLimit(registerLimiter, `register:${ip}`);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await request.json();
     const { email, password, name } = body;
 
