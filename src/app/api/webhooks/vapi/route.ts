@@ -576,8 +576,8 @@ WICHTIG FUR TERMINBUCHUNGEN:
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Build dynamic date examples for tool descriptions
-    const exampleDate = currentDateStr; // Today's date as example
-    const exampleTomorrowDate = tomorrowStr; // Tomorrow's date as example
+    // CRITICAL: These must be very explicit because LLMs often ignore system prompt date info
+    const dateRuleForTools = `KRITISCH: Heute ist ${currentDateStr}. "morgen" = ${tomorrowStr}. NIEMALS 2023 oder 2024 verwenden!`;
 
     // Build tools if calendar connected
     const tools = hasCalendarTools ? [
@@ -587,11 +587,11 @@ WICHTIG FUR TERMINBUCHUNGEN:
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'check_availability',
-          description: `Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum. Verwende immer das korrekte Jahr basierend auf dem aktuellen Datum (${todayGerman}).`,
+          description: `Prüft die Kalenderverfügbarkeit. ${dateRuleForTools}`,
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: `Datum im Format JJJJ-MM-TT. Heute: ${exampleDate}, Morgen: ${exampleTomorrowDate}. Verwende ${year} für zukünftige Termine dieses Jahres, ${tomorrowYear} für Termine im nächsten Jahr.` },
+              date: { type: 'string', description: `PFLICHT: Format JJJJ-MM-TT. HEUTE=${currentDateStr}. MORGEN=${tomorrowStr}. Wenn Anrufer "morgen" sagt, MUSS ${tomorrowStr} verwendet werden!` },
               timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
             },
             required: ['date'],
@@ -604,11 +604,11 @@ WICHTIG FUR TERMINBUCHUNGEN:
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'book_appointment',
-          description: `Bucht einen Termin im Kalender. Verwende immer das korrekte Jahr basierend auf dem aktuellen Datum (${todayGerman}).`,
+          description: `Bucht einen Termin. ${dateRuleForTools}`,
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: `Datum im Format JJJJ-MM-TT. Heute: ${exampleDate}, Morgen: ${exampleTomorrowDate}. Verwende ${year} für zukünftige Termine dieses Jahres, ${tomorrowYear} für Termine im nächsten Jahr.` },
+              date: { type: 'string', description: `PFLICHT: Format JJJJ-MM-TT. HEUTE=${currentDateStr}. MORGEN=${tomorrowStr}. Wenn Anrufer "morgen" sagt, MUSS ${tomorrowStr} verwendet werden!` },
               time: { type: 'string', description: 'Uhrzeit im Format HH:MM (24-Stunden-Format, z.B. 14:30)' },
               callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
               callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },
