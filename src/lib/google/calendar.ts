@@ -42,6 +42,84 @@ const DEFAULT_BUSINESS_END_HOUR = 17; // 5 PM
 const DEFAULT_APPOINTMENT_DURATION_MINUTES = 30;
 
 /**
+ * Parse a date input that can be either a relative term (morgen, heute, übermorgen)
+ * or an ISO date string. Returns the resolved date in YYYY-MM-DD format.
+ *
+ * This handles the common case where the AI passes relative terms instead of
+ * calculating dates (which it often gets wrong).
+ *
+ * @param dateInput - Either a relative term or YYYY-MM-DD date string
+ * @returns Resolved date in YYYY-MM-DD format
+ */
+export function parseDateInput(dateInput: string): string {
+  const input = dateInput.toLowerCase().trim();
+  const now = new Date();
+
+  // German relative date terms
+  const relativeDates: Record<string, number> = {
+    'heute': 0,
+    'today': 0,
+    'morgen': 1,
+    'tomorrow': 1,
+    'übermorgen': 2,
+    'ubermorgen': 2,
+  };
+
+  // Check if it's a relative term
+  if (relativeDates[input] !== undefined) {
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() + relativeDates[input]);
+    const result = targetDate.toISOString().split('T')[0];
+    console.log(`Relative date parsed: "${dateInput}" -> ${result}`);
+    return result;
+  }
+
+  // Check for "in X tagen" pattern
+  const inDaysMatch = input.match(/in\s+(\d+)\s+tag/i);
+  if (inDaysMatch) {
+    const days = parseInt(inDaysMatch[1], 10);
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() + days);
+    const result = targetDate.toISOString().split('T')[0];
+    console.log(`Relative date parsed: "${dateInput}" -> ${result}`);
+    return result;
+  }
+
+  // Check for weekday names (nächsten Montag, etc.)
+  const weekdays: Record<string, number> = {
+    'sonntag': 0, 'sunday': 0,
+    'montag': 1, 'monday': 1,
+    'dienstag': 2, 'tuesday': 2,
+    'mittwoch': 3, 'wednesday': 3,
+    'donnerstag': 4, 'thursday': 4,
+    'freitag': 5, 'friday': 5,
+    'samstag': 6, 'saturday': 6,
+  };
+
+  for (const [dayName, dayNum] of Object.entries(weekdays)) {
+    if (input.includes(dayName)) {
+      const currentDay = now.getDay();
+      let daysToAdd = dayNum - currentDay;
+      if (daysToAdd <= 0) daysToAdd += 7; // Next week if today or past
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() + daysToAdd);
+      const result = targetDate.toISOString().split('T')[0];
+      console.log(`Weekday parsed: "${dateInput}" -> ${result}`);
+      return result;
+    }
+  }
+
+  // If it looks like a date (contains numbers), pass to validateAndCorrectDate
+  if (/\d{4}-\d{2}-\d{2}/.test(input)) {
+    return validateAndCorrectDate(dateInput);
+  }
+
+  // Fallback: return as-is and let validateAndCorrectDate handle it
+  console.warn(`Could not parse date input: "${dateInput}", attempting validation`);
+  return validateAndCorrectDate(dateInput);
+}
+
+/**
  * Validate and correct date string to ensure the date is not in the past.
  * LLMs can sometimes hallucinate incorrect dates (e.g., 2023 instead of 2025,
  * or wrong months entirely). This function auto-corrects past dates using

@@ -10,7 +10,7 @@ import {
 } from '@/lib/calls';
 import { CallStatus } from '@/generated/prisma/client';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
-import { getAvailableSlots, bookAppointment, parseDateTime, validateAndCorrectDate } from '@/lib/google/calendar';
+import { getAvailableSlots, bookAppointment, parseDateTime, parseDateInput } from '@/lib/google/calendar';
 import { prisma } from '@/lib/prisma';
 import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
@@ -394,7 +394,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
-                const correctedDateStr = validateAndCorrectDate(args.date);
+                const correctedDateStr = parseDateInput(args.date);
                 const date = new Date(correctedDateStr);
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
                 const slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
@@ -435,7 +435,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
-                const correctedDateStr = validateAndCorrectDate(args.date);
+                const correctedDateStr = parseDateInput(args.date);
                 const start = parseDateTime(correctedDateStr, args.time, timeZone);
 
                 // Use user's configured appointment duration
@@ -575,11 +575,8 @@ WICHTIG FUR TERMINBUCHUNGEN:
 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    // Build dynamic date examples for tool descriptions
-    // CRITICAL: These must be very explicit because LLMs often ignore system prompt date info
-    const dateRuleForTools = `KRITISCH: Heute ist ${currentDateStr}. "morgen" = ${tomorrowStr}. NIEMALS 2023 oder 2024 verwenden!`;
-
     // Build tools if calendar connected
+    // IMPORTANT: Let the AI pass relative terms (morgen, heute, etc.) - server will parse them
     const tools = hasCalendarTools ? [
       {
         type: 'function',
@@ -587,11 +584,11 @@ WICHTIG FUR TERMINBUCHUNGEN:
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'check_availability',
-          description: `Prüft die Kalenderverfügbarkeit. ${dateRuleForTools}`,
+          description: `Prüft die Kalenderverfügbarkeit für ein Datum.`,
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: `PFLICHT: Format JJJJ-MM-TT. HEUTE=${currentDateStr}. MORGEN=${tomorrowStr}. Wenn Anrufer "morgen" sagt, MUSS ${tomorrowStr} verwendet werden!` },
+              date: { type: 'string', description: `Datum als Text. BEVORZUGT relative Begriffe: "morgen", "heute", "übermorgen", "Montag", "Dienstag", etc. ODER Format JJJJ-MM-TT.` },
               timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
             },
             required: ['date'],
@@ -604,11 +601,11 @@ WICHTIG FUR TERMINBUCHUNGEN:
         server: { url: `${serverUrl}/api/webhooks/vapi` },
         function: {
           name: 'book_appointment',
-          description: `Bucht einen Termin. ${dateRuleForTools}`,
+          description: `Bucht einen Termin im Kalender.`,
           parameters: {
             type: 'object',
             properties: {
-              date: { type: 'string', description: `PFLICHT: Format JJJJ-MM-TT. HEUTE=${currentDateStr}. MORGEN=${tomorrowStr}. Wenn Anrufer "morgen" sagt, MUSS ${tomorrowStr} verwendet werden!` },
+              date: { type: 'string', description: `Datum als Text. BEVORZUGT relative Begriffe: "morgen", "heute", "übermorgen", "Montag", "Dienstag", etc. ODER Format JJJJ-MM-TT.` },
               time: { type: 'string', description: 'Uhrzeit im Format HH:MM (24-Stunden-Format, z.B. 14:30)' },
               callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
               callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },
