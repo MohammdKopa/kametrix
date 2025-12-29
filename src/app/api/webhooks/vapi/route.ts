@@ -10,7 +10,7 @@ import {
 } from '@/lib/calls';
 import { CallStatus } from '@/generated/prisma/client';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
-import { getAvailableSlots, bookAppointment, parseDateTime } from '@/lib/google/calendar';
+import { getAvailableSlots, bookAppointment, parseDateTime, validateAndCorrectDate } from '@/lib/google/calendar';
 import { prisma } from '@/lib/prisma';
 import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
@@ -376,7 +376,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
-                const date = new Date(args.date);
+                const correctedDateStr = validateAndCorrectDate(args.date);
+                const date = new Date(correctedDateStr);
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
                 const slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
 
@@ -416,7 +417,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
-                const start = parseDateTime(args.date, args.time, timeZone);
+                const correctedDateStr = validateAndCorrectDate(args.date);
+                const start = parseDateTime(correctedDateStr, args.time, timeZone);
 
                 // Use user's configured appointment duration
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
@@ -438,8 +440,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
                   description: `Per Sprachassistent gebucht.\n\nAnrufer: ${args.callerName}${args.callerPhone ? `\nTelefon: ${args.callerPhone}` : ''}${args.callerEmail ? `\nE-Mail: ${args.callerEmail}` : ''}`,
                 });
 
-                // Format date in German for confirmation
-                const bookingDate = new Date(args.date);
+                // Format date in German for confirmation (using corrected date)
+                const bookingDate = new Date(correctedDateStr);
                 const formattedDate = formatDateGerman(bookingDate);
                 result = `Ihr Termin am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
               } catch (error) {

@@ -58,14 +58,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Milestone Goal:** Harden security with rate limiting and authentication, fix critical bugs, update auth UI, and add admin price controls.
 
-#### Phase 14: Critical Bug Fixes
+#### Phase 14: Critical Bug Fixes ✓
 **Goal**: Fix appointment year bug and other critical business logic issues
 **Depends on**: Phase 13
 **Research**: Unlikely (internal patterns)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 14-01: TBD (run /gsd:plan-phase 14 to break down)
+- [x] 14-01: Fix appointment year bug with date validation
 
 #### Phase 15: Security Hardening
 **Goal**: Add rate limiting and authentication to protect APIs
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 11. shadcn/ui Setup | v1.2 | 2/2 | Complete | 2025-12-27 |
 | 12. Dashboard Redesign | v1.2 | 4/4 | Complete | 2025-12-27 |
 | 13. Landing Redesign | v1.2 | 2/2 | Complete | 2025-12-28 |
-| 14. Critical Bug Fixes | v2.0 | 0/? | Not started | - |
+| 14. Critical Bug Fixes | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 15. Security Hardening | v2.0 | 0/? | Not started | - |
 | 16. Auth UI Polish | v2.0 | 0/? | Not started | - |
 | 17. Admin Price Control | v2.0 | 0/? | Not started | - |

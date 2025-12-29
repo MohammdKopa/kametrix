@@ -42,6 +42,41 @@ const DEFAULT_BUSINESS_END_HOUR = 17; // 5 PM
 const DEFAULT_APPOINTMENT_DURATION_MINUTES = 30;
 
 /**
+ * Validate and correct date string to ensure the year is not in the past.
+ * LLMs can sometimes hallucinate incorrect years (e.g., 2023 instead of 2025).
+ * This function auto-corrects past years to the current year.
+ *
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Corrected date string in YYYY-MM-DD format
+ */
+export function validateAndCorrectDate(dateStr: string): string {
+  const currentYear = new Date().getFullYear();
+
+  // Parse the date string
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    console.warn(`Invalid date format: ${dateStr}, expected YYYY-MM-DD`);
+    return dateStr; // Return as-is, let downstream handle the error
+  }
+
+  const [, yearStr, month, day] = match;
+  const year = parseInt(yearStr, 10);
+
+  // Correct past years to current year
+  if (year < currentYear) {
+    console.warn(`Date year corrected from ${year} to ${currentYear}: ${dateStr}`);
+    return `${currentYear}-${month}-${day}`;
+  }
+
+  // Warn about far future dates but allow them
+  if (year > currentYear + 1) {
+    console.warn(`Date is more than a year in the future: ${dateStr}`);
+  }
+
+  return dateStr;
+}
+
+/**
  * Get available time slots for a given date
  *
  * @param oauth2Client - Authenticated OAuth2 client
