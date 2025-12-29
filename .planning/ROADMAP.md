@@ -77,14 +77,14 @@ Plans:
 Plans:
 - [x] 15-01: Rate limiting and Vapi webhook signature verification
 
-#### Phase 16: Auth UI Polish
+#### Phase 16: Auth UI Polish ✓
 **Goal**: Update login/signup pages to match website theme
 **Depends on**: Phase 15
 **Research**: Unlikely (existing patterns)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 16-01: TBD
+- [x] 16-01: Glassmorphic dark theme for login/signup pages
 
 #### Phase 17: Admin Price Control
 **Goal**: Admin dashboard for per-minute rate management
@@ -117,5 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 13. Landing Redesign | v1.2 | 2/2 | Complete | 2025-12-28 |
 | 14. Critical Bug Fixes | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 15. Security Hardening | v2.0 | 1/1 | Complete | 2025-12-29 |
-| 16. Auth UI Polish | v2.0 | 0/? | Not started | - |
+| 16. Auth UI Polish | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 17. Admin Price Control | v2.0 | 0/? | Not started | - |
