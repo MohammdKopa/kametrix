@@ -1,0 +1,156 @@
+# Codebase Structure
+
+**Analysis Date:** 2025-12-29
+
+## Directory Layout
+
+```
+Kametrix/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── (auth)/            # Auth route group (public)
+│   │   ├── (dashboard)/       # Protected dashboard group
+│   │   ├── (marketing)/       # Public marketing pages
+│   │   └── api/               # REST API routes
+│   ├── components/            # React components
+│   │   ├── ui/               # Shadcn/UI primitives
+│   │   ├── dashboard/        # Dashboard components
+│   │   ├── admin/            # Admin panel components
+│   │   ├── wizard/           # Agent creation wizard
+│   │   └── marketing/        # Landing page components
+│   ├── lib/                   # Business logic & utilities
+│   │   ├── google/           # Google Calendar/Sheets
+│   │   ├── vapi/             # Vapi AI integration
+│   │   └── localization/     # German language utilities
+│   ├── types/                 # TypeScript definitions
+│   └── generated/             # Auto-generated (Prisma)
+├── prisma/
+│   ├── schema.prisma          # Database schema
+│   ├── migrations/            # DB migration history
+│   └── seed.ts               # Database seeding
+├── public/                    # Static assets
+├── .planning/                 # Project planning docs
+└── [config files]            # next.config.ts, tsconfig.json, etc.
+```
+
+## Directory Purposes
+
+**src/app/**
+- Purpose: Next.js App Router pages and API routes
+- Contains: 17 pages, 28 API routes
+- Key files: `layout.tsx`, `globals.css`, `middleware.ts`
+- Subdirectories: Route groups `(auth)`, `(dashboard)`, `(marketing)`, `api/`
+
+**src/app/api/**
+- Purpose: REST API endpoints
+- Contains: Route handlers for auth, agents, calls, credits, webhooks
+- Key files: `webhooks/vapi/route.ts` (605 lines), `webhooks/stripe/route.ts`
+- Subdirectories: `admin/`, `agents/`, `auth/`, `calls/`, `credits/`, `google/`, `webhooks/`
+
+**src/components/**
+- Purpose: Reusable React components
+- Contains: 50+ components
+- Subdirectories: `ui/`, `dashboard/`, `admin/`, `wizard/`, `marketing/`
+
+**src/lib/**
+- Purpose: Core business logic and utilities
+- Contains: 25+ service modules
+- Key files: `auth.ts`, `credits.ts`, `prisma.ts`, `stripe.ts`, `email.ts`
+- Subdirectories: `google/`, `vapi/`, `localization/`
+
+**src/types/**
+- Purpose: TypeScript type definitions
+- Contains: `index.ts` (AuthUser, SessionUser), `wizard.ts`
+
+**prisma/**
+- Purpose: Database schema and migrations
+- Contains: Schema definition, migration history, seed script
+- Key files: `schema.prisma`, `seed.ts`
+
+## Key File Locations
+
+**Entry Points:**
+- `src/app/layout.tsx` - Root layout (43 lines)
+- `src/middleware.ts` - Auth middleware
+- `prisma/seed.ts` - Database initialization
+
+**Configuration:**
+- `next.config.ts` - Next.js config (standalone output)
+- `tsconfig.json` - TypeScript config (strict mode)
+- `components.json` - Shadcn/UI config
+- `.env`, `.env.example`, `.env.production.example` - Environment variables
+
+**Core Logic:**
+- `src/lib/auth.ts` - Session management (117 lines)
+- `src/lib/credits.ts` - Credit deduction logic (94 lines)
+- `src/lib/prisma.ts` - Database client singleton (14 lines)
+- `src/app/api/webhooks/vapi/route.ts` - Vapi webhook handler (605 lines)
+
+**Testing:**
+- `src/lib/google/__tests__/calendar.test.ts` - Date validation tests
+- `src/lib/localization/__tests__/spoken-format.test.ts` - German formatting tests
+
+## Naming Conventions
+
+**Files:**
+- kebab-case for most files: `agent-card.tsx`, `credits-utils.ts`
+- PascalCase for some marketing components: `Hero.tsx`, `Features.tsx`
+- `route.ts` for API route handlers
+- `page.tsx` for page components
+- `layout.tsx` for layout components
+- `*.test.ts` for test files in `__tests__/` directories
+
+**Directories:**
+- All lowercase with hyphens: `dashboard/`, `admin/`, `cookie-consent/`
+- Route groups with parentheses: `(auth)`, `(dashboard)`, `(marketing)`
+- Dynamic segments with brackets: `[id]/`
+- Test directories: `__tests__/`
+
+**Special Patterns:**
+- `index.ts` for barrel exports
+- `client.ts` for SDK client singletons
+- `types.ts` for module-specific types
+
+## Where to Add New Code
+
+**New Feature:**
+- Primary code: `src/lib/{feature}.ts` for business logic
+- API routes: `src/app/api/{feature}/route.ts`
+- UI components: `src/components/dashboard/{feature}/`
+- Tests: `src/lib/{feature}/__tests__/{feature}.test.ts`
+
+**New Component:**
+- Implementation: `src/components/{category}/{component-name}.tsx`
+- UI primitives: `src/components/ui/{component}.tsx` (Shadcn)
+- Types: Inline or `src/types/{feature}.ts`
+
+**New API Route:**
+- Definition: `src/app/api/{resource}/route.ts`
+- Admin routes: `src/app/api/admin/{resource}/route.ts`
+- Webhooks: `src/app/api/webhooks/{service}/route.ts`
+
+**Utilities:**
+- Shared helpers: `src/lib/{name}.ts`
+- Type definitions: `src/types/index.ts` or `src/types/{feature}.ts`
+
+## Special Directories
+
+**src/generated/**
+- Purpose: Auto-generated Prisma client
+- Source: Generated by `prisma generate`
+- Committed: Yes (for type information)
+
+**prisma/migrations/**
+- Purpose: Database migration history
+- Source: Generated by `prisma migrate`
+- Committed: Yes (for deployment)
+
+**.planning/**
+- Purpose: Project planning documentation
+- Contains: Roadmap, state, phase plans, summaries
+- Committed: Yes
+
+---
+
+*Structure analysis: 2025-12-29*
+*Update when directory structure changes*
