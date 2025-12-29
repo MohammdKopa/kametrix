@@ -4,10 +4,16 @@
  */
 
 /**
- * Credit pricing constants
+ * Default credit pricing constant (fallback for client-side)
  * $0.15 per minute = 15 cents per minute
+ * Server-side code should use getCentsPerMinute() from @/lib/settings instead
  */
-export const CENTS_PER_MINUTE = 15;
+export const DEFAULT_CENTS_PER_MINUTE = 15;
+
+/**
+ * @deprecated Use DEFAULT_CENTS_PER_MINUTE instead
+ */
+export const CENTS_PER_MINUTE = DEFAULT_CENTS_PER_MINUTE;
 
 /**
  * Low balance threshold constants
@@ -21,13 +27,17 @@ export const LOW_BALANCE_THRESHOLD_MINUTES = 33; // ~$5 at $0.15/min
  * Rounds up to nearest minute (e.g., 4:32 = 5 minutes = 75 cents)
  *
  * @param durationSeconds - Call duration in seconds
+ * @param centsPerMinute - Rate per minute (defaults to DEFAULT_CENTS_PER_MINUTE)
  * @returns Cost in cents
  */
-export function calculateCallCost(durationSeconds: number): number {
+export function calculateCallCost(
+  durationSeconds: number,
+  centsPerMinute: number = DEFAULT_CENTS_PER_MINUTE
+): number {
   if (durationSeconds <= 0) return 0;
   // Round up to nearest minute
   const minutes = Math.ceil(durationSeconds / 60);
-  return minutes * CENTS_PER_MINUTE;
+  return minutes * centsPerMinute;
 }
 
 /**
@@ -35,11 +45,15 @@ export function calculateCallCost(durationSeconds: number): number {
  * Shows dollars and approximate minutes
  *
  * @param cents - Balance in cents
+ * @param centsPerMinute - Rate per minute (defaults to DEFAULT_CENTS_PER_MINUTE)
  * @returns Formatted string like "$5.00 (~33 min)"
  */
-export function formatBalance(cents: number): string {
+export function formatBalance(
+  cents: number,
+  centsPerMinute: number = DEFAULT_CENTS_PER_MINUTE
+): string {
   const dollars = (cents / 100).toFixed(2);
-  const minutes = Math.floor(cents / CENTS_PER_MINUTE);
+  const minutes = Math.floor(cents / centsPerMinute);
   return `$${dollars} (~${minutes} min)`;
 }
 
@@ -83,11 +97,15 @@ export function hasGraceUsage(graceCreditsUsed: number): boolean {
  * Generate low balance warning message
  *
  * @param balanceCents - Current balance in cents
+ * @param centsPerMinute - Rate per minute (defaults to DEFAULT_CENTS_PER_MINUTE)
  * @returns Warning message string
  */
-export function getLowBalanceMessage(balanceCents: number): string {
-  const estimatedMinutes = Math.floor(balanceCents / CENTS_PER_MINUTE);
-  return `Low balance: ${formatBalance(balanceCents)}. You have about ${estimatedMinutes} minutes of call time remaining.`;
+export function getLowBalanceMessage(
+  balanceCents: number,
+  centsPerMinute: number = DEFAULT_CENTS_PER_MINUTE
+): string {
+  const estimatedMinutes = Math.floor(balanceCents / centsPerMinute);
+  return `Low balance: ${formatBalance(balanceCents, centsPerMinute)}. You have about ${estimatedMinutes} minutes of call time remaining.`;
 }
 
 /**

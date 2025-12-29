@@ -7,11 +7,13 @@
 
 import { prisma } from '@/lib/prisma';
 import { TransactionType } from '@/generated/prisma/client';
-import { calculateCallCost, CENTS_PER_MINUTE } from '@/lib/credits-utils';
+import { calculateCallCost } from '@/lib/credits-utils';
+import { getCentsPerMinute } from '@/lib/settings';
 
 // Re-export utility functions for server-side convenience
 export {
   CENTS_PER_MINUTE,
+  DEFAULT_CENTS_PER_MINUTE,
   LOW_BALANCE_THRESHOLD_CENTS,
   LOW_BALANCE_THRESHOLD_MINUTES,
   calculateCallCost,
@@ -23,9 +25,25 @@ export {
   getGraceUsageMessage,
 } from '@/lib/credits-utils';
 
+// Re-export settings functions
+export { getCentsPerMinute } from '@/lib/settings';
+
+/**
+ * Calculate call cost using the dynamic rate from database
+ * Server-side only - use this for actual billing calculations
+ *
+ * @param durationSeconds - Call duration in seconds
+ * @returns Cost in cents
+ */
+export async function calculateCallCostWithRate(durationSeconds: number): Promise<number> {
+  const rate = await getCentsPerMinute();
+  return calculateCallCost(durationSeconds, rate);
+}
+
 /**
  * Deduct credits for a completed call
  * Uses atomic transaction to ensure consistency
+ * Fetches dynamic rate from database for billing
  *
  * Grace period: if balance goes negative, track overage in graceCreditsUsed
  * instead of blocking the call
@@ -39,7 +57,9 @@ export async function deductCreditsForCall(
   callId: string,
   durationSeconds: number
 ): Promise<void> {
-  const creditsUsed = calculateCallCost(durationSeconds);
+  // Fetch dynamic rate from database
+  const centsPerMinute = await getCentsPerMinute();
+  const creditsUsed = calculateCallCost(durationSeconds, centsPerMinute);
 
   if (creditsUsed <= 0) return;
 

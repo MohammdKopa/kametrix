@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { CreditPackCard } from '@/components/dashboard/credit-pack-card';
 import { CreditsNotification } from './credits-notification';
 import { formatBalance } from '@/lib/credits-utils';
+import { getCentsPerMinute } from '@/lib/settings';
 import { Card, CardContent } from '@/components/ui/card';
 import { Wallet, AlertTriangle, Info } from 'lucide-react';
 
@@ -23,8 +24,8 @@ export default async function CreditsPage({ searchParams }: PageProps) {
   // Await searchParams as required by Next.js 15
   const params = await searchParams;
 
-  // Fetch user with credit info and all active credit packs
-  const [userWithCredits, creditPacks] = await Promise.all([
+  // Fetch user with credit info, all active credit packs, and current rate
+  const [userWithCredits, creditPacks, centsPerMinute] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -36,6 +37,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
       where: { isActive: true },
       orderBy: { priceInCents: 'asc' },
     }),
+    getCentsPerMinute(),
   ]);
 
   if (!userWithCredits) {
@@ -85,7 +87,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
                 <p className="text-3xl font-bold text-primary mt-1">
-                  {formatBalance(userWithCredits.creditBalance)}
+                  {formatBalance(userWithCredits.creditBalance, centsPerMinute)}
                 </p>
               </div>
             </div>
@@ -145,7 +147,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">&#8226;</span>
-                  <span>Credits are charged at $0.15 per minute of call time</span>
+                  <span>Credits are charged at ${(centsPerMinute / 100).toFixed(2)} per minute of call time</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">&#8226;</span>
