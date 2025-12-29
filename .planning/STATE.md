@@ -4,7 +4,7 @@
 
 **Building:** Self-serve platform that lets small businesses deploy AI voice agents in minutes for phone support and appointment booking.
 
-**Current status:** v1.2 shadcn/ui & Premium Dark Theme SHIPPED.
+**Current status:** v2.0 Security & Admin Controls in progress.
 
 **Core requirements (v1.0 - COMPLETE):**
 - [x] End-to-end flow: signup → create agent → assign phone number → receive test call
@@ -22,12 +22,12 @@
 
 ## Current Position
 
-Phase: 13 of 13 (Landing Redesign)
-Plan: 2 of 2 in current phase
-Status: Milestone complete
-Last activity: 2025-12-28 - Completed 13-02 (Section Animations & Polish)
+Phase: 14 of 17 (Critical Bug Fixes)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2025-12-29 - Milestone v2.0 created
 
-Progress: v1.2 ██████████ 100%
+Progress: v2.0 ░░░░░░░░░░ 0%
 
 ## Performance Metrics
 
@@ -98,10 +98,11 @@ Drift notes: None
 - v1.0 milestone completed: 6 phases (1-6), 21 plans, shipped 2025-12-27
 - v1.1 milestone completed: 4 phases (7-10), 7 plans, shipped 2025-12-27
 - v1.2 milestone completed: 3 phases (11-13), 8 plans, shipped 2025-12-28
+- Milestone v2.0 created: Security & Admin Controls, 4 phases (Phase 14-17)
 
 ## Session Continuity
 
-Last session: 2025-12-28
-Stopped at: Completed Phase 13 (Landing Redesign) - v1.2 SHIPPED
+Last session: 2025-12-29
+Stopped at: Milestone v2.0 initialization
 Resume file: None
-Next: /gsd:complete-milestone or /gsd:new-milestone
+Next: /gsd:plan-phase 14

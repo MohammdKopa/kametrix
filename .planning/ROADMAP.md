@@ -9,6 +9,7 @@ Kametrix evolves from an empty Next.js project to a complete self-serve voice AI
 - [v1.0 MVP](milestones/v1.0-ROADMAP.md) - Phases 1-6 (SHIPPED 2025-12-27)
 - [v1.1 German Market & Polish](milestones/v1.1-ROADMAP.md) - Phases 7-10 (SHIPPED 2025-12-27)
 - [v1.2 shadcn/ui & Premium Dark Theme](milestones/v1.2-ROADMAP.md) - Phases 11-13 (SHIPPED 2025-12-28)
+- 🚧 **v2.0 Security & Admin Controls** - Phases 14-17 (in progress)
 
 ## Domain Expertise
 
@@ -53,10 +54,51 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
+### 🚧 v2.0 Security & Admin Controls (In Progress)
+
+**Milestone Goal:** Harden security with rate limiting and authentication, fix critical bugs, update auth UI, and add admin price controls.
+
+#### Phase 14: Critical Bug Fixes
+**Goal**: Fix appointment year bug and other critical business logic issues
+**Depends on**: Phase 13
+**Research**: Unlikely (internal patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 14-01: TBD (run /gsd:plan-phase 14 to break down)
+
+#### Phase 15: Security Hardening
+**Goal**: Add rate limiting and authentication to protect APIs
+**Depends on**: Phase 14
+**Research**: Likely (rate limiting library patterns)
+**Research topics**: Rate limiting libraries for Next.js, Vapi webhook signature verification
+**Plans**: TBD
+
+Plans:
+- [ ] 15-01: TBD
+
+#### Phase 16: Auth UI Polish
+**Goal**: Update login/signup pages to match website theme
+**Depends on**: Phase 15
+**Research**: Unlikely (existing patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 16-01: TBD
+
+#### Phase 17: Admin Price Control
+**Goal**: Admin dashboard for per-minute rate management
+**Depends on**: Phase 16
+**Research**: Unlikely (internal patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 17-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -73,3 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 11. shadcn/ui Setup | v1.2 | 2/2 | Complete | 2025-12-27 |
 | 12. Dashboard Redesign | v1.2 | 4/4 | Complete | 2025-12-27 |
 | 13. Landing Redesign | v1.2 | 2/2 | Complete | 2025-12-28 |
+| 14. Critical Bug Fixes | v2.0 | 0/? | Not started | - |
+| 15. Security Hardening | v2.0 | 0/? | Not started | - |
+| 16. Auth UI Polish | v2.0 | 0/? | Not started | - |
+| 17. Admin Price Control | v2.0 | 0/? | Not started | - |
