@@ -131,14 +131,14 @@ Plans:
 - [x] 20-01: Backend & API (voice constants, Vapi config, preview endpoint)
 - [x] 20-02: UI (voice-step with preview, agent-form)
 
-#### Phase 21: Wizard Polish
+#### Phase 21: Wizard Polish ✓
 **Goal**: Clearer step labels, better AI-generated FAQ/greeting quality, improved validation
 **Depends on**: Phase 20
 **Research**: Unlikely (internal UI patterns)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 21-01: TBD (run /gsd:plan-phase 21 to break down)
+- [x] 21-01: German localization with proper umlauts and business-type AI detection
 
 #### Phase 22: Euro Currency
 **Goal**: Change all $ displays to €, update pricing copy throughout platform
@@ -176,5 +176,5 @@ Phases execute in numeric order: 1 → 2 → ... → 18 → 19 → 20 → 21 →
 | 18. Fix the Appointment | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 19. Prompt Consolidation | v2.1 | 1/1 | Complete | 2025-12-31 |
 | 20. Switch to ElevenLabs | v2.1 | 2/2 | Complete | 2025-12-31 |
-| 21. Wizard Polish | v2.1 | 0/? | Not started | - |
+| 21. Wizard Polish | v2.1 | 1/1 | Complete | 2025-12-31 |
 | 22. Euro Currency | v2.1 | 0/? | Not started | - |
