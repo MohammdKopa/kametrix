@@ -1,125 +1,114 @@
 'use client';
 
 import type { WizardState } from '@/types/wizard';
+import { ELEVENLABS_VOICES } from '@/lib/constants/voices';
+import { useVoicePreview } from '@/hooks/useVoicePreview';
+import { Play, Square, Loader2 } from 'lucide-react';
 
 interface VoiceStepProps {
   data: WizardState['voice'];
   onChange: (data: Partial<WizardState['voice']>) => void;
 }
 
-// Azure German voices for German market
-const VOICE_PROVIDERS = [
-  {
-    id: 'azure' as const,
-    name: 'Azure',
-    description: 'High-quality German voices optimized for phone calls (Recommended)',
-    voices: [
-      { id: 'de-DE-KatjaNeural', name: 'Katja', description: 'Professional female voice, ideal for business' },
-      { id: 'de-DE-ConradNeural', name: 'Conrad', description: 'Professional male voice, clear and authoritative' },
-      { id: 'de-DE-AmalaNeural', name: 'Amala', description: 'Warm, friendly female voice' },
-      { id: 'de-DE-KillianNeural', name: 'Killian', description: 'Friendly, approachable male voice' },
-    ],
-  },
-];
-
 export function VoiceStep({ data, onChange }: VoiceStepProps) {
-  const selectedProvider = VOICE_PROVIDERS.find((p) => p.id === data.voiceProvider);
-  const availableVoices = selectedProvider?.voices || [];
+  const { playPreview, stopPreview, isPlaying, isLoading } = useVoicePreview();
 
-  const handleProviderChange = (providerId: typeof data.voiceProvider) => {
-    const provider = VOICE_PROVIDERS.find((p) => p.id === providerId);
-    const defaultVoice = provider?.voices[0]?.id || '';
-    onChange({ voiceProvider: providerId, voiceId: defaultVoice });
+  const handleVoiceSelect = (voiceId: string) => {
+    onChange({ voiceId, voiceProvider: '11labs' });
+  };
+
+  const handlePreviewClick = (e: React.MouseEvent, voiceId: string) => {
+    e.stopPropagation();
+    if (isPlaying === voiceId) {
+      stopPreview();
+    } else {
+      playPreview(voiceId);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Voice Selection</h2>
-        <p className="text-sm text-gray-600">
-          Choose the voice that will represent your business on calls.
+        <h2 className="text-xl font-semibold text-foreground mb-2">Stimme auswaehlen</h2>
+        <p className="text-sm text-muted-foreground">
+          Waehlen Sie die Stimme, die Ihr Unternehmen bei Anrufen repraesentiert.
         </p>
       </div>
 
-      {/* Voice Provider */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Voice Provider <span className="text-red-500">*</span>
-        </label>
-        <div className="space-y-3">
-          {VOICE_PROVIDERS.map((provider) => (
-            <div key={provider.id}>
-              <label
-                className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                  data.voiceProvider === provider.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="voiceProvider"
-                  value={provider.id}
-                  checked={data.voiceProvider === provider.id}
-                  onChange={(e) => handleProviderChange(e.target.value as typeof data.voiceProvider)}
-                  className="mt-1 mr-3"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{provider.name}</span>
-                    {provider.id === 'azure' && (
-                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{provider.description}</p>
-                </div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Voice Selection Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {ELEVENLABS_VOICES.map((voice) => {
+          const isSelected = data.voiceId === voice.id;
+          const isVoicePlaying = isPlaying === voice.id;
+          const isVoiceLoading = isLoading === voice.id;
 
-      {/* Voice Selection */}
-      <div>
-        <label htmlFor="voiceId" className="block text-sm font-medium text-gray-700 mb-2">
-          Select Voice <span className="text-red-500">*</span>
-        </label>
-        <div className="space-y-2">
-          {availableVoices.map((voice) => (
-            <label
+          return (
+            <div
               key={voice.id}
-              className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
-                data.voiceId === voice.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              onClick={() => handleVoiceSelect(voice.id)}
+              className={`
+                relative flex items-start p-4 rounded-xl cursor-pointer transition-all duration-200
+                border-2 backdrop-blur-sm
+                ${isSelected
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border hover:border-primary/50 bg-background/50'
+                }
+              `}
             >
-              <input
-                type="radio"
-                name="voiceId"
-                value={voice.id}
-                checked={data.voiceId === voice.id}
-                onChange={(e) => onChange({ voiceId: e.target.value })}
-                className="mt-1 mr-3"
-              />
-              <div>
-                <div className="font-medium text-gray-900">{voice.name}</div>
-                <p className="text-sm text-gray-600">{voice.description}</p>
+              {/* Selection indicator */}
+              <div className={`
+                w-5 h-5 rounded-full border-2 mr-3 mt-0.5 flex items-center justify-center flex-shrink-0
+                ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'}
+              `}>
+                {isSelected && (
+                  <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+                )}
               </div>
-            </label>
-          ))}
-        </div>
+
+              {/* Voice info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium text-foreground">{voice.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {voice.gender === 'female' ? 'Weiblich' : 'Maennlich'}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">{voice.description}</p>
+              </div>
+
+              {/* Preview button */}
+              <button
+                type="button"
+                onClick={(e) => handlePreviewClick(e, voice.id)}
+                disabled={isVoiceLoading}
+                className={`
+                  ml-2 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
+                  transition-all duration-200
+                  ${isVoicePlaying
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                aria-label={isVoicePlaying ? 'Stop preview' : 'Play preview'}
+              >
+                {isVoiceLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isVoicePlaying ? (
+                  <Square className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4 ml-0.5" />
+                )}
+              </button>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Preview note */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <p className="text-sm text-gray-600">
-          <strong>Note:</strong> Voice preview will be available in a future update. For now, you can test the
-          selected voice after creating your agent.
-        </p>
-      </div>
+      {/* Helper text */}
+      <p className="text-sm text-muted-foreground text-center">
+        Klicken Sie auf &#9654; um eine Vorschau zu hoeren
+      </p>
     </div>
   );
 }

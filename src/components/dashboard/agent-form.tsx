@@ -11,19 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Bot, Building2, MessageSquare, Mic } from 'lucide-react';
+import { ELEVENLABS_VOICES } from '@/lib/constants/voices';
 
 interface AgentFormProps {
   agent?: Agent;
   mode: 'create' | 'edit';
 }
 
-// Azure German voices for German market
-const VOICE_OPTIONS = [
-  { id: 'de-DE-KatjaNeural', name: 'Katja (Female, Professional)' },
-  { id: 'de-DE-ConradNeural', name: 'Conrad (Male, Professional)' },
-  { id: 'de-DE-AmalaNeural', name: 'Amala (Female, Friendly)' },
-  { id: 'de-DE-KillianNeural', name: 'Killian (Male, Friendly)' },
-];
+// ElevenLabs German voices
+const VOICE_OPTIONS = ELEVENLABS_VOICES.map((v) => ({
+  id: v.id,
+  name: `${v.name} (${v.gender === 'female' ? 'Weiblich' : 'Maennlich'})`,
+}));
 
 export function AgentForm({ agent, mode }: AgentFormProps) {
   const router = useRouter();
@@ -36,7 +35,7 @@ export function AgentForm({ agent, mode }: AgentFormProps) {
     businessDescription: agent?.businessDescription || '',
     greeting: agent?.greeting || '',
     systemPrompt: agent?.systemPrompt || '',
-    voiceId: agent?.voiceId || 'de-DE-KatjaNeural',
+    voiceId: agent?.voiceId || ELEVENLABS_VOICES[0].id,
     isActive: agent?.isActive ?? true,
   });
 

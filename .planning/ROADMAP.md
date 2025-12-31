@@ -120,7 +120,7 @@ Plans:
 Plans:
 - [x] 19-01: Create consolidated prompts module and update all consumers
 
-#### Phase 20: Switch to ElevenLabs
+#### Phase 20: Switch to ElevenLabs ✓
 **Goal**: Replace Azure with ElevenLabs as default, add German voice options to wizard
 **Depends on**: Phase 19
 **Research**: Likely (new external API integration)
@@ -129,7 +129,7 @@ Plans:
 
 Plans:
 - [x] 20-01: Backend & API (voice constants, Vapi config, preview endpoint)
-- [ ] 20-02: UI (voice-step with preview, agent-form)
+- [x] 20-02: UI (voice-step with preview, agent-form)
 
 #### Phase 21: Wizard Polish
 **Goal**: Clearer step labels, better AI-generated FAQ/greeting quality, improved validation
@@ -175,6 +175,6 @@ Phases execute in numeric order: 1 → 2 → ... → 18 → 19 → 20 → 21 →
 | 17. Admin Price Control | v2.0 | 2/2 | Complete | 2025-12-29 |
 | 18. Fix the Appointment | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 19. Prompt Consolidation | v2.1 | 1/1 | Complete | 2025-12-31 |
-| 20. Switch to ElevenLabs | v2.1 | 1/2 | In progress | - |
+| 20. Switch to ElevenLabs | v2.1 | 2/2 | Complete | 2025-12-31 |
 | 21. Wizard Polish | v2.1 | 0/? | Not started | - |
 | 22. Euro Currency | v2.1 | 0/? | Not started | - |
