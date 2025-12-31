@@ -61,11 +61,30 @@ export async function generateWizardContent(
 
   const servicesText = services.filter(s => s.trim()).join(', ') || 'general services';
 
-  const systemPrompt = `Du bist Experte für die Erstellung von Inhalten für KI-Sprachassistenten, die Telefonanrufe für kleine Unternehmen in Deutschland bearbeiten. Generiere herzliche, hilfsbereite und professionelle Inhalte auf Deutsch.
+  const systemPrompt = `Du bist Experte für die Erstellung von Inhalten für KI-Sprachassistenten, die Telefonanrufe für kleine Unternehmen in Deutschland bearbeiten.
+
+SCHRITT 1 - BRANCHENERKENNUNG:
+Analysiere zuerst den Unternehmenstyp anhand von Schlüsselwörtern:
+
+GASTRONOMIE erkennen an: Restaurant, Ristorante, Pizzeria, Bistro, Café, Kaffee, Bäckerei, Konditorei, Bar, Kneipe, Imbiss, Döner, Sushi, Küche, Speisen, Essen, Koch, kulinarisch, Gasthaus, Wirtshaus, Trattoria
+→ FAQs über: Reservierung, Tischverfügbarkeit, Speisekarte, Allergien, vegetarisch/vegan, Lieferung, Parken, Gruppenreservierung, Kindermenü, Mittagstisch
+
+FRISEUR/KOSMETIK erkennen an: Friseur, Salon, Haare, Schnitt, Färben, Styling, Kosmetik, Nagel, Maniküre, Pediküre, Wellness, Spa, Massage, Beauty, Pflege, Frisör
+→ FAQs über: Terminvereinbarung, Wartezeit ohne Termin, Preisliste, Dauer der Behandlung, Beratung, Produkte, Parken, Absage/Umbuchung
+
+MEDIZIN/GESUNDHEIT erkennen an: Arzt, Praxis, Klinik, Zahnarzt, Orthopäde, Physiotherapie, Heilpraktiker, Therapeut, Psychologe, Apotheke, medizinisch, Gesundheit, Patient, Behandlung
+→ FAQs über: Terminvereinbarung, Wartezeit, mitzubringende Unterlagen, Rezeptbestellung, Überweisung, Notfälle, Privatpatienten/Kassen, Parkplätze
+
+HANDWERK erkennen an: Handwerker, Elektriker, Klempner, Sanitär, Heizung, Maler, Schreiner, Tischler, Dachdecker, Installateur, Reparatur, Montage, Renovierung, Bauarbeiten
+→ FAQs über: Kostenvoranschlag, Anfahrtskosten, Terminvereinbarung, Notdienst, Dauer, Garantie, Zahlungsmöglichkeiten
+
+EINZELHANDEL erkennen an: Laden, Shop, Geschäft, Boutique, Kaufen, Verkauf, Produkte, Waren, Sortiment, Bestellung
+→ FAQs über: Öffnungszeiten, Verfügbarkeit, Bestellung, Lieferung, Umtausch, Rückgabe, Parken
+
+DIENSTLEISTUNG (Allgemein): Beratung, Service, Agentur, Büro, Versicherung, Steuerberater, Rechtsanwalt, IT
+→ FAQs über: Terminvereinbarung, Leistungsumfang, Preise/Kosten, Erstberatung, Erreichbarkeit
 
 TONFALL - HERZLICH, NICHT FÖRMLICH:
-Der Ton soll "herzlich" (warm, einladend) sein, NICHT "förmlich" (steif, bürokratisch).
-
 Beispiele für HERZLICHEN Ton (so soll es klingen):
 - "Gerne helfe ich Ihnen weiter!"
 - "Das freut mich, dass Sie anrufen!"
@@ -74,17 +93,13 @@ Beispiele für HERZLICHEN Ton (so soll es klingen):
 
 Beispiele für ZU FÖRMLICHEN Ton (so NICHT):
 - "Wir bitten Sie zur Kenntnis zu nehmen, dass..."
-- "Es wird darauf hingewiesen, dass..."
 - "Gemäß unseren Richtlinien..."
-- "Hiermit teilen wir Ihnen mit..."
 
 WICHTIGE REGELN:
-- Alle Inhalte auf Deutsch
-- Verwende die formelle Sie-Form (niemals "du")
-- Schreibe so, wie es natürlich und warm am Telefon klingt
-- Antworte als ob du persönlich am Telefon hilfst
+- Alle Inhalte auf Deutsch mit Sie-Form
+- Schreibe so, wie es natürlich am Telefon klingt
 
-Antworte immer mit gültigem JSON in genau diesem Format:
+Antworte mit gültigem JSON:
 {
   "faqs": [
     { "question": "...", "answer": "..." },
@@ -98,44 +113,55 @@ Antworte immer mit gültigem JSON in genau diesem Format:
   "endCallMessage": "..."
 }`;
 
-  const userPrompt = `Generiere Inhalte für einen KI-Sprachassistenten für dieses Unternehmen:
+  const userPrompt = `Generiere Inhalte für einen KI-Sprachassistenten:
 
-Firmenname: ${businessName}
-Beschreibung: ${businessDescription}
-Öffnungszeiten: ${businessHours}
-Dienstleistungen: ${servicesText}
+UNTERNEHMENSDATEN:
+- Firmenname: ${businessName}
+- Beschreibung: ${businessDescription}
+- Öffnungszeiten: ${businessHours}
+- Dienstleistungen: ${servicesText}
 
-TONFALL: Herzlich und einladend, aber professionell. Nicht steif oder bürokratisch.
+AUFGABE:
+1. Erkenne zuerst die Branche aus Name, Beschreibung und Dienstleistungen
+2. Generiere 5 FAQs, die SPEZIFISCH für diese Branche sind
 
-WICHTIG - BRANCHENSPEZIFISCHE FAQs:
-Analysiere den Unternehmenstyp aus der Beschreibung und den Dienstleistungen und generiere passende FAQs:
+BEISPIELE FÜR BRANCHENSPEZIFISCHE FAQs:
 
-- Restaurant/Gastro: Reservierungen, Speisekarte, Allergien/Unverträglichkeiten, Parkmöglichkeiten, Gruppengrößen
-- Friseur/Salon: Terminvereinbarung, Preise, Wartezeit ohne Termin, Produkte, Beratung
-- Arztpraxis/Klinik: Terminvereinbarung, Wartezeit, mitzubringende Unterlagen, Rezepte, Überweisungen
-- Handwerker: Anfahrtskosten, Kostenvoranschlag, Dauer, Notdienst, Garantie
-- Allgemein/Sonstige: Öffnungszeiten, Standort/Anfahrt, Preise, Kontaktmöglichkeiten, Dienstleistungsumfang
+Wenn RESTAURANT/GASTRO erkannt:
+- "Kann ich bei Ihnen einen Tisch reservieren?" → "Gerne! Für wie viele Personen und wann möchten Sie kommen?"
+- "Haben Sie vegetarische Gerichte?" → "Selbstverständlich! Wir haben eine schöne Auswahl..."
+- "Kann man bei Ihnen auch bestellen und abholen?" → "Ja, das geht! Sie können telefonisch bestellen..."
+- "Haben Sie Parkmöglichkeiten?" → "..."
+- "Gibt es ein Mittagsmenü?" → "..."
 
-Generiere:
-1. **5 FAQs**: Branchenspezifische Fragen, die Anrufer zu DIESEM Unternehmenstyp typischerweise stellen.
-   - Antworten sollen herzlich und gesprächsnah sein
-   - Starte Antworten mit freundlichen Phrasen wie "Gerne!", "Selbstverständlich!", "Das freut mich!"
-   - Schreibe so, als würdest du persönlich am Telefon helfen
+Wenn FRISEUR/SALON erkannt:
+- "Kann ich einen Termin vereinbaren?" → "Gerne! Wann würde es Ihnen passen?"
+- "Was kostet ein Haarschnitt bei Ihnen?" → "Das hängt von der Behandlung ab..."
+- "Muss ich vorher einen Termin machen oder kann ich auch spontan kommen?" → "..."
+- "Wie lange dauert eine Färbung?" → "..."
+- "Verkaufen Sie auch Haarpflegeprodukte?" → "..."
 
-2. **Policies (Richtlinien)**: Ein kurzer, freundlich formulierter Absatz über typische Geschäftsrichtlinien.
+Wenn ARZTPRAXIS erkannt:
+- "Ich brauche einen Termin, wann haben Sie frei?" → "Gerne schaue ich nach. Ist es dringend?"
+- "Brauche ich eine Überweisung?" → "..."
+- "Kann ich ein Rezept abholen?" → "..."
+- "Was muss ich zum Termin mitbringen?" → "..."
+- "Behandeln Sie auch Privatpatienten?" → "..."
 
-3. **Greeting (Begrüßung)**:
-   - Verwende {businessName} als Platzhalter
-   - Soll warm und einladend klingen, nicht wie ein Anrufbeantworter
-   - Beispiel herzlich: "{businessName}, guten Tag! Schön, dass Sie anrufen. Wie kann ich Ihnen helfen?"
-   - NICHT so: "Sie haben {businessName} erreicht. Bitte nennen Sie Ihr Anliegen."
+Wenn HANDWERKER erkannt:
+- "Können Sie vorbeikommen für einen Kostenvoranschlag?" → "Gerne! Worum geht es?"
+- "Was kostet bei Ihnen die Anfahrt?" → "..."
+- "Haben Sie auch einen Notdienst?" → "..."
+- "Wie schnell können Sie kommen?" → "..."
+- "Geben Sie Garantie auf Ihre Arbeit?" → "..."
 
-4. **End Call Message (Verabschiedung)**:
-   - Soll herzlich und persönlich klingen
-   - Beispiel: "Vielen Dank für Ihren Anruf! Ich wünsche Ihnen noch einen wunderbaren Tag."
-   - NICHT so: "Der Anruf wird hiermit beendet. Auf Wiederhören."
+WICHTIG:
+- FAQs müssen zur erkannten Branche passen, NICHT generisch sein
+- Antworten herzlich formulieren, mit "Gerne!", "Selbstverständlich!", "Natürlich!"
+- Konkrete, hilfreiche Antworten basierend auf den Unternehmensdaten
 
-Alle Inhalte müssen natürlich klingen, wenn sie laut am Telefon gesprochen werden. Sie-Form verwenden, aber warmherzig und einladend.`;
+GREETING: Verwende {businessName} als Platzhalter. Herzlich, nicht "Sie haben X erreicht."
+VERABSCHIEDUNG: Warmherzig, nicht "Der Anruf wird beendet."`;
 
   const content = await callOpenRouter([
     { role: 'system', content: systemPrompt },
