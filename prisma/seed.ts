@@ -103,7 +103,7 @@ async function seedCreditPacks() {
         const price = await stripe.prices.create({
           product: product.id,
           unit_amount: pack.priceInCents,
-          currency: 'usd',
+          currency: process.env.STRIPE_CURRENCY || 'eur',
         });
 
         stripePriceId = price.id;
