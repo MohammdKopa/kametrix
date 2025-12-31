@@ -98,7 +98,7 @@ export default function AdminSettingsPage() {
                     className="w-32"
                   />
                   <span className="text-muted-foreground">
-                    = ${(centsPerMinute / 100).toFixed(2)}/min
+                    = €{(centsPerMinute / 100).toFixed(2)}/min
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">

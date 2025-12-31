@@ -5,7 +5,7 @@
 
 /**
  * Default credit pricing constant (fallback for client-side)
- * $0.15 per minute = 15 cents per minute
+ * €0.15 per minute = 15 cents per minute
  * Server-side code should use getCentsPerMinute() from @/lib/settings instead
  */
 export const DEFAULT_CENTS_PER_MINUTE = 15;
@@ -17,10 +17,10 @@ export const CENTS_PER_MINUTE = DEFAULT_CENTS_PER_MINUTE;
 
 /**
  * Low balance threshold constants
- * $5.00 = 500 cents = ~33 minutes of call time
+ * €5.00 = 500 cents = ~33 minutes of call time
  */
-export const LOW_BALANCE_THRESHOLD_CENTS = 500; // $5.00
-export const LOW_BALANCE_THRESHOLD_MINUTES = 33; // ~$5 at $0.15/min
+export const LOW_BALANCE_THRESHOLD_CENTS = 500; // €5.00
+export const LOW_BALANCE_THRESHOLD_MINUTES = 33; // ~€5 at €0.15/min
 
 /**
  * Calculate call cost in cents based on duration
@@ -46,7 +46,7 @@ export function calculateCallCost(
  *
  * @param cents - Balance in cents
  * @param centsPerMinute - Rate per minute (defaults to DEFAULT_CENTS_PER_MINUTE)
- * @returns Formatted string like "$5.00 (~33 min)"
+ * @returns Formatted string like "€5.00 (~33 min)"
  */
 export function formatBalance(
   cents: number,
@@ -54,27 +54,27 @@ export function formatBalance(
 ): string {
   const dollars = (cents / 100).toFixed(2);
   const minutes = Math.floor(cents / centsPerMinute);
-  return `$${dollars} (~${minutes} min)`;
+  return `€${dollars} (~${minutes} min)`;
 }
 
 /**
  * Format call cost for display in call history
- * Shows duration and cost: "4 min 32 sec - $0.75"
+ * Shows duration and cost: "4 min 32 sec - €0.75"
  *
  * @param durationSeconds - Call duration in seconds
  * @param creditsCents - Cost in cents
- * @returns Formatted string like "4 min 32 sec - $0.75"
+ * @returns Formatted string like "4 min 32 sec - €0.75"
  */
 export function formatCallCost(durationSeconds: number, creditsCents: number): string {
   const minutes = Math.floor(durationSeconds / 60);
   const seconds = durationSeconds % 60;
   const cost = (creditsCents / 100).toFixed(2);
-  return `${minutes} min ${seconds} sec - $${cost}`;
+  return `${minutes} min ${seconds} sec - €${cost}`;
 }
 
 /**
  * Check if a credit balance is considered low
- * Low balance is defined as <= $5.00 (500 cents)
+ * Low balance is defined as <= €5.00 (500 cents)
  *
  * @param creditBalanceCents - Balance in cents
  * @returns true if balance is low
@@ -116,5 +116,5 @@ export function getLowBalanceMessage(
  */
 export function getGraceUsageMessage(graceUsedCents: number): string {
   const dollars = (graceUsedCents / 100).toFixed(2);
-  return `You have $${dollars} in grace credits that will be settled on your next purchase.`;
+  return `You have €${dollars} in grace credits that will be settled on your next purchase.`;
 }

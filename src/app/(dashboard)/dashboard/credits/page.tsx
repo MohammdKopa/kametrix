@@ -104,7 +104,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
               <div>
                 <p className="text-amber-300 font-medium">Grace Period Active</p>
                 <p className="text-amber-400/80 text-sm">
-                  You have ${(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits
+                  You have €{(userWithCredits.graceCreditsUsed / 100).toFixed(2)} in grace credits
                   that will be automatically settled on your next purchase.
                 </p>
               </div>
@@ -147,7 +147,7 @@ export default async function CreditsPage({ searchParams }: PageProps) {
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">&#8226;</span>
-                  <span>Credits are charged at ${(centsPerMinute / 100).toFixed(2)} per minute of call time</span>
+                  <span>Credits are charged at €{(centsPerMinute / 100).toFixed(2)} per minute of call time</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">&#8226;</span>

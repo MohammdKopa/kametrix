@@ -23,9 +23,9 @@ export function TransactionList({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Format credits (cents to dollars)
+  // Format credits (cents to euros)
   const formatCredits = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`;
+    return `€${(cents / 100).toFixed(2)}`;
   };
 
   // Format date

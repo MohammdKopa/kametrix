@@ -198,13 +198,13 @@ export default function AdminUserDetailPage({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Credit Balance"
-          value={`$${creditDollars}`}
+          value={`€${creditDollars}`}
           subtitle="Current balance"
           icon={DollarSign}
         />
         <StatsCard
           title="Grace Credits Used"
-          value={`$${graceDollars}`}
+          value={`€${graceDollars}`}
           subtitle="Owed amount"
           icon={CreditCard}
         />
@@ -303,7 +303,7 @@ export default function AdminUserDetailPage({
                         tx.amount >= 0 ? 'text-green-400' : 'text-red-400'
                       }`}
                     >
-                      {tx.amount >= 0 ? '+' : ''}${(tx.amount / 100).toFixed(2)}
+                      {tx.amount >= 0 ? '+' : ''}€{(tx.amount / 100).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -437,7 +437,7 @@ export default function AdminUserDetailPage({
                           : '-'}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                        ${(call.creditsUsed / 100).toFixed(2)}
+                        €{(call.creditsUsed / 100).toFixed(2)}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-sm text-muted-foreground">
                         {new Date(call.startedAt).toLocaleString()}

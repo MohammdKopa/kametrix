@@ -136,7 +136,7 @@ export async function sendLowCreditEmail(options: LowCreditEmailOptions): Promis
     const graceAmount = (graceCreditsUsed / 100).toFixed(2);
     graceWarning = `
 
-Note: You've used $${graceAmount} in grace credits. This amount will be added to your next credit purchase.`;
+Note: You've used €${graceAmount} in grace credits. This amount will be added to your next credit purchase.`;
   }
 
   const text = `${greeting}

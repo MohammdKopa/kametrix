@@ -26,12 +26,12 @@ export function CreditPackCard({
 }: CreditPackCardProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Format price in dollars
+  // Format price in euros
   const formatPrice = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`;
+    return `€${(cents / 100).toFixed(2)}`;
   };
 
-  // Calculate estimated minutes (~$0.15/min)
+  // Calculate estimated minutes (~€0.15/min)
   const estimatedMinutes = Math.floor(credits / 15);
 
   // Calculate settlement preview when grace credits are active
@@ -111,13 +111,13 @@ export function CreditPackCard({
           {/* Settlement preview when grace period is active */}
           {hasGrace && canCoverGrace && (
             <p className="text-amber-400 text-xs mt-2 pt-2 border-t border-border">
-              After ${(graceCreditsUsed / 100).toFixed(2)} grace settlement,
+              After €{(graceCreditsUsed / 100).toFixed(2)} grace settlement,
               you&apos;ll receive {effectiveCredits.toLocaleString()} credits (~{effectiveMinutes} min)
             </p>
           )}
           {hasGrace && !canCoverGrace && (
             <p className="text-red-400 text-xs mt-2 pt-2 border-t border-border">
-              Pack does not cover ${(graceCreditsUsed / 100).toFixed(2)} grace balance
+              Pack does not cover €{(graceCreditsUsed / 100).toFixed(2)} grace balance
             </p>
           )}
         </div>
