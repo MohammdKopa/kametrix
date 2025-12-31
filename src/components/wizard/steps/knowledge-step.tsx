@@ -31,7 +31,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
 
   const generateWithAI = async () => {
     if (!businessInfo.businessName || !businessInfo.businessDescription) {
-      setError('Please complete Business Info step first (name and description required)');
+      setError('Bitte fuellen Sie zuerst den Schritt "Ihr Unternehmen" aus (Name und Beschreibung erforderlich).');
       return;
     }
 
@@ -79,9 +79,9 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Knowledge Base</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Wissen fuer Ihren Assistenten</h2>
           <p className="text-sm text-gray-600">
-            Equip your agent with the knowledge to answer customer questions effectively.
+            Geben Sie Ihrem Assistenten das Wissen, um Kundenanfragen kompetent zu beantworten.
           </p>
         </div>
         <button
@@ -95,7 +95,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
           ) : (
             <Sparkles className="w-4 h-4" />
           )}
-          {isGenerating ? 'Generating...' : 'Generate with AI'}
+          {isGenerating ? 'Wird generiert...' : 'Mit KI generieren'}
         </button>
       </div>
 
@@ -108,17 +108,17 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
       {/* FAQs */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Frequently Asked Questions
+          Haeufige Fragen (FAQs)
         </label>
         <p className="text-xs text-gray-500 mb-3">
-          Add common questions and their answers. Your agent will use these to respond to callers.
+          Fuegen Sie typische Kundenfragen und Antworten hinzu. Ihr Assistent nutzt diese, um Anrufer zu informieren.
         </p>
 
         <div className="space-y-4">
           {data.faqs.map((faq, index) => (
             <div key={index} className="border border-gray-200 rounded-lg p-4">
               <div className="flex justify-between items-start mb-3">
-                <span className="text-sm font-medium text-gray-700">FAQ {index + 1}</span>
+                <span className="text-sm font-medium text-gray-700">Frage {index + 1}</span>
                 <button
                   type="button"
                   onClick={() => removeFaq(index)}
@@ -131,27 +131,27 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Question
+                    Frage
                   </label>
                   <input
                     type="text"
                     value={faq.question}
                     onChange={(e) => updateFaq(index, 'question', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="e.g., What are your business hours?"
+                    placeholder="z.B. Wie sind Ihre Oeffnungszeiten?"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Answer
+                    Antwort
                   </label>
                   <textarea
                     value={faq.answer}
                     onChange={(e) => updateFaq(index, 'answer', e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="e.g., We're open Monday through Friday, 9am to 5pm..."
+                    placeholder="z.B. Wir haben Montag bis Freitag von 9 bis 18 Uhr geoeffnet..."
                   />
                 </div>
               </div>
@@ -165,17 +165,17 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
           className="mt-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-300 rounded-md"
         >
           <Plus className="w-4 h-4" />
-          Add FAQ
+          Frage hinzufuegen
         </button>
       </div>
 
       {/* Policies */}
       <div>
         <label htmlFor="policies" className="block text-sm font-medium text-gray-700 mb-1">
-          Policies
+          Richtlinien
         </label>
         <p className="text-xs text-gray-500 mb-2">
-          Include important policies like refund policy, cancellation policy, etc.
+          Fuegen Sie wichtige Geschaeftsrichtlinien hinzu, z.B. Stornierung, Rueckerstattung.
         </p>
         <textarea
           id="policies"
@@ -183,7 +183,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
           onChange={(e) => onChange({ policies: e.target.value })}
           rows={6}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="e.g., Cancellation Policy: We require 24 hours notice for cancellations...&#10;&#10;Refund Policy: Full refunds available within 30 days..."
+          placeholder="z.B. Stornierung: Wir bitten um Absage mindestens 24 Stunden vorher...&#10;&#10;Bezahlung: Wir akzeptieren Karte und Bargeld..."
         />
       </div>
     </div>

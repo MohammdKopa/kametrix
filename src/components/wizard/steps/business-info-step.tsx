@@ -26,16 +26,16 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Business Information</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Ueber Ihr Unternehmen</h2>
         <p className="text-sm text-gray-600">
-          Tell us about your business so your AI agent can represent you accurately.
+          Erzaehlen Sie uns von Ihrem Unternehmen, damit Ihr KI-Assistent Sie bestmoeglich repraesentieren kann.
         </p>
       </div>
 
       {/* Business Name */}
       <div>
         <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-1">
-          Business Name <span className="text-red-500">*</span>
+          Name Ihres Unternehmens <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -43,14 +43,17 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           value={data.businessName}
           onChange={(e) => onChange({ businessName: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="e.g., Acme Dental Care"
+          placeholder="z.B. Friseur Schmidt"
         />
+        <p className="mt-1 text-xs text-gray-500">
+          So wird Ihr Assistent Ihr Unternehmen am Telefon vorstellen.
+        </p>
       </div>
 
       {/* Business Description */}
       <div>
         <label htmlFor="businessDescription" className="block text-sm font-medium text-gray-700 mb-1">
-          Business Description <span className="text-red-500">*</span>
+          Beschreibung <span className="text-red-500">*</span>
         </label>
         <textarea
           id="businessDescription"
@@ -58,17 +61,17 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           onChange={(e) => onChange({ businessDescription: e.target.value })}
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Briefly describe what your business does..."
+          placeholder="z.B. Wir sind ein moderner Friseursalon im Herzen der Stadt mit Fokus auf individuelle Beratung..."
         />
         <p className="mt-1 text-xs text-gray-500">
-          This helps your agent understand your business context.
+          Je genauer Sie beschreiben, desto besser kann Ihr Assistent Fragen beantworten.
         </p>
       </div>
 
       {/* Business Hours */}
       <div>
         <label htmlFor="businessHours" className="block text-sm font-medium text-gray-700 mb-1">
-          Business Hours <span className="text-red-500">*</span>
+          Oeffnungszeiten <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -76,17 +79,20 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           value={data.businessHours}
           onChange={(e) => onChange({ businessHours: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="e.g., Mon-Fri 9am-5pm, Sat 10am-2pm"
+          placeholder="z.B. Mo-Fr 9-18 Uhr, Sa 9-14 Uhr"
         />
+        <p className="mt-1 text-xs text-gray-500">
+          Diese Information wird bei Anfragen zu Ihren Oeffnungszeiten verwendet.
+        </p>
       </div>
 
       {/* Services */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Services Offered <span className="text-red-500">*</span>
+          Ihre Dienstleistungen <span className="text-red-500">*</span>
         </label>
         <p className="text-xs text-gray-500 mb-3">
-          List the main services your business provides.
+          Fuegen Sie die wichtigsten Angebote Ihres Unternehmens hinzu.
         </p>
 
         <div className="space-y-2">
@@ -97,7 +103,7 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
                 value={service}
                 onChange={(e) => updateService(index, e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder={`Service ${index + 1}`}
+                placeholder={`Dienstleistung ${index + 1}`}
               />
               <button
                 type="button"
@@ -116,7 +122,7 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           className="mt-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-300 rounded-md"
         >
           <Plus className="w-4 h-4" />
-          Add Service
+          Dienstleistung hinzufuegen
         </button>
       </div>
     </div>

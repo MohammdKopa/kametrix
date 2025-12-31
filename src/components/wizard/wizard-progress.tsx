@@ -8,11 +8,11 @@ interface WizardProgressProps {
 }
 
 const STEP_LABELS = [
-  'Business Info',
-  'Knowledge',
-  'Voice',
-  'Greeting',
-  'Review',
+  'Ihr Unternehmen',
+  'Wissen & FAQs',
+  'Stimme',
+  'Begruessung',
+  'Uebersicht',
 ];
 
 export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps) {
@@ -78,7 +78,7 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
       <div className="md:hidden">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700 dark:text-[var(--foreground)]">
-            Step {currentStep} of {totalSteps}
+            Schritt {currentStep} von {totalSteps}
           </span>
           <span className="text-sm text-gray-500 dark:text-[var(--muted-foreground)]">
             {STEP_LABELS[currentStep - 1]}
