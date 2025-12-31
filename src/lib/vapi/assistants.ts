@@ -1,61 +1,6 @@
 import { getVapiClient } from './client';
 import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantResponse } from './types';
-
-/**
- * Build a system prompt from business configuration
- * All prompts are in formal German (Sie-form) for professional business communication
- *
- * Uses Vapi dynamic variables for real-time date/time:
- * https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
- */
-function buildSystemPrompt(config: CreateAssistantConfig, hasCalendarTools: boolean): string {
-  // Vapi dynamic variables - substituted at call time by Vapi
-  // Format: {{"now" | date: "format_string", "timezone"}}
-  const dateHeader = hasCalendarTools ? `[AKTUELLES DATUM UND UHRZEIT]
-Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
-Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
-Wochentag: {{"now" | date: "%A", "Europe/Berlin"}}
-Jahr: {{"now" | date: "%Y", "Europe/Berlin"}}
-
-WICHTIG - DATUMSREGELN:
-- Das aktuelle Jahr ist {{"now" | date: "%Y", "Europe/Berlin"}} - NIEMALS 2023 oder 2024 verwenden!
-- Wenn der Kunde "morgen" sagt, berechne das korrekte Datum basierend auf heute
-- Wenn der Kunde "Montag" sagt, nimm den NÄCHSTEN Montag (nicht vergangene)
-- Übergib Datumsangaben im Format JJJJ-MM-TT an die Tools
-
-` : '';
-
-  const faqSection = config.faqs.length > 0
-    ? `\n\n## Häufige Fragen\n${config.faqs.map(faq => `F: ${faq.question}\nA: ${faq.answer}`).join('\n\n')}`
-    : '';
-
-  const calendarSection = hasCalendarTools
-    ? `\n\n## Kalender-Funktionen
-- Sie können die Verfügbarkeit mit dem check_availability-Tool prüfen
-- Sie können Termine mit dem book_appointment-Tool buchen
-- Erfragen Sie bei Terminbuchungen: Datum, Uhrzeit, Name des Anrufers (erforderlich), Telefonnummer (optional), E-Mail (optional)
-- Bestätigen Sie immer die Details vor der Buchung
-- Berechnen Sie relative Datumsangaben (morgen, nächsten Montag) anhand des aktuellen Datums oben`
-    : '';
-
-  const appointmentGuideline = hasCalendarTools
-    ? '\n- Nutzen Sie bei Terminanfragen Ihre Kalender-Tools'
-    : '\n- Bei Terminwünschen: Name, bevorzugtes Datum/Uhrzeit und Grund erfragen';
-
-  return `${dateHeader}Sie sind der KI-Assistent für ${config.businessName}.
-
-## Geschäftsinformationen
-- Firmenname: ${config.businessName}
-- Öffnungszeiten: ${config.businessHours}
-- Dienstleistungen: ${config.services.join(', ')}${faqSection}${calendarSection}
-
-## Richtlinien
-- Sprechen Sie Anrufer mit "Sie" an (formell)
-- Seien Sie freundlich, professionell und präzise
-- Beantworten Sie Fragen zum Unternehmen anhand der obigen Informationen
-- Wenn Sie etwas nicht wissen, sagen Sie höflich, dass sich jemand bei ihnen melden wird
-- Halten Sie Antworten kurz und natürlich für Telefongespräche${appointmentGuideline}`;
-}
+import { buildSystemPrompt, buildCalendarTools } from '@/lib/prompts';
 
 /**
  * Create a new business assistant in Vapi
@@ -74,80 +19,17 @@ export async function createBusinessAssistant(
   // Get the server URL for tool callbacks
   const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Build calendar tools if Google is connected (Vapi SDK format)
-  // Tool descriptions in German for consistency with system prompt
-  const tools = hasCalendarTools ? [
-    {
-      type: 'function',
-      async: false,
-      server: {
-        url: `${serverUrl}/api/webhooks/vapi`,
-      },
-      function: {
-        name: 'check_availability',
-        description: 'Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum. Verwende dies, wenn ein Anrufer nach freien Terminen fragt. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
-        parameters: {
-          type: 'object',
-          properties: {
-            date: {
-              type: 'string',
-              description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!',
-            },
-            timeZone: {
-              type: 'string',
-              description: 'IANA-Zeitzone (z.B. Europe/Berlin). Optional, Standard ist Europe/Berlin.',
-            },
-          },
-          required: ['date'],
-        },
-      },
-    },
-    {
-      type: 'function',
-      async: false,
-      server: {
-        url: `${serverUrl}/api/webhooks/vapi`,
-      },
-      function: {
-        name: 'book_appointment',
-        description: 'Bucht einen Termin im Kalender. Verwende dies nach Bestätigung von Datum, Uhrzeit und Anruferdaten. Verwende immer das aktuelle Jahr aus dem AKTUELLES DATUM Header.',
-        parameters: {
-          type: 'object',
-          properties: {
-            date: {
-              type: 'string',
-              description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15). WICHTIG: Immer das aktuelle Jahr verwenden!',
-            },
-            time: {
-              type: 'string',
-              description: 'Uhrzeit im 24-Stunden-Format (z.B. 14:30)',
-            },
-            callerName: {
-              type: 'string',
-              description: 'Vollständiger Name des Anrufers (erforderlich)',
-            },
-            callerPhone: {
-              type: 'string',
-              description: 'Telefonnummer des Anrufers (optional)',
-            },
-            callerEmail: {
-              type: 'string',
-              description: 'E-Mail-Adresse des Anrufers (optional, erhält Kalendereinladung)',
-            },
-            summary: {
-              type: 'string',
-              description: 'Kurze Beschreibung des Termins (optional, Standard ist "Termin")',
-            },
-            timeZone: {
-              type: 'string',
-              description: 'IANA-Zeitzone (z.B. Europe/Berlin). Optional, Standard ist Europe/Berlin.',
-            },
-          },
-          required: ['date', 'time', 'callerName'],
-        },
-      },
-    },
-  ] : undefined;
+  // Build calendar tools if Google is connected
+  const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;
+
+  // Build system prompt using consolidated module
+  const systemPrompt = buildSystemPrompt({
+    businessName: config.businessName,
+    businessHours: config.businessHours,
+    services: config.services,
+    faqs: config.faqs,
+    hasGoogleCalendar: hasCalendarTools,
+  });
 
   const assistantConfig: any = {
     name: config.name,
@@ -155,7 +37,7 @@ export async function createBusinessAssistant(
     model: {
       provider: 'openai',
       model: 'gpt-4o',
-      messages: [{ role: 'system', content: buildSystemPrompt(config, hasCalendarTools) }],
+      messages: [{ role: 'system', content: systemPrompt }],
       ...(tools && { tools }),
     },
     voice: {
@@ -220,10 +102,17 @@ export async function updateAssistant(
     // For now, only update if all required fields are provided
     if (config.businessName && config.businessHours && config.services && config.faqs) {
       const hasCalendarTools = config.hasGoogleCalendar ?? false;
+      const systemPrompt = buildSystemPrompt({
+        businessName: config.businessName,
+        businessHours: config.businessHours,
+        services: config.services,
+        faqs: config.faqs,
+        hasGoogleCalendar: hasCalendarTools,
+      });
       updatePayload.model = {
         provider: 'openai',
         model: 'gpt-4o',
-        messages: [{ role: 'system', content: buildSystemPrompt(config as CreateAssistantConfig, hasCalendarTools) }],
+        messages: [{ role: 'system', content: systemPrompt }],
       };
     }
   }
@@ -262,55 +151,24 @@ export async function refreshAssistantDate(
 
   const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Rebuild tools with current server URL and German descriptions
-  const tools = hasCalendarTools ? [
-    {
-      type: 'function' as const,
-      async: false,
-      server: { url: `${serverUrl}/api/webhooks/vapi` },
-      function: {
-        name: 'check_availability',
-        description: 'Prüft die Kalenderverfügbarkeit für ein bestimmtes Datum.',
-        parameters: {
-          type: 'object' as const,
-          properties: {
-            date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15)' },
-            timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
-          },
-          required: ['date'],
-        },
-      },
-    },
-    {
-      type: 'function' as const,
-      async: false,
-      server: { url: `${serverUrl}/api/webhooks/vapi` },
-      function: {
-        name: 'book_appointment',
-        description: 'Bucht einen Termin im Kalender.',
-        parameters: {
-          type: 'object' as const,
-          properties: {
-            date: { type: 'string', description: 'Datum im Format JJJJ-MM-TT (z.B. 2025-01-15)' },
-            time: { type: 'string', description: 'Uhrzeit im 24-Stunden-Format (z.B. 14:30)' },
-            callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
-            callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },
-            callerEmail: { type: 'string', description: 'E-Mail-Adresse des Anrufers (optional)' },
-            summary: { type: 'string', description: 'Kurze Beschreibung des Termins (optional)' },
-            timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
-          },
-          required: ['date', 'time', 'callerName'] as const,
-        },
-      },
-    },
-  ] : undefined;
+  // Build tools using consolidated module
+  const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;
+
+  // Build system prompt using consolidated module
+  const systemPrompt = buildSystemPrompt({
+    businessName: config.businessName,
+    businessHours: config.businessHours,
+    services: config.services,
+    faqs: config.faqs,
+    hasGoogleCalendar: hasCalendarTools,
+  });
 
   const assistant = await client.assistants.update({
     id: assistantId,
     model: {
       provider: 'openai',
       model: 'gpt-4o',
-      messages: [{ role: 'system', content: buildSystemPrompt(config, hasCalendarTools) }],
+      messages: [{ role: 'system', content: systemPrompt }],
       ...(tools && { tools }),
     } as any,
   });

@@ -16,6 +16,7 @@ import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
 import { formatDateGerman } from '@/lib/localization';
 import { verifyVapiSignature } from '@/lib/webhook-auth';
+import { buildDateHeader, buildCalendarTools } from '@/lib/prompts';
 
 /**
  * Tool call payload from Vapi
@@ -540,21 +541,8 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     // Check if the stored prompt already has Vapi dynamic variables
     const hasVapiVariables = agent.systemPrompt.includes('{{"now"');
 
-    // Build date header with Vapi dynamic variables (substituted by Vapi at call time)
-    // Only add if the stored prompt doesn't already have them
-    const dateHeader = hasVapiVariables ? '' : `[AKTUELLES DATUM UND UHRZEIT]
-Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
-Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
-Wochentag: {{"now" | date: "%A", "Europe/Berlin"}}
-Jahr: {{"now" | date: "%Y", "Europe/Berlin"}}
-
-WICHTIG - DATUMSREGELN:
-- Das aktuelle Jahr ist {{"now" | date: "%Y", "Europe/Berlin"}} - NIEMALS 2023 oder 2024 verwenden!
-- Wenn der Kunde "morgen" sagt, berechne das korrekte Datum basierend auf heute
-- Wenn der Kunde "Montag" sagt, nimm den NÄCHSTEN Montag (nicht vergangene)
-- Übergib Datumsangaben im Format JJJJ-MM-TT an die Tools
-
-`;
+    // Build date header using consolidated module (only if stored prompt lacks Vapi vars)
+    const dateHeader = hasVapiVariables ? '' : buildDateHeader();
 
     // Use agent's stored system prompt with date header (if needed)
     const systemPrompt = dateHeader + agent.systemPrompt;
@@ -564,49 +552,8 @@ WICHTIG - DATUMSREGELN:
 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    // Build tools if calendar connected
-    // IMPORTANT: Let the AI pass relative terms (morgen, heute, etc.) - server will parse them
-    const tools = hasCalendarTools ? [
-      {
-        type: 'function',
-        async: false,
-        server: { url: `${serverUrl}/api/webhooks/vapi` },
-        function: {
-          name: 'check_availability',
-          description: `Prüft die Kalenderverfügbarkeit für ein Datum.`,
-          parameters: {
-            type: 'object',
-            properties: {
-              date: { type: 'string', description: `Datum als Text. BEVORZUGT relative Begriffe: "morgen", "heute", "übermorgen", "Montag", "Dienstag", etc. ODER Format JJJJ-MM-TT.` },
-              timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
-            },
-            required: ['date'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        async: false,
-        server: { url: `${serverUrl}/api/webhooks/vapi` },
-        function: {
-          name: 'book_appointment',
-          description: `Bucht einen Termin im Kalender.`,
-          parameters: {
-            type: 'object',
-            properties: {
-              date: { type: 'string', description: `Datum als Text. BEVORZUGT relative Begriffe: "morgen", "heute", "übermorgen", "Montag", "Dienstag", etc. ODER Format JJJJ-MM-TT.` },
-              time: { type: 'string', description: 'Uhrzeit im Format HH:MM (24-Stunden-Format, z.B. 14:30)' },
-              callerName: { type: 'string', description: 'Vollständiger Name des Anrufers (erforderlich)' },
-              callerPhone: { type: 'string', description: 'Telefonnummer des Anrufers (optional)' },
-              callerEmail: { type: 'string', description: 'E-Mail-Adresse des Anrufers (optional)' },
-              summary: { type: 'string', description: 'Kurze Beschreibung des Termins (optional)' },
-              timeZone: { type: 'string', description: 'IANA-Zeitzone. Standard: Europe/Berlin.' },
-            },
-            required: ['date', 'time', 'callerName'],
-          },
-        },
-      },
-    ] : undefined;
+    // Build tools using consolidated module
+    const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;
 
     // Return assistant config
     const assistantConfig = {
