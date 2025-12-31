@@ -9,7 +9,8 @@ Kametrix evolves from an empty Next.js project to a complete self-serve voice AI
 - [v1.0 MVP](milestones/v1.0-ROADMAP.md) - Phases 1-6 (SHIPPED 2025-12-27)
 - [v1.1 German Market & Polish](milestones/v1.1-ROADMAP.md) - Phases 7-10 (SHIPPED 2025-12-27)
 - [v1.2 shadcn/ui & Premium Dark Theme](milestones/v1.2-ROADMAP.md) - Phases 11-13 (SHIPPED 2025-12-28)
-- 🚧 **v2.0 Security & Admin Controls** - Phases 14-17 (in progress)
+- ✅ **v2.0 Security & Admin Controls** - Phases 14-18 (SHIPPED 2025-12-29)
+- 🚧 **v2.1 Prompt & Voice Excellence** - Phases 19-22 (in progress)
 
 ## Domain Expertise
 
@@ -54,9 +55,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### 🚧 v2.0 Security & Admin Controls (In Progress)
-
-**Milestone Goal:** Harden security with rate limiting and authentication, fix critical bugs, update auth UI, and add admin price controls.
+<details>
+<summary>✅ v2.0 Security & Admin Controls (Phases 14-18) - SHIPPED 2025-12-29</summary>
 
 #### Phase 14: Critical Bug Fixes ✓
 **Goal**: Fix appointment year bug and other critical business logic issues
@@ -105,10 +105,53 @@ Plans:
 Plans:
 - [x] 18-01: Fix date validation logic and enhance AI date instructions
 
+</details>
+
+### 🚧 v2.1 Prompt & Voice Excellence (In Progress)
+
+**Milestone Goal:** Best possible voice agent experience for German market
+
+#### Phase 19: Prompt Consolidation
+**Goal**: Single buildSystemPrompt source of truth, optimized structure for voice AI
+**Depends on**: Phase 18
+**Research**: Unlikely (internal refactoring)
+**Plans**: TBD
+
+Plans:
+- [ ] 19-01: TBD (run /gsd:plan-phase 19 to break down)
+
+#### Phase 20: Switch to ElevenLabs
+**Goal**: Replace Azure with ElevenLabs as default, add German voice options to wizard
+**Depends on**: Phase 19
+**Research**: Likely (new external API integration)
+**Research topics**: ElevenLabs API integration with Vapi, available German voices and voice IDs, voice preview capabilities
+**Plans**: TBD
+
+Plans:
+- [ ] 20-01: TBD (run /gsd:plan-phase 20 to break down)
+
+#### Phase 21: Wizard Polish
+**Goal**: Clearer step labels, better AI-generated FAQ/greeting quality, improved validation
+**Depends on**: Phase 20
+**Research**: Unlikely (internal UI patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] 21-01: TBD (run /gsd:plan-phase 21 to break down)
+
+#### Phase 22: Euro Currency
+**Goal**: Change all $ displays to €, update pricing copy throughout platform
+**Depends on**: Phase 21
+**Research**: Unlikely (display changes only)
+**Plans**: TBD
+
+Plans:
+- [ ] 22-01: TBD (run /gsd:plan-phase 22 to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18
+Phases execute in numeric order: 1 → 2 → ... → 18 → 19 → 20 → 21 → 22
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -130,3 +173,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 16. Auth UI Polish | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 17. Admin Price Control | v2.0 | 2/2 | Complete | 2025-12-29 |
 | 18. Fix the Appointment | v2.0 | 1/1 | Complete | 2025-12-29 |
+| 19. Prompt Consolidation | v2.1 | 0/? | Not started | - |
+| 20. Switch to ElevenLabs | v2.1 | 0/? | Not started | - |
+| 21. Wizard Polish | v2.1 | 0/? | Not started | - |
+| 22. Euro Currency | v2.1 | 0/? | Not started | - |
