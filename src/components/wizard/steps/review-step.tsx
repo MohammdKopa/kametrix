@@ -18,9 +18,9 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Uebersicht & Erstellen</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Übersicht & Erstellen</h2>
         <p className="text-sm text-gray-600">
-          Pruefen Sie die Konfiguration Ihres Assistenten bevor Sie ihn erstellen.
+          Prüfen Sie die Konfiguration Ihres Assistenten bevor Sie ihn erstellen.
         </p>
       </div>
 
@@ -47,7 +47,7 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
             <dd className="text-gray-600">{data.businessInfo.businessDescription || '-'}</dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-700">Oeffnungszeiten:</dt>
+            <dt className="font-medium text-gray-700">Öffnungszeiten:</dt>
             <dd className="text-gray-600">{data.businessInfo.businessHours || '-'}</dd>
           </div>
           <div>
@@ -82,7 +82,7 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
         </div>
         <dl className="space-y-2 text-sm">
           <div>
-            <dt className="font-medium text-gray-700">Haeufige Fragen:</dt>
+            <dt className="font-medium text-gray-700">Häufige Fragen:</dt>
             <dd className="text-gray-600">
               {completedFaqs.length > 0 ? (
                 <div className="space-y-2 mt-2">
@@ -94,14 +94,14 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
                   ))}
                 </div>
               ) : (
-                'Keine FAQs hinzugefuegt'
+                'Keine FAQs hinzugefügt'
               )}
             </dd>
           </div>
           <div>
             <dt className="font-medium text-gray-700">Richtlinien:</dt>
             <dd className="text-gray-600 whitespace-pre-line">
-              {data.knowledge.policies || 'Keine Richtlinien hinzugefuegt'}
+              {data.knowledge.policies || 'Keine Richtlinien hinzugefügt'}
             </dd>
           </div>
         </dl>
@@ -135,7 +135,7 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
       {/* Greeting & Messages */}
       <div className="border border-gray-200 rounded-lg p-4">
         <div className="flex justify-between items-start mb-3">
-          <h3 className="font-medium text-gray-900">Begruessung & Verabschiedung</h3>
+          <h3 className="font-medium text-gray-900">Begrüßung & Verabschiedung</h3>
           <button
             type="button"
             onClick={() => onEdit(4)}
@@ -151,7 +151,7 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
             <dd className="text-gray-600">{data.greeting.agentName || '-'}</dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-700">Begruessung:</dt>
+            <dt className="font-medium text-gray-700">Begrüßung:</dt>
             <dd className="text-gray-600 italic">
               &ldquo;{data.greeting.greeting || '-'}&rdquo;
             </dd>

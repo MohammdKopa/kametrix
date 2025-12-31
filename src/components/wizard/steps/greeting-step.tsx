@@ -19,12 +19,12 @@ export function GreetingStep({ data, businessInfo, onChange }: GreetingStepProps
 
   const generateWithAI = async () => {
     if (!businessName || !businessInfo.businessDescription) {
-      setError('Bitte fuellen Sie zuerst den Schritt "Ihr Unternehmen" aus (Name und Beschreibung erforderlich).');
+      setError('Bitte füllen Sie zuerst den Schritt "Ihr Unternehmen" aus (Name und Beschreibung erforderlich).');
       return;
     }
 
     if (!data.agentName) {
-      setError('Bitte geben Sie zuerst einen Namen fuer den Assistenten ein.');
+      setError('Bitte geben Sie zuerst einen Namen für den Assistenten ein.');
       return;
     }
 
@@ -64,9 +64,9 @@ export function GreetingStep({ data, businessInfo, onChange }: GreetingStepProps
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Begruessung & Verabschiedung</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Begrüßung & Verabschiedung</h2>
           <p className="text-sm text-gray-600">
-            Legen Sie fest, wie sich Ihr Assistent vorstellt und Gespraeche beendet.
+            Legen Sie fest, wie sich Ihr Assistent vorstellt und Gespräche beendet.
           </p>
         </div>
         <button
@@ -74,7 +74,7 @@ export function GreetingStep({ data, businessInfo, onChange }: GreetingStepProps
           onClick={generateWithAI}
           disabled={isGenerating || !data.agentName}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!data.agentName ? 'Bitte zuerst Namen eingeben' : 'Begruessung mit KI generieren'}
+          title={!data.agentName ? 'Bitte zuerst Namen eingeben' : 'Begrüßung mit KI generieren'}
         >
           {isGenerating ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -112,7 +112,7 @@ export function GreetingStep({ data, businessInfo, onChange }: GreetingStepProps
       {/* Greeting Message */}
       <div>
         <label htmlFor="greeting" className="block text-sm font-medium text-gray-700 mb-1">
-          Begruessung <span className="text-red-500">*</span>
+          Begrüßung <span className="text-red-500">*</span>
         </label>
         <textarea
           id="greeting"
@@ -123,7 +123,7 @@ export function GreetingStep({ data, businessInfo, onChange }: GreetingStepProps
           placeholder="z.B. Guten Tag! Sie haben {businessName} erreicht. Wie kann ich Ihnen helfen?"
         />
         <p className="mt-1 text-xs text-gray-500">
-          Das hoeren Anrufer als Erstes. Verwenden Sie <code>{'{businessName}'}</code> als Platzhalter.
+          Das hören Anrufer als Erstes. Verwenden Sie <code>{'{businessName}'}</code> als Platzhalter.
         </p>
       </div>
 
@@ -146,10 +146,10 @@ export function GreetingStep({ data, businessInfo, onChange }: GreetingStepProps
           onChange={(e) => onChange({ endCallMessage: e.target.value })}
           rows={2}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="z.B. Vielen Dank fuer Ihren Anruf. Auf Wiedersehen!"
+          placeholder="z.B. Vielen Dank für Ihren Anruf. Auf Wiedersehen!"
         />
         <p className="mt-1 text-xs text-gray-500">
-          Was sagt der Assistent zum Abschluss des Gespraechs?
+          Was sagt der Assistent zum Abschluss des Gesprächs?
         </p>
       </div>
     </div>

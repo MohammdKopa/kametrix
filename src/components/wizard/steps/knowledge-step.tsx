@@ -31,7 +31,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
 
   const generateWithAI = async () => {
     if (!businessInfo.businessName || !businessInfo.businessDescription) {
-      setError('Bitte fuellen Sie zuerst den Schritt "Ihr Unternehmen" aus (Name und Beschreibung erforderlich).');
+      setError('Bitte füllen Sie zuerst den Schritt "Ihr Unternehmen" aus (Name und Beschreibung erforderlich).');
       return;
     }
 
@@ -79,7 +79,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Wissen fuer Ihren Assistenten</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Wissen für Ihren Assistenten</h2>
           <p className="text-sm text-gray-600">
             Geben Sie Ihrem Assistenten das Wissen, um Kundenanfragen kompetent zu beantworten.
           </p>
@@ -108,10 +108,10 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
       {/* FAQs */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Haeufige Fragen (FAQs)
+          Häufige Fragen (FAQs)
         </label>
         <p className="text-xs text-gray-500 mb-3">
-          Fuegen Sie typische Kundenfragen und Antworten hinzu. Ihr Assistent nutzt diese, um Anrufer zu informieren.
+          Fügen Sie typische Kundenfragen und Antworten hinzu. Ihr Assistent nutzt diese, um Anrufer zu informieren.
         </p>
 
         <div className="space-y-4">
@@ -138,7 +138,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
                     value={faq.question}
                     onChange={(e) => updateFaq(index, 'question', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="z.B. Wie sind Ihre Oeffnungszeiten?"
+                    placeholder="z.B. Wie sind Ihre Öffnungszeiten?"
                   />
                 </div>
 
@@ -151,7 +151,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
                     onChange={(e) => updateFaq(index, 'answer', e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="z.B. Wir haben Montag bis Freitag von 9 bis 18 Uhr geoeffnet..."
+                    placeholder="z.B. Wir haben Montag bis Freitag von 9 bis 18 Uhr geöffnet..."
                   />
                 </div>
               </div>
@@ -165,7 +165,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
           className="mt-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-300 rounded-md"
         >
           <Plus className="w-4 h-4" />
-          Frage hinzufuegen
+          Frage hinzufügen
         </button>
       </div>
 
@@ -175,7 +175,7 @@ export function KnowledgeStep({ data, businessInfo, onChange, onUpdateGreeting }
           Richtlinien
         </label>
         <p className="text-xs text-gray-500 mb-2">
-          Fuegen Sie wichtige Geschaeftsrichtlinien hinzu, z.B. Stornierung, Rueckerstattung.
+          Fügen Sie wichtige Geschäftsrichtlinien hinzu, z.B. Stornierung, Rückerstattung.
         </p>
         <textarea
           id="policies"

@@ -26,9 +26,9 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Ueber Ihr Unternehmen</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Über Ihr Unternehmen</h2>
         <p className="text-sm text-gray-600">
-          Erzaehlen Sie uns von Ihrem Unternehmen, damit Ihr KI-Assistent Sie bestmoeglich repraesentieren kann.
+          Erzählen Sie uns von Ihrem Unternehmen, damit Ihr KI-Assistent Sie bestmöglich repräsentieren kann.
         </p>
       </div>
 
@@ -71,7 +71,7 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
       {/* Business Hours */}
       <div>
         <label htmlFor="businessHours" className="block text-sm font-medium text-gray-700 mb-1">
-          Oeffnungszeiten <span className="text-red-500">*</span>
+          Öffnungszeiten <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -82,7 +82,7 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           placeholder="z.B. Mo-Fr 9-18 Uhr, Sa 9-14 Uhr"
         />
         <p className="mt-1 text-xs text-gray-500">
-          Diese Information wird bei Anfragen zu Ihren Oeffnungszeiten verwendet.
+          Diese Information wird bei Anfragen zu Ihren Öffnungszeiten verwendet.
         </p>
       </div>
 
@@ -92,7 +92,7 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           Ihre Dienstleistungen <span className="text-red-500">*</span>
         </label>
         <p className="text-xs text-gray-500 mb-3">
-          Fuegen Sie die wichtigsten Angebote Ihres Unternehmens hinzu.
+          Fügen Sie die wichtigsten Angebote Ihres Unternehmens hinzu.
         </p>
 
         <div className="space-y-2">
@@ -122,7 +122,7 @@ export function BusinessInfoStep({ data, onChange }: BusinessInfoStepProps) {
           className="mt-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-300 rounded-md"
         >
           <Plus className="w-4 h-4" />
-          Dienstleistung hinzufuegen
+          Dienstleistung hinzufügen
         </button>
       </div>
     </div>

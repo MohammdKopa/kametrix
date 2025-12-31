@@ -58,19 +58,19 @@ export function AgentWizard() {
     switch (step) {
       case 1: // Business Info
         if (!state.businessInfo.businessName.trim()) {
-          setError('Business name is required');
+          setError('Unternehmensname ist erforderlich');
           return false;
         }
         if (!state.businessInfo.businessDescription.trim()) {
-          setError('Business description is required');
+          setError('Unternehmensbeschreibung ist erforderlich');
           return false;
         }
         if (!state.businessInfo.businessHours.trim()) {
-          setError('Business hours are required');
+          setError('Öffnungszeiten sind erforderlich');
           return false;
         }
         if (state.businessInfo.services.length === 0) {
-          setError('At least one service is required');
+          setError('Mindestens eine Dienstleistung ist erforderlich');
           return false;
         }
         return true;
@@ -83,29 +83,29 @@ export function AgentWizard() {
             (!faq.question.trim() && faq.answer.trim())
         );
         if (incompleteFaqs.length > 0) {
-          setError('Please complete both question and answer for all FAQs');
+          setError('Bitte füllen Sie Frage und Antwort für alle FAQs aus');
           return false;
         }
         return true;
 
       case 3: // Voice
         if (!state.voice.voiceId) {
-          setError('Please select a voice');
+          setError('Bitte wählen Sie eine Stimme');
           return false;
         }
         return true;
 
       case 4: // Greeting
         if (!state.greeting.agentName.trim()) {
-          setError('Agent name is required');
+          setError('Name des Assistenten ist erforderlich');
           return false;
         }
         if (!state.greeting.greeting.trim()) {
-          setError('Greeting message is required');
+          setError('Begrüßung ist erforderlich');
           return false;
         }
         if (!state.greeting.endCallMessage.trim()) {
-          setError('End call message is required');
+          setError('Verabschiedung ist erforderlich');
           return false;
         }
         return true;
@@ -135,9 +135,9 @@ export function AgentWizard() {
 
       // Show success message - phone number will be assigned by admin later
       if (agent.phoneNumber?.number) {
-        alert(`Agent created successfully!\n\nYour agent is ready to receive calls at:\n${agent.phoneNumber.number}`);
+        alert(`Assistent erfolgreich erstellt!\n\nIhr Assistent ist bereit für Anrufe unter:\n${agent.phoneNumber.number}`);
       } else {
-        alert('Agent created successfully!\n\nA phone number will be assigned shortly by admin.');
+        alert('Assistent erfolgreich erstellt!\n\nEine Telefonnummer wird in Kürze vom Admin zugewiesen.');
       }
 
       router.push('/dashboard/agents');
@@ -199,7 +199,7 @@ export function AgentWizard() {
           disabled={state.step === 1 || isSubmitting}
           className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-[var(--foreground)] bg-white dark:bg-white/10 border border-gray-300 dark:border-[var(--border)] rounded-xl hover:bg-gray-50 dark:hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          Previous
+          Zurück
         </button>
 
         {state.step < TOTAL_STEPS ? (
@@ -209,7 +209,7 @@ export function AgentWizard() {
             disabled={isSubmitting}
             className="px-4 py-2 text-sm font-medium text-white bg-[var(--accent)] rounded-xl hover:bg-[var(--accent-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Next
+            Weiter
           </button>
         ) : (
           <button
@@ -218,7 +218,7 @@ export function AgentWizard() {
             disabled={isSubmitting}
             className="px-4 py-2 text-sm font-medium text-white bg-[var(--accent)] rounded-xl hover:bg-[var(--accent-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting ? 'Creating Agent...' : 'Create Agent'}
+            {isSubmitting ? 'Wird erstellt...' : 'Assistent erstellen'}
           </button>
         )}
       </div>

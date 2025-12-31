@@ -11,8 +11,8 @@ const STEP_LABELS = [
   'Ihr Unternehmen',
   'Wissen & FAQs',
   'Stimme',
-  'Begruessung',
-  'Uebersicht',
+  'Begrüßung',
+  'Übersicht',
 ];
 
 export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps) {
