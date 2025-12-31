@@ -16,7 +16,7 @@ export interface WizardState {
   };
   voice: {
     voiceId: string;
-    voiceProvider: 'azure';
+    voiceProvider: 'azure' | '11labs';
   };
   greeting: {
     agentName: string;
@@ -42,8 +42,8 @@ export const DEFAULT_WIZARD_STATE: WizardState = {
     policies: '',
   },
   voice: {
-    voiceId: 'de-DE-KatjaNeural',
-    voiceProvider: 'azure',
+    voiceId: 'EXAVITQu4vr4xnSDxMaL',
+    voiceProvider: '11labs',
   },
   greeting: {
     agentName: '',

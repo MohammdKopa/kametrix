@@ -41,8 +41,10 @@ export async function createBusinessAssistant(
       ...(tools && { tools }),
     },
     voice: {
-      provider: 'azure',
-      voiceId: config.voiceId ?? 'de-DE-KatjaNeural',
+      provider: '11labs',
+      voiceId: config.voiceId ?? 'EXAVITQu4vr4xnSDxMaL', // Sarah default
+      model: 'eleven_turbo_v2_5',
+      language: 'de',
     },
     transcriber: {
       provider: 'deepgram',
@@ -91,8 +93,10 @@ export async function updateAssistant(
 
   if (config.voiceId) {
     updatePayload.voice = {
-      provider: 'azure',
+      provider: '11labs',
       voiceId: config.voiceId,
+      model: 'eleven_turbo_v2_5',
+      language: 'de',
     };
   }
 
