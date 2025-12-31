@@ -111,14 +111,14 @@ Plans:
 
 **Milestone Goal:** Best possible voice agent experience for German market
 
-#### Phase 19: Prompt Consolidation
+#### Phase 19: Prompt Consolidation ✓
 **Goal**: Single buildSystemPrompt source of truth, optimized structure for voice AI
 **Depends on**: Phase 18
 **Research**: Unlikely (internal refactoring)
-**Plans**: TBD
+**Plans**: 1
 
 Plans:
-- [ ] 19-01: TBD (run /gsd:plan-phase 19 to break down)
+- [x] 19-01: Create consolidated prompts module and update all consumers
 
 #### Phase 20: Switch to ElevenLabs
 **Goal**: Replace Azure with ElevenLabs as default, add German voice options to wizard
@@ -173,7 +173,7 @@ Phases execute in numeric order: 1 → 2 → ... → 18 → 19 → 20 → 21 →
 | 16. Auth UI Polish | v2.0 | 1/1 | Complete | 2025-12-29 |
 | 17. Admin Price Control | v2.0 | 2/2 | Complete | 2025-12-29 |
 | 18. Fix the Appointment | v2.0 | 1/1 | Complete | 2025-12-29 |
-| 19. Prompt Consolidation | v2.1 | 0/? | Not started | - |
+| 19. Prompt Consolidation | v2.1 | 1/1 | Complete | 2025-12-31 |
 | 20. Switch to ElevenLabs | v2.1 | 0/? | Not started | - |
 | 21. Wizard Polish | v2.1 | 0/? | Not started | - |
 | 22. Euro Currency | v2.1 | 0/? | Not started | - |
