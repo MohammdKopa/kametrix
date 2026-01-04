@@ -4,6 +4,8 @@
   "title": "Enhance Google Integration",
   "dependencies": [],
   "priority": 1,
-  "status": "backlog",
-  "id": "feature-1767489729265-y47pw8z2p"
+  "status": "verified",
+  "id": "feature-1767489729265-y47pw8z2p",
+  "startedAt": "2026-01-04T15:19:42.783Z",
+  "updatedAt": "2026-01-04T15:47:28.247Z"
 }

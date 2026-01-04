@@ -3,6 +3,111 @@ import { google } from 'googleapis';
 import { prisma } from '@/lib/prisma';
 
 /**
+ * Retry configuration for Google API calls
+ */
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+};
+
+/**
+ * HTTP status codes that indicate a retryable error
+ */
+const RETRYABLE_ERROR_CODES = [
+  429, // Rate limit exceeded
+  500, // Internal server error
+  502, // Bad gateway
+  503, // Service unavailable
+  504, // Gateway timeout
+];
+
+/**
+ * Sleep for a specified number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Calculate exponential backoff delay with jitter
+ */
+function calculateBackoffDelay(attemptNum: number): number {
+  const delay = Math.min(
+    RETRY_CONFIG.baseDelayMs * Math.pow(2, attemptNum),
+    RETRY_CONFIG.maxDelayMs
+  );
+  // Add jitter (+-25%) to prevent thundering herd
+  const jitter = delay * 0.25 * (Math.random() * 2 - 1);
+  return Math.floor(delay + jitter);
+}
+
+/**
+ * Check if an error is retryable based on status code or error type
+ */
+function isRetryableError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  // Check for Google API error codes
+  const err = error as { code?: number; status?: number; response?: { status?: number } };
+  const statusCode = err.code || err.status || err.response?.status;
+
+  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {
+    return true;
+  }
+
+  // Check for network errors
+  const message = (error as Error).message?.toLowerCase() || '';
+  return (
+    message.includes('econnreset') ||
+    message.includes('etimedout') ||
+    message.includes('socket hang up') ||
+    message.includes('network error')
+  );
+}
+
+/**
+ * Execute an operation with automatic retry and exponential backoff
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
+        const delay = calculateBackoffDelay(attempt);
+        console.log(
+          `${operationName} failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}), ` +
+          `retrying in ${delay}ms...`
+        );
+        await sleep(delay);
+      } else {
+        // Non-retryable error or max retries reached
+        break;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Result type for sheets operations with detailed status
+ */
+export interface SheetsOperationResult {
+  success: boolean;
+  error?: string;
+  errorCode?: string;
+}
+
+/**
  * Get or create the call log spreadsheet for a user
  *
  * Auto-creates a spreadsheet titled "Kametrix Call Logs" if it doesn't exist
@@ -27,9 +132,10 @@ export async function getOrCreateLogSheet(
   // If sheet exists, verify it's still accessible
   if (user?.googleSheetId) {
     try {
-      await sheets.spreadsheets.get({
-        spreadsheetId: user.googleSheetId,
-      });
+      await withRetry(
+        () => sheets.spreadsheets.get({ spreadsheetId: user.googleSheetId! }),
+        'Sheets.get'
+      );
       // Sheet still exists and is accessible
       return user.googleSheetId;
     } catch (error) {
@@ -38,39 +144,43 @@ export async function getOrCreateLogSheet(
     }
   }
 
-  // Create new spreadsheet
-  const spreadsheet = await sheets.spreadsheets.create({
-    requestBody: {
-      properties: {
-        title: 'Kametrix Call Logs',
-      },
-      sheets: [
-        {
+  // Create new spreadsheet with retry
+  const spreadsheet = await withRetry(
+    () =>
+      sheets.spreadsheets.create({
+        requestBody: {
           properties: {
-            title: 'Calls',
+            title: 'Kametrix Call Logs',
           },
-          data: [
+          sheets: [
             {
-              rowData: [
+              properties: {
+                title: 'Calls',
+              },
+              data: [
                 {
-                  values: [
-                    { userEnteredValue: { stringValue: 'Date' } },
-                    { userEnteredValue: { stringValue: 'Time' } },
-                    { userEnteredValue: { stringValue: 'Caller' } },
-                    { userEnteredValue: { stringValue: 'Agent' } },
-                    { userEnteredValue: { stringValue: 'Duration' } },
-                    { userEnteredValue: { stringValue: 'Status' } },
-                    { userEnteredValue: { stringValue: 'Summary' } },
-                    { userEnteredValue: { stringValue: 'Appointment Booked' } },
+                  rowData: [
+                    {
+                      values: [
+                        { userEnteredValue: { stringValue: 'Date' } },
+                        { userEnteredValue: { stringValue: 'Time' } },
+                        { userEnteredValue: { stringValue: 'Caller' } },
+                        { userEnteredValue: { stringValue: 'Agent' } },
+                        { userEnteredValue: { stringValue: 'Duration' } },
+                        { userEnteredValue: { stringValue: 'Status' } },
+                        { userEnteredValue: { stringValue: 'Summary' } },
+                        { userEnteredValue: { stringValue: 'Appointment Booked' } },
+                      ],
+                    },
                   ],
                 },
               ],
             },
           ],
         },
-      ],
-    },
-  });
+      }),
+    'Sheets.create'
+  );
 
   const spreadsheetId = spreadsheet.data.spreadsheetId!;
 
@@ -85,12 +195,12 @@ export async function getOrCreateLogSheet(
 }
 
 /**
- * Append a call log entry to the spreadsheet
+ * Append a call log entry to the spreadsheet with automatic retry
  *
  * @param oauth2Client - Authenticated OAuth2Client
  * @param sheetId - Spreadsheet ID
  * @param callData - Call data to log
- * @returns Success status
+ * @returns Operation result with success status and error details
  */
 export async function appendCallLog(
   oauth2Client: OAuth2Client,
@@ -104,7 +214,7 @@ export async function appendCallLog(
     summary?: string | null;
     appointmentBooked?: boolean | string;
   }
-): Promise<boolean> {
+): Promise<SheetsOperationResult> {
   try {
     const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
 
@@ -150,21 +260,69 @@ export async function appendCallLog(
       ],
     ];
 
-    // Append to the Calls sheet
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: sheetId,
-      range: 'Calls!A:H',
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values,
-      },
-    });
+    // Append to the Calls sheet with retry
+    await withRetry(
+      () =>
+        sheets.spreadsheets.values.append({
+          spreadsheetId: sheetId,
+          range: 'Calls!A:H',
+          valueInputOption: 'USER_ENTERED',
+          insertDataOption: 'INSERT_ROWS',
+          requestBody: {
+            values,
+          },
+        }),
+      'Sheets.append'
+    );
 
     console.log(`Logged call to sheet ${sheetId}`);
-    return true;
+    return { success: true };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorCode = (error as { code?: string })?.code;
     console.error('Error appending call log:', error);
-    return false;
+    return { success: false, error: errorMessage, errorCode };
+  }
+}
+
+/**
+ * Verify that the Google Sheets connection is working
+ *
+ * @param oauth2Client - Authenticated OAuth2Client
+ * @returns Health check result with status and any error details
+ */
+export async function verifySheetConnection(
+  oauth2Client: OAuth2Client
+): Promise<{ healthy: boolean; error?: string }> {
+  try {
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+
+    // Try to list files to verify connection (minimal API call)
+    await withRetry(
+      () =>
+        drive.files.list({
+          pageSize: 1,
+          q: "mimeType='application/vnd.google-apps.spreadsheet'",
+        }),
+      'Drive.list'
+    );
+
+    return { healthy: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Check for specific error types that indicate token issues
+    if (
+      errorMessage.includes('invalid_grant') ||
+      errorMessage.includes('Token has been expired') ||
+      errorMessage.includes('Token has been revoked')
+    ) {
+      return {
+        healthy: false,
+        error: 'Token expired or revoked. Please reconnect your Google account.',
+      };
+    }
+
+    return { healthy: false, error: errorMessage };
   }
 }

@@ -280,8 +280,8 @@ export async function logCallToSheets(
       }
     }
 
-    // Append call log to sheet
-    await appendCallLog(oauth2Client, sheetId, {
+    // Append call log to sheet with retry logic
+    const result = await appendCallLog(oauth2Client, sheetId, {
       startedAt: callData.startedAt,
       phoneNumber: callData.phoneNumber,
       agentName: callData.agentName,
@@ -290,6 +290,10 @@ export async function logCallToSheets(
       summary,
       appointmentBooked: callData.appointmentBooked,
     });
+
+    if (!result.success) {
+      console.error('Failed to log call to Sheets:', result.error);
+    }
   } catch (error) {
     // Log error but don't throw - this is fire-and-forget
     console.error('Error logging call to Sheets:', error);
