@@ -1,5 +1,9 @@
 import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { google, calendar_v3 } from 'googleapis';
+
+// ============================================================================
+// TYPES AND INTERFACES
+// ============================================================================
 
 /**
  * Available time slot structure
@@ -11,6 +15,23 @@ export interface TimeSlot {
 }
 
 /**
+ * Recurrence rule types
+ */
+export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+/**
+ * Recurrence configuration for recurring events
+ */
+export interface RecurrenceConfig {
+  frequency: RecurrenceFrequency;
+  interval?: number; // Every N days/weeks/months/years (default: 1)
+  count?: number; // Number of occurrences
+  until?: string; // End date in YYYY-MM-DD format
+  byDay?: string[]; // For weekly: ['MO', 'WE', 'FR']
+  byMonthDay?: number[]; // For monthly: [1, 15] (1st and 15th)
+}
+
+/**
  * Booking parameters
  */
 export interface BookingParams {
@@ -18,10 +39,29 @@ export interface BookingParams {
   start: string; // ISO 8601 datetime
   end: string; // ISO 8601 datetime
   attendeeEmail?: string; // Optional attendee email
+  attendeeEmails?: string[]; // Multiple attendees
   callerName?: string; // Caller's name for description
   callerPhone?: string; // Caller's phone for description
   description?: string; // Additional description
   timeZone: string; // IANA timezone (e.g., "America/New_York")
+  recurrence?: RecurrenceConfig; // For recurring events
+  location?: string; // Event location
+  sendNotifications?: boolean; // Send email notifications (default: true)
+}
+
+/**
+ * Event update parameters
+ */
+export interface UpdateEventParams {
+  eventId: string;
+  summary?: string;
+  start?: string;
+  end?: string;
+  description?: string;
+  location?: string;
+  attendeeEmails?: string[];
+  timeZone?: string;
+  sendNotifications?: boolean;
 }
 
 /**
@@ -34,12 +74,280 @@ export interface BookedEvent {
   end: string;
   htmlLink: string; // Link to view event in Google Calendar
   timeZone: string;
+  recurrence?: string[]; // Recurrence rules if recurring
+  location?: string;
+  attendees?: string[];
 }
+
+/**
+ * Calendar event for querying
+ */
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  start: string;
+  end: string;
+  description?: string;
+  location?: string;
+  htmlLink?: string;
+  attendees?: { email: string; responseStatus?: string }[];
+  recurrence?: string[];
+  recurringEventId?: string; // If this is an instance of a recurring event
+  status: 'confirmed' | 'tentative' | 'cancelled';
+}
+
+/**
+ * Calendar sharing configuration
+ */
+export interface CalendarShareConfig {
+  email: string;
+  role: 'reader' | 'writer' | 'owner' | 'freeBusyReader';
+  sendNotification?: boolean;
+}
+
+/**
+ * Calendar error types for specific error handling
+ */
+export enum CalendarErrorType {
+  AUTHENTICATION_EXPIRED = 'AUTHENTICATION_EXPIRED',
+  CALENDAR_NOT_FOUND = 'CALENDAR_NOT_FOUND',
+  EVENT_NOT_FOUND = 'EVENT_NOT_FOUND',
+  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  RATE_LIMITED = 'RATE_LIMITED',
+  CONFLICT = 'CONFLICT',
+  INVALID_INPUT = 'INVALID_INPUT',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  UNKNOWN = 'UNKNOWN',
+}
+
+/**
+ * Custom error class for calendar operations
+ */
+export class CalendarError extends Error {
+  constructor(
+    message: string,
+    public readonly type: CalendarErrorType,
+    public readonly originalError?: Error
+  ) {
+    super(message);
+    this.name = 'CalendarError';
+  }
+
+  /**
+   * Check if error requires user to reconnect Google account
+   */
+  get requiresReconnect(): boolean {
+    return this.type === CalendarErrorType.AUTHENTICATION_EXPIRED;
+  }
+
+  /**
+   * Check if error is retryable
+   */
+  get isRetryable(): boolean {
+    return [
+      CalendarErrorType.RATE_LIMITED,
+      CalendarErrorType.NETWORK_ERROR,
+    ].includes(this.type);
+  }
+}
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
 // Business hours configuration
 const DEFAULT_BUSINESS_START_HOUR = 9; // 9 AM
 const DEFAULT_BUSINESS_END_HOUR = 17; // 5 PM
 const DEFAULT_APPOINTMENT_DURATION_MINUTES = 30;
+
+// ============================================================================
+// ERROR HANDLING HELPERS
+// ============================================================================
+
+/**
+ * Classify Google API errors into our error types
+ */
+function classifyGoogleError(error: unknown): CalendarErrorType {
+  if (!(error instanceof Error)) return CalendarErrorType.UNKNOWN;
+
+  const message = error.message.toLowerCase();
+  const anyError = error as any;
+  const statusCode = anyError?.response?.status || anyError?.code;
+
+  // Authentication errors
+  if (
+    message.includes('invalid_grant') ||
+    message.includes('token has been revoked') ||
+    message.includes('token has been expired') ||
+    message.includes('invalid credentials') ||
+    statusCode === 401
+  ) {
+    return CalendarErrorType.AUTHENTICATION_EXPIRED;
+  }
+
+  // Not found errors
+  if (message.includes('not found') || statusCode === 404) {
+    if (message.includes('calendar')) return CalendarErrorType.CALENDAR_NOT_FOUND;
+    if (message.includes('event')) return CalendarErrorType.EVENT_NOT_FOUND;
+    return CalendarErrorType.EVENT_NOT_FOUND;
+  }
+
+  // Permission errors
+  if (
+    message.includes('forbidden') ||
+    message.includes('permission') ||
+    message.includes('access denied') ||
+    statusCode === 403
+  ) {
+    return CalendarErrorType.PERMISSION_DENIED;
+  }
+
+  // Rate limiting
+  if (
+    message.includes('rate limit') ||
+    message.includes('quota') ||
+    statusCode === 429
+  ) {
+    return CalendarErrorType.RATE_LIMITED;
+  }
+
+  // Conflict (e.g., double booking)
+  if (message.includes('conflict') || statusCode === 409) {
+    return CalendarErrorType.CONFLICT;
+  }
+
+  // Invalid input
+  if (
+    message.includes('invalid') ||
+    message.includes('bad request') ||
+    statusCode === 400
+  ) {
+    return CalendarErrorType.INVALID_INPUT;
+  }
+
+  // Network errors
+  if (
+    message.includes('network') ||
+    message.includes('econnrefused') ||
+    message.includes('timeout')
+  ) {
+    return CalendarErrorType.NETWORK_ERROR;
+  }
+
+  return CalendarErrorType.UNKNOWN;
+}
+
+/**
+ * Wrap Google API errors in CalendarError for consistent handling
+ */
+function wrapError(error: unknown, defaultMessage: string): CalendarError {
+  const originalError = error instanceof Error ? error : new Error(String(error));
+  const errorType = classifyGoogleError(error);
+  return new CalendarError(
+    originalError.message || defaultMessage,
+    errorType,
+    originalError
+  );
+}
+
+// ============================================================================
+// RECURRENCE HELPERS
+// ============================================================================
+
+/**
+ * Build RFC 5545 RRULE string from RecurrenceConfig
+ */
+export function buildRecurrenceRule(config: RecurrenceConfig): string {
+  const parts: string[] = [`FREQ=${config.frequency}`];
+
+  if (config.interval && config.interval > 1) {
+    parts.push(`INTERVAL=${config.interval}`);
+  }
+
+  if (config.count) {
+    parts.push(`COUNT=${config.count}`);
+  } else if (config.until) {
+    // Convert YYYY-MM-DD to YYYYMMDD
+    const untilDate = config.until.replace(/-/g, '');
+    parts.push(`UNTIL=${untilDate}T235959Z`);
+  }
+
+  if (config.byDay && config.byDay.length > 0) {
+    parts.push(`BYDAY=${config.byDay.join(',')}`);
+  }
+
+  if (config.byMonthDay && config.byMonthDay.length > 0) {
+    parts.push(`BYMONTHDAY=${config.byMonthDay.join(',')}`);
+  }
+
+  return `RRULE:${parts.join(';')}`;
+}
+
+/**
+ * Parse human-readable recurrence to RecurrenceConfig
+ * Supports: "daily", "weekly", "monthly", "yearly", "every weekday",
+ * "every Monday", "every 2 weeks", etc.
+ */
+export function parseRecurrenceInput(input: string): RecurrenceConfig | null {
+  const normalized = input.toLowerCase().trim();
+
+  // Simple frequencies
+  if (normalized === 'daily' || normalized === 'täglich') {
+    return { frequency: 'DAILY' };
+  }
+  if (normalized === 'weekly' || normalized === 'wöchentlich') {
+    return { frequency: 'WEEKLY' };
+  }
+  if (normalized === 'monthly' || normalized === 'monatlich') {
+    return { frequency: 'MONTHLY' };
+  }
+  if (normalized === 'yearly' || normalized === 'jährlich') {
+    return { frequency: 'YEARLY' };
+  }
+
+  // Every weekday
+  if (normalized === 'every weekday' || normalized === 'wochentags' || normalized === 'werktags') {
+    return { frequency: 'WEEKLY', byDay: ['MO', 'TU', 'WE', 'TH', 'FR'] };
+  }
+
+  // Specific day patterns
+  const dayMap: Record<string, string> = {
+    'monday': 'MO', 'montag': 'MO',
+    'tuesday': 'TU', 'dienstag': 'TU',
+    'wednesday': 'WE', 'mittwoch': 'WE',
+    'thursday': 'TH', 'donnerstag': 'TH',
+    'friday': 'FR', 'freitag': 'FR',
+    'saturday': 'SA', 'samstag': 'SA',
+    'sunday': 'SU', 'sonntag': 'SU',
+  };
+
+  for (const [dayName, dayCode] of Object.entries(dayMap)) {
+    if (normalized.includes(dayName)) {
+      return { frequency: 'WEEKLY', byDay: [dayCode] };
+    }
+  }
+
+  // "every N weeks/days/months" pattern
+  const intervalMatch = normalized.match(/every\s+(\d+)\s+(day|week|month|year)s?/i) ||
+                       normalized.match(/alle\s+(\d+)\s+(tag|woche|monat|jahr)e?n?/i);
+  if (intervalMatch) {
+    const interval = parseInt(intervalMatch[1], 10);
+    const unit = intervalMatch[2].toLowerCase();
+    const freqMap: Record<string, RecurrenceFrequency> = {
+      'day': 'DAILY', 'tag': 'DAILY',
+      'week': 'WEEKLY', 'woche': 'WEEKLY',
+      'month': 'MONTHLY', 'monat': 'MONTHLY',
+      'year': 'YEARLY', 'jahr': 'YEARLY',
+    };
+    return { frequency: freqMap[unit] || 'WEEKLY', interval };
+  }
+
+  return null;
+}
+
+// ============================================================================
+// DATE PARSING FUNCTIONS
+// ============================================================================
 
 /**
  * Parse a date input that can be either a relative term (morgen, heute, übermorgen)
@@ -289,8 +597,159 @@ export async function getAvailableSlots(
     return availableSlots;
   } catch (error) {
     console.error('Error fetching calendar availability:', error);
-    throw new Error('Failed to check calendar availability');
+    throw wrapError(error, 'Failed to check calendar availability');
   }
+}
+
+/**
+ * Check if a specific time slot is available
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param startTime - Start time to check (ISO datetime)
+ * @param endTime - End time to check (ISO datetime)
+ * @param timeZone - IANA timezone
+ * @returns true if the slot is available, false if busy
+ */
+export async function isSlotAvailable(
+  oauth2Client: OAuth2Client,
+  startTime: string,
+  endTime: string,
+  timeZone: string = 'America/New_York'
+): Promise<boolean> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    const freebusyResponse = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: startTime,
+        timeMax: endTime,
+        timeZone,
+        items: [{ id: 'primary' }],
+      },
+    });
+
+    const busyPeriods = freebusyResponse.data.calendars?.primary?.busy || [];
+    return busyPeriods.length === 0;
+  } catch (error) {
+    console.error('Error checking slot availability:', error);
+    throw wrapError(error, 'Failed to check slot availability');
+  }
+}
+
+/**
+ * Get busy periods within a date range
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param startDate - Start date
+ * @param endDate - End date
+ * @param timeZone - IANA timezone
+ * @returns Array of busy periods
+ */
+export async function getBusyPeriods(
+  oauth2Client: OAuth2Client,
+  startDate: Date,
+  endDate: Date,
+  timeZone: string = 'America/New_York'
+): Promise<Array<{ start: string; end: string }>> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    const freebusyResponse = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: startDate.toISOString(),
+        timeMax: endDate.toISOString(),
+        timeZone,
+        items: [{ id: 'primary' }],
+      },
+    });
+
+    const busyPeriods = freebusyResponse.data.calendars?.primary?.busy || [];
+    return busyPeriods.map(period => ({
+      start: period.start!,
+      end: period.end!,
+    }));
+  } catch (error) {
+    console.error('Error getting busy periods:', error);
+    throw wrapError(error, 'Failed to get busy periods');
+  }
+}
+
+/**
+ * Get available slots across multiple days
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param startDate - First date to check
+ * @param numDays - Number of days to check
+ * @param timeZone - IANA timezone
+ * @param durationMinutes - Appointment duration
+ * @returns Map of date strings to available slots
+ */
+export async function getAvailableSlotsMultiDay(
+  oauth2Client: OAuth2Client,
+  startDate: Date,
+  numDays: number,
+  timeZone: string = 'America/New_York',
+  durationMinutes: number = DEFAULT_APPOINTMENT_DURATION_MINUTES
+): Promise<Map<string, TimeSlot[]>> {
+  const result = new Map<string, TimeSlot[]>();
+
+  const promises: Promise<void>[] = [];
+  for (let i = 0; i < numDays; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+
+    promises.push(
+      getAvailableSlots(oauth2Client, date, timeZone, durationMinutes)
+        .then(slots => {
+          result.set(dateStr, slots);
+        })
+        .catch(error => {
+          console.error(`Error getting slots for ${dateStr}:`, error);
+          result.set(dateStr, []); // Empty on error
+        })
+    );
+  }
+
+  await Promise.all(promises);
+  return result;
+}
+
+/**
+ * Find the next available slot after a given time
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param afterTime - Start searching after this time
+ * @param timeZone - IANA timezone
+ * @param durationMinutes - Appointment duration
+ * @param maxDaysToSearch - Maximum days to search ahead
+ * @returns The next available slot or null if none found
+ */
+export async function findNextAvailableSlot(
+  oauth2Client: OAuth2Client,
+  afterTime: Date = new Date(),
+  timeZone: string = 'America/New_York',
+  durationMinutes: number = DEFAULT_APPOINTMENT_DURATION_MINUTES,
+  maxDaysToSearch: number = 14
+): Promise<TimeSlot | null> {
+  let currentDate = new Date(afterTime);
+
+  for (let i = 0; i < maxDaysToSearch; i++) {
+    const slots = await getAvailableSlots(oauth2Client, currentDate, timeZone, durationMinutes);
+
+    // Filter slots that are after the requested time
+    const validSlots = slots.filter(slot => new Date(slot.start) > afterTime);
+
+    if (validSlots.length > 0) {
+      return validSlots[0];
+    }
+
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+    currentDate.setHours(DEFAULT_BUSINESS_START_HOUR, 0, 0, 0);
+  }
+
+  return null;
 }
 
 /**
@@ -317,7 +776,7 @@ export async function bookAppointment(
     description += callerSection;
   }
 
-  const eventData: any = {
+  const eventData: calendar_v3.Schema$Event = {
     summary: params.summary,
     description: description.trim(),
     start: {
@@ -330,17 +789,40 @@ export async function bookAppointment(
     },
   };
 
-  // Add attendee if email provided
+  // Add location if provided
+  if (params.location) {
+    eventData.location = params.location;
+  }
+
+  // Add attendees - support both single email and multiple emails
+  const attendees: calendar_v3.Schema$EventAttendee[] = [];
   if (params.attendeeEmail) {
-    eventData.attendees = [{ email: params.attendeeEmail }];
+    attendees.push({ email: params.attendeeEmail });
+  }
+  if (params.attendeeEmails) {
+    for (const email of params.attendeeEmails) {
+      if (!attendees.find(a => a.email === email)) {
+        attendees.push({ email });
+      }
+    }
+  }
+  if (attendees.length > 0) {
+    eventData.attendees = attendees;
+  }
+
+  // Add recurrence rule if provided
+  if (params.recurrence) {
+    eventData.recurrence = [buildRecurrenceRule(params.recurrence)];
   }
 
   try {
+    const sendUpdates = params.sendNotifications === false ? 'none' :
+                        (attendees.length > 0 ? 'all' : 'none');
+
     const response = await calendar.events.insert({
       calendarId: 'primary',
       requestBody: eventData,
-      // Send email notifications to attendees (if any)
-      sendUpdates: params.attendeeEmail ? 'all' : 'none',
+      sendUpdates,
     });
 
     const event = response.data;
@@ -352,12 +834,449 @@ export async function bookAppointment(
       end: event.end?.dateTime || params.end,
       htmlLink: event.htmlLink || '',
       timeZone: params.timeZone,
+      recurrence: event.recurrence || undefined,
+      location: event.location || undefined,
+      attendees: event.attendees?.map(a => a.email!).filter(Boolean),
     };
   } catch (error) {
     console.error('Error booking appointment:', error);
-    throw new Error('Failed to book appointment');
+    throw wrapError(error, 'Failed to book appointment');
   }
 }
+
+// ============================================================================
+// EVENT MODIFICATION FUNCTIONS
+// ============================================================================
+
+/**
+ * Update an existing calendar event
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param params - Update parameters
+ * @returns Updated event details
+ */
+export async function updateEvent(
+  oauth2Client: OAuth2Client,
+  params: UpdateEventParams
+): Promise<BookedEvent> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    // First, get the existing event
+    const existingResponse = await calendar.events.get({
+      calendarId: 'primary',
+      eventId: params.eventId,
+    });
+
+    const existingEvent = existingResponse.data;
+
+    // Build updated event data
+    const eventData: calendar_v3.Schema$Event = {
+      summary: params.summary ?? existingEvent.summary,
+      description: params.description ?? existingEvent.description,
+      location: params.location ?? existingEvent.location,
+      start: params.start ? {
+        dateTime: params.start,
+        timeZone: params.timeZone || existingEvent.start?.timeZone || 'UTC',
+      } : existingEvent.start,
+      end: params.end ? {
+        dateTime: params.end,
+        timeZone: params.timeZone || existingEvent.end?.timeZone || 'UTC',
+      } : existingEvent.end,
+    };
+
+    // Update attendees if provided
+    if (params.attendeeEmails !== undefined) {
+      eventData.attendees = params.attendeeEmails.map(email => ({ email }));
+    }
+
+    const sendUpdates = params.sendNotifications === false ? 'none' : 'all';
+
+    const response = await calendar.events.update({
+      calendarId: 'primary',
+      eventId: params.eventId,
+      requestBody: eventData,
+      sendUpdates,
+    });
+
+    const event = response.data;
+    const timeZone = params.timeZone || existingEvent.start?.timeZone || 'UTC';
+
+    return {
+      id: event.id!,
+      summary: event.summary || '',
+      start: event.start?.dateTime || event.start?.date || '',
+      end: event.end?.dateTime || event.end?.date || '',
+      htmlLink: event.htmlLink || '',
+      timeZone,
+      location: event.location || undefined,
+      attendees: event.attendees?.map(a => a.email!).filter(Boolean),
+    };
+  } catch (error) {
+    console.error('Error updating event:', error);
+    throw wrapError(error, 'Failed to update event');
+  }
+}
+
+/**
+ * Reschedule an event to a new date/time
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param eventId - Event ID to reschedule
+ * @param newStart - New start datetime
+ * @param newEnd - New end datetime
+ * @param timeZone - IANA timezone
+ * @param sendNotifications - Whether to notify attendees
+ * @returns Updated event details
+ */
+export async function rescheduleEvent(
+  oauth2Client: OAuth2Client,
+  eventId: string,
+  newStart: string,
+  newEnd: string,
+  timeZone: string,
+  sendNotifications: boolean = true
+): Promise<BookedEvent> {
+  return updateEvent(oauth2Client, {
+    eventId,
+    start: newStart,
+    end: newEnd,
+    timeZone,
+    sendNotifications,
+  });
+}
+
+/**
+ * Delete a calendar event
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param eventId - Event ID to delete
+ * @param sendNotifications - Whether to notify attendees about cancellation
+ */
+export async function deleteEvent(
+  oauth2Client: OAuth2Client,
+  eventId: string,
+  sendNotifications: boolean = true
+): Promise<void> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId,
+      sendUpdates: sendNotifications ? 'all' : 'none',
+    });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    throw wrapError(error, 'Failed to delete event');
+  }
+}
+
+/**
+ * Cancel a specific instance of a recurring event
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param recurringEventId - The recurring event ID
+ * @param instanceDate - The date of the instance to cancel (YYYY-MM-DD)
+ */
+export async function cancelRecurringInstance(
+  oauth2Client: OAuth2Client,
+  recurringEventId: string,
+  instanceDate: string
+): Promise<void> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    // Get the specific instance
+    const instancesResponse = await calendar.events.instances({
+      calendarId: 'primary',
+      eventId: recurringEventId,
+      timeMin: `${instanceDate}T00:00:00Z`,
+      timeMax: `${instanceDate}T23:59:59Z`,
+      maxResults: 1,
+    });
+
+    const instances = instancesResponse.data.items || [];
+    if (instances.length === 0) {
+      throw new CalendarError(
+        'No event instance found on the specified date',
+        CalendarErrorType.EVENT_NOT_FOUND
+      );
+    }
+
+    // Delete the specific instance
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: instances[0].id!,
+      sendUpdates: 'all',
+    });
+  } catch (error) {
+    if (error instanceof CalendarError) throw error;
+    console.error('Error canceling recurring instance:', error);
+    throw wrapError(error, 'Failed to cancel recurring instance');
+  }
+}
+
+// ============================================================================
+// EVENT QUERYING FUNCTIONS
+// ============================================================================
+
+/**
+ * Get an event by ID
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param eventId - Event ID to retrieve
+ * @returns Event details or null if not found
+ */
+export async function getEvent(
+  oauth2Client: OAuth2Client,
+  eventId: string
+): Promise<CalendarEvent | null> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    const response = await calendar.events.get({
+      calendarId: 'primary',
+      eventId,
+    });
+
+    return mapEventToCalendarEvent(response.data);
+  } catch (error) {
+    const errorType = classifyGoogleError(error);
+    if (errorType === CalendarErrorType.EVENT_NOT_FOUND) {
+      return null;
+    }
+    console.error('Error getting event:', error);
+    throw wrapError(error, 'Failed to get event');
+  }
+}
+
+/**
+ * List events within a date range
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param startDate - Start date (YYYY-MM-DD or ISO datetime)
+ * @param endDate - End date (YYYY-MM-DD or ISO datetime)
+ * @param options - Additional options
+ * @returns Array of events
+ */
+export async function listEvents(
+  oauth2Client: OAuth2Client,
+  startDate: string,
+  endDate: string,
+  options: {
+    maxResults?: number;
+    searchQuery?: string;
+    showDeleted?: boolean;
+    singleEvents?: boolean; // Expand recurring events
+  } = {}
+): Promise<CalendarEvent[]> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    // Ensure dates are in ISO format
+    const timeMin = startDate.includes('T') ? startDate : `${startDate}T00:00:00Z`;
+    const timeMax = endDate.includes('T') ? endDate : `${endDate}T23:59:59Z`;
+
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin,
+      timeMax,
+      maxResults: options.maxResults || 250,
+      singleEvents: options.singleEvents ?? true,
+      orderBy: 'startTime',
+      showDeleted: options.showDeleted || false,
+      q: options.searchQuery,
+    });
+
+    return (response.data.items || []).map(mapEventToCalendarEvent);
+  } catch (error) {
+    console.error('Error listing events:', error);
+    throw wrapError(error, 'Failed to list events');
+  }
+}
+
+/**
+ * Search for events by query string
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param query - Search query (searches in summary, description, location, attendees)
+ * @param options - Search options
+ * @returns Array of matching events
+ */
+export async function searchEvents(
+  oauth2Client: OAuth2Client,
+  query: string,
+  options: {
+    maxResults?: number;
+    daysAhead?: number;
+    daysBehind?: number;
+  } = {}
+): Promise<CalendarEvent[]> {
+  const now = new Date();
+  const daysBehind = options.daysBehind ?? 30;
+  const daysAhead = options.daysAhead ?? 90;
+
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - daysBehind);
+
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() + daysAhead);
+
+  return listEvents(oauth2Client, startDate.toISOString(), endDate.toISOString(), {
+    maxResults: options.maxResults || 50,
+    searchQuery: query,
+    singleEvents: true,
+  });
+}
+
+/**
+ * Find events by attendee email
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param attendeeEmail - Email to search for
+ * @param options - Search options
+ * @returns Events where the email is an attendee
+ */
+export async function findEventsByAttendee(
+  oauth2Client: OAuth2Client,
+  attendeeEmail: string,
+  options: {
+    maxResults?: number;
+    daysAhead?: number;
+  } = {}
+): Promise<CalendarEvent[]> {
+  const events = await searchEvents(oauth2Client, attendeeEmail, options);
+
+  // Filter to only events where the email is actually an attendee
+  return events.filter(event =>
+    event.attendees?.some(a =>
+      a.email.toLowerCase() === attendeeEmail.toLowerCase()
+    )
+  );
+}
+
+/**
+ * Map Google Calendar event to our CalendarEvent interface
+ */
+function mapEventToCalendarEvent(event: calendar_v3.Schema$Event): CalendarEvent {
+  return {
+    id: event.id!,
+    summary: event.summary || '',
+    start: event.start?.dateTime || event.start?.date || '',
+    end: event.end?.dateTime || event.end?.date || '',
+    description: event.description || undefined,
+    location: event.location || undefined,
+    htmlLink: event.htmlLink || undefined,
+    attendees: event.attendees?.map(a => ({
+      email: a.email!,
+      responseStatus: a.responseStatus || undefined,
+    })),
+    recurrence: event.recurrence || undefined,
+    recurringEventId: event.recurringEventId || undefined,
+    status: (event.status as 'confirmed' | 'tentative' | 'cancelled') || 'confirmed',
+  };
+}
+
+// ============================================================================
+// CALENDAR SHARING FUNCTIONS
+// ============================================================================
+
+/**
+ * Share a calendar with another user
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param config - Sharing configuration
+ * @param calendarId - Calendar ID to share (defaults to 'primary')
+ */
+export async function shareCalendar(
+  oauth2Client: OAuth2Client,
+  config: CalendarShareConfig,
+  calendarId: string = 'primary'
+): Promise<void> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    await calendar.acl.insert({
+      calendarId,
+      sendNotifications: config.sendNotification ?? true,
+      requestBody: {
+        role: config.role,
+        scope: {
+          type: 'user',
+          value: config.email,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error sharing calendar:', error);
+    throw wrapError(error, 'Failed to share calendar');
+  }
+}
+
+/**
+ * Remove calendar sharing for a user
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param email - Email of user to remove access for
+ * @param calendarId - Calendar ID (defaults to 'primary')
+ */
+export async function unshareCalendar(
+  oauth2Client: OAuth2Client,
+  email: string,
+  calendarId: string = 'primary'
+): Promise<void> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    // List ACL rules to find the one for this email
+    const aclList = await calendar.acl.list({ calendarId });
+    const rule = aclList.data.items?.find(
+      item => item.scope?.type === 'user' && item.scope?.value === email
+    );
+
+    if (rule?.id) {
+      await calendar.acl.delete({
+        calendarId,
+        ruleId: rule.id,
+      });
+    }
+  } catch (error) {
+    console.error('Error unsharing calendar:', error);
+    throw wrapError(error, 'Failed to unshare calendar');
+  }
+}
+
+/**
+ * List calendar sharing rules
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param calendarId - Calendar ID (defaults to 'primary')
+ * @returns List of sharing rules
+ */
+export async function listCalendarSharing(
+  oauth2Client: OAuth2Client,
+  calendarId: string = 'primary'
+): Promise<Array<{ email: string; role: string }>> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  try {
+    const response = await calendar.acl.list({ calendarId });
+    return (response.data.items || [])
+      .filter(item => item.scope?.type === 'user')
+      .map(item => ({
+        email: item.scope?.value || '',
+        role: item.role || '',
+      }));
+  } catch (error) {
+    console.error('Error listing calendar sharing:', error);
+    throw wrapError(error, 'Failed to list calendar sharing');
+  }
+}
+
+// ============================================================================
+// AVAILABILITY FUNCTIONS
+// ============================================================================
 
 /**
  * Format time for voice-friendly output

@@ -10,7 +10,21 @@ import {
 } from '@/lib/calls';
 import { CallStatus } from '@/generated/prisma/client';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
-import { getAvailableSlots, bookAppointment, parseDateTime, parseDateInput } from '@/lib/google/calendar';
+import {
+  getAvailableSlots,
+  bookAppointment,
+  parseDateTime,
+  parseDateInput,
+  parseRecurrenceInput,
+  rescheduleEvent,
+  deleteEvent,
+  cancelRecurringInstance,
+  listEvents,
+  searchEvents,
+  findNextAvailableSlot,
+  CalendarError,
+  CalendarErrorType,
+} from '@/lib/google/calendar';
 import { prisma } from '@/lib/prisma';
 import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
@@ -450,6 +464,9 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 const endMin = totalMinutes % 60;
                 const end = `${datePart}T${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
 
+                // Parse recurrence if provided
+                const recurrence = args.recurrence ? parseRecurrenceInput(args.recurrence) : undefined;
+
                 const event = await bookAppointment(oauth2Client, {
                   summary: args.summary || `Termin mit ${args.callerName}`,
                   start,
@@ -457,15 +474,297 @@ async function handleToolCalls(message: WebhookToolCalls) {
                   timeZone,
                   attendeeEmail: args.callerEmail,
                   description: `Per Sprachassistent gebucht.\n\nAnrufer: ${args.callerName}${args.callerPhone ? `\nTelefon: ${args.callerPhone}` : ''}${args.callerEmail ? `\nE-Mail: ${args.callerEmail}` : ''}`,
+                  recurrence: recurrence || undefined,
+                  location: args.location,
                 });
 
                 // Format date in German for confirmation (using corrected date)
                 const bookingDate = new Date(correctedDateStr);
                 const formattedDate = formatDateGerman(bookingDate);
-                result = `Ihr Termin am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
+
+                if (recurrence) {
+                  const recurrenceText = args.recurrence.toLowerCase();
+                  result = `Ihr wiederkehrender Termin (${recurrenceText}) am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
+                } else {
+                  result = `Ihr Termin am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
+                }
               } catch (error) {
                 console.error('Calendar booking error:', error);
-                result = 'Den Termin konnte ich leider nicht eintragen. Dieser Zeitpunkt ist möglicherweise bereits belegt. Möchten Sie eine andere Zeit versuchen?';
+                if (error instanceof CalendarError && error.type === CalendarErrorType.AUTHENTICATION_EXPIRED) {
+                  result = 'Die Kalenderverbindung muss erneuert werden. Bitte versuchen Sie es später noch einmal.';
+                } else {
+                  result = 'Den Termin konnte ich leider nicht eintragen. Dieser Zeitpunkt ist möglicherweise bereits belegt. Möchten Sie eine andere Zeit versuchen?';
+                }
+              }
+              break;
+            }
+
+            case 'reschedule_appointment': {
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
+              });
+
+              if (!agentWithUser?.user) {
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet.';
+                break;
+              }
+
+              try {
+                const timeZone = args.timeZone || 'Europe/Berlin';
+                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+
+                // If no eventId, try to find by caller name
+                let eventId = args.eventId;
+                if (!eventId && args.callerName) {
+                  const events = await searchEvents(oauth2Client, args.callerName, { maxResults: 5, daysAhead: 30 });
+                  if (events.length > 0) {
+                    eventId = events[0].id;
+                  }
+                }
+
+                if (!eventId) {
+                  result = 'Ich konnte keinen Termin unter diesem Namen finden. Könnten Sie mir mehr Details geben?';
+                  break;
+                }
+
+                const correctedDateStr = parseDateInput(args.newDate);
+                const start = parseDateTime(correctedDateStr, args.newTime, timeZone);
+
+                // Calculate end time
+                const [datePart, timePart] = start.split('T');
+                const [hh, mm] = timePart.split(':').map(Number);
+                let totalMinutes = hh * 60 + mm + appointmentDuration;
+                const endHour = Math.floor(totalMinutes / 60) % 24;
+                const endMin = totalMinutes % 60;
+                const end = `${datePart}T${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
+
+                await rescheduleEvent(oauth2Client, eventId, start, end, timeZone);
+
+                const newDate = new Date(correctedDateStr);
+                const formattedDate = formatDateGerman(newDate);
+                result = `Ihr Termin wurde auf ${formattedDate} um ${args.newTime} verschoben.`;
+              } catch (error) {
+                console.error('Calendar reschedule error:', error);
+                if (error instanceof CalendarError) {
+                  if (error.type === CalendarErrorType.EVENT_NOT_FOUND) {
+                    result = 'Ich konnte diesen Termin nicht finden. Wurde er möglicherweise bereits storniert?';
+                  } else if (error.type === CalendarErrorType.AUTHENTICATION_EXPIRED) {
+                    result = 'Die Kalenderverbindung muss erneuert werden. Bitte versuchen Sie es später noch einmal.';
+                  } else {
+                    result = 'Das Verschieben des Termins ist leider fehlgeschlagen. Möchten Sie es noch einmal versuchen?';
+                  }
+                } else {
+                  result = 'Das Verschieben des Termins ist leider fehlgeschlagen. Möchten Sie es noch einmal versuchen?';
+                }
+              }
+              break;
+            }
+
+            case 'cancel_appointment': {
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
+              });
+
+              if (!agentWithUser?.user) {
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet.';
+                break;
+              }
+
+              try {
+                // If no eventId, try to find by caller name
+                let eventId = args.eventId;
+                if (!eventId && args.callerName) {
+                  const events = await searchEvents(oauth2Client, args.callerName, { maxResults: 5, daysAhead: 30 });
+                  if (events.length > 0) {
+                    eventId = events[0].id;
+                  }
+                }
+
+                if (!eventId) {
+                  result = 'Ich konnte keinen Termin unter diesem Namen finden. Könnten Sie mir mehr Details geben?';
+                  break;
+                }
+
+                // Check if this is a recurring event and user wants to cancel only one instance
+                if (args.date && args.cancelAll !== 'ja') {
+                  await cancelRecurringInstance(oauth2Client, eventId, args.date);
+                  result = 'Der Termin an diesem Datum wurde storniert.';
+                } else {
+                  await deleteEvent(oauth2Client, eventId);
+                  result = 'Der Termin wurde erfolgreich storniert. Alle Teilnehmer werden benachrichtigt.';
+                }
+              } catch (error) {
+                console.error('Calendar cancel error:', error);
+                if (error instanceof CalendarError) {
+                  if (error.type === CalendarErrorType.EVENT_NOT_FOUND) {
+                    result = 'Ich konnte diesen Termin nicht finden. Wurde er möglicherweise bereits storniert?';
+                  } else if (error.type === CalendarErrorType.AUTHENTICATION_EXPIRED) {
+                    result = 'Die Kalenderverbindung muss erneuert werden. Bitte versuchen Sie es später noch einmal.';
+                  } else {
+                    result = 'Das Stornieren des Termins ist leider fehlgeschlagen. Möchten Sie es noch einmal versuchen?';
+                  }
+                } else {
+                  result = 'Das Stornieren des Termins ist leider fehlgeschlagen. Möchten Sie es noch einmal versuchen?';
+                }
+              }
+              break;
+            }
+
+            case 'list_appointments': {
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
+              });
+
+              if (!agentWithUser?.user) {
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = 'Leider ist die Kalenderabfrage noch nicht eingerichtet.';
+                break;
+              }
+
+              try {
+                const startDateStr = parseDateInput(args.startDate);
+                let endDateStr = args.endDate ? parseDateInput(args.endDate) : startDateStr;
+
+                // If no end date, show appointments for the day
+                if (!args.endDate) {
+                  const endDate = new Date(startDateStr);
+                  endDate.setDate(endDate.getDate() + 1);
+                  endDateStr = endDate.toISOString().split('T')[0];
+                }
+
+                const events = await listEvents(oauth2Client, startDateStr, endDateStr, { maxResults: 10 });
+
+                if (events.length === 0) {
+                  const formattedDate = formatDateGerman(new Date(startDateStr));
+                  result = `Am ${formattedDate} sind keine Termine eingetragen.`;
+                } else {
+                  const eventList = events.slice(0, 5).map(e => {
+                    const startTime = new Date(e.start).toLocaleTimeString('de-DE', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: args.timeZone || 'Europe/Berlin',
+                    });
+                    return `${startTime} Uhr: ${e.summary}`;
+                  }).join('; ');
+
+                  if (events.length <= 5) {
+                    result = `Sie haben ${events.length} Termin${events.length > 1 ? 'e' : ''}: ${eventList}`;
+                  } else {
+                    result = `Sie haben ${events.length} Termine. Hier sind die ersten fünf: ${eventList}`;
+                  }
+                }
+              } catch (error) {
+                console.error('Calendar list error:', error);
+                result = 'Ich habe gerade Schwierigkeiten, die Termine abzurufen. Bitte versuchen Sie es noch einmal.';
+              }
+              break;
+            }
+
+            case 'search_appointments': {
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
+              });
+
+              if (!agentWithUser?.user) {
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = 'Leider ist die Kalenderabfrage noch nicht eingerichtet.';
+                break;
+              }
+
+              try {
+                const searchQuery = args.callerName || args.query;
+                const events = await searchEvents(oauth2Client, searchQuery, { maxResults: 5 });
+
+                if (events.length === 0) {
+                  result = `Ich konnte keine Termine für "${searchQuery}" finden.`;
+                } else {
+                  const firstEvent = events[0];
+                  const eventDate = new Date(firstEvent.start);
+                  const formattedDate = formatDateGerman(eventDate);
+                  const startTime = eventDate.toLocaleTimeString('de-DE', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: args.timeZone || 'Europe/Berlin',
+                  });
+
+                  if (events.length === 1) {
+                    result = `Ich habe einen Termin gefunden: ${firstEvent.summary} am ${formattedDate} um ${startTime} Uhr.`;
+                  } else {
+                    result = `Ich habe ${events.length} Termine gefunden. Der nächste ist ${firstEvent.summary} am ${formattedDate} um ${startTime} Uhr.`;
+                  }
+                }
+              } catch (error) {
+                console.error('Calendar search error:', error);
+                result = 'Ich habe gerade Schwierigkeiten, die Termine zu suchen. Bitte versuchen Sie es noch einmal.';
+              }
+              break;
+            }
+
+            case 'find_next_available': {
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
+              });
+
+              if (!agentWithUser?.user) {
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = 'Leider ist die Kalenderabfrage noch nicht eingerichtet.';
+                break;
+              }
+
+              try {
+                const timeZone = args.timeZone || 'Europe/Berlin';
+                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+
+                let afterDate = new Date();
+                if (args.afterDate) {
+                  const correctedDateStr = parseDateInput(args.afterDate);
+                  afterDate = new Date(correctedDateStr);
+                }
+
+                const nextSlot = await findNextAvailableSlot(oauth2Client, afterDate, timeZone, appointmentDuration);
+
+                if (!nextSlot) {
+                  result = 'In den nächsten zwei Wochen sind leider keine Termine verfügbar.';
+                } else {
+                  const slotDate = new Date(nextSlot.start);
+                  const formattedDate = formatDateGerman(slotDate);
+                  result = `Der nächste freie Termin ist am ${formattedDate} um ${nextSlot.displayTime}. Soll ich diesen für Sie buchen?`;
+                }
+              } catch (error) {
+                console.error('Find next available error:', error);
+                result = 'Ich habe gerade Schwierigkeiten, freie Termine zu finden. Bitte versuchen Sie es noch einmal.';
               }
               break;
             }
