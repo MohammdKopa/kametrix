@@ -569,3 +569,196 @@ The implementation is complete. Let me provide the summary:
 3. **Logging**: Token refresh events are logged with `[Google Auth]` prefix for debugging
 4. **Error Handling**: API routes now return `requiresReconnect: true` when Google auth fails permanently
 </summary>
+
+---
+
+## Follow-up Session
+
+I understand the issue. The migration was created but not properly applied because the migration folder already exists in the count (11 migrations), but Prisma says "No pending migrations to apply" - this suggests the migration might have been marked as applied without actually running, or there's a mismatch.
+
+Let me investigate and fix this:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && ls -la prisma/migrations/",
+  "description": "List all migration folders"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\prisma\\migrations\\20260104000001_add_google_token_cache\\migration.sql"
+}
+
+I see the issue. The migration file exists locally but on the server, Prisma is showing 11 migrations and says "No pending migrations to apply." This could mean:
+
+1. The server's `_prisma_migrations` table has more entries than what's in the code
+2. The migration was manually marked as applied
+3. There's a sync issue between the migration folder and the database
+
+The problem is likely that the migration date `20260104` (January 4, 2026) is in the future! The current date is January 4, 2026, but Prisma might have issues with future-dated migrations or the server database already has this migration recorded.
+
+Let me check the deploy script to understand the migration process better:
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/deploy.sh"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/docker-compose*.yml"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\docker-compose.prod.yml"
+}
+
+Now I understand the setup. The issue is that:
+
+1. The migration container uses `npx prisma migrate deploy` which runs pending migrations
+2. The server says "11 migrations found" and "No pending migrations to apply"
+
+This means either:
+1. The database already has a record of the `20260104000001_add_google_token_cache` migration in its `_prisma_migrations` table (perhaps from a previous failed/incomplete attempt)
+2. Or the columns already exist in the database
+
+The output shows "11 migrations found" but you only have 6 folders locally. This is suspicious. Let me check if maybe there are more migrations on the server that aren't in your local codebase.
+
+Based on the deploy output showing "11 migrations found" but locally I only see 6 migration folders, there's a mismatch. The server's `_prisma_migrations` table likely has entries for migrations that don't exist in the current codebase, OR the migration was already applied.
+
+To ensure migrations run properly, let me update the deploy script to add better migration logging and a way to force check/apply:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "cmd_migrate() {\n    check_env_file\n    load_env\n    log_info \"Running migrations...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate\n    log_success \"Migrations complete!\"\n}",
+  "new_string": "cmd_migrate() {\n    check_env_file\n    load_env\n    log_info \"Running migrations...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate\n    log_success \"Migrations complete!\"\n}\n\ncmd_migrate_status() {\n    check_env_file\n    load_env\n    log_info \"Checking migration status...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate npx prisma migrate status\n}"
+}
+
+Wait, I need to reconsider. The migrate container has a fixed command. Let me add a separate service for checking status and also add verbose output to the existing migrate command:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\docker-compose.prod.yml",
+  "old_string": "  # Migration runner - uses builder stage with full node_modules\n  migrate:\n    build:\n      context: .\n      dockerfile: Dockerfile\n      target: builder\n    container_name: kametrix-migrate\n    environment:\n      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}\n    depends_on:\n      - postgres\n    networks:\n      - kametrix-network\n    command: npx prisma migrate deploy\n    profiles:\n      - migrate",
+  "new_string": "  # Migration runner - uses builder stage with full node_modules\n  migrate:\n    build:\n      context: .\n      dockerfile: Dockerfile\n      target: builder\n    container_name: kametrix-migrate\n    environment:\n      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}\n    depends_on:\n      - postgres\n    networks:\n      - kametrix-network\n    command: sh -c \"echo '=== Migration Status Before ===' && npx prisma migrate status && echo '=== Applying Migrations ===' && npx prisma migrate deploy && echo '=== Migration Status After ===' && npx prisma migrate status\"\n    profiles:\n      - migrate"
+}
+
+Now let me also update the deploy script to remove the cmd_migrate_status since we're now incorporating status checks into the migration command itself:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "cmd_migrate() {\n    check_env_file\n    load_env\n    log_info \"Running migrations...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate\n    log_success \"Migrations complete!\"\n}\n\ncmd_migrate_status() {\n    check_env_file\n    load_env\n    log_info \"Checking migration status...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate npx prisma migrate status\n}",
+  "new_string": "cmd_migrate() {\n    check_env_file\n    load_env\n    log_info \"Running migrations (with status checks)...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate\n    log_success \"Migrations complete!\"\n}"
+}
+
+Now, regarding the actual problem - the output says "11 migrations found" but "No pending migrations to apply". This is likely because:
+
+1. There are 11 entries in the `_prisma_migrations` table on the server
+2. All 11 are marked as applied
+3. But the code only has 6 migrations
+
+This could happen if:
+- Old migrations were deleted from the codebase but still exist in the DB
+- The new migration `20260104000001_add_google_token_cache` was already somehow marked as applied
+
+To actually verify if the columns exist in the database, you can run this command on the server:
+
+```bash
+docker exec kametrix-db psql -U kametrix -d kametrix -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'User' AND column_name IN ('googleAccessToken', 'googleTokenExpiresAt');"
+```
+
+However, since you're telling me the migration didn't actually run, let me also add a debug command to check the database schema:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "cmd_clean() {\n    log_warn \"This will remove containers and images (data volumes preserved)\"\n    read -p \"Continue? (y/N) \" -n 1 -r\n    echo\n    if [[ $REPLY =~ ^[Yy]$ ]]; then\n        docker compose -f $COMPOSE_FILE down --rmi local\n        log_success \"Cleaned up\"\n    fi\n}",
+  "new_string": "cmd_clean() {\n    log_warn \"This will remove containers and images (data volumes preserved)\"\n    read -p \"Continue? (y/N) \" -n 1 -r\n    echo\n    if [[ $REPLY =~ ^[Yy]$ ]]; then\n        docker compose -f $COMPOSE_FILE down --rmi local\n        log_success \"Cleaned up\"\n    fi\n}\n\ncmd_db_check() {\n    check_env_file\n    load_env\n    log_info \"Checking database schema...\"\n\n    echo \"\"\n    echo \"=== User Table Google Columns ===\"\n    docker exec $DB_CONTAINER psql -U ${POSTGRES_USER:-kametrix} -d ${POSTGRES_DB:-kametrix} -c \\\n        \"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'User' AND column_name LIKE 'google%' ORDER BY column_name;\"\n\n    echo \"\"\n    echo \"=== Applied Migrations ===\"\n    docker exec $DB_CONTAINER psql -U ${POSTGRES_USER:-kametrix} -d ${POSTGRES_DB:-kametrix} -c \\\n        \"SELECT migration_name, finished_at FROM _prisma_migrations ORDER BY started_at;\"\n\n    echo \"\"\n}"
+}
+
+Now let's add the new command to the case statement:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "# Main\ncase \"${1:-deploy}\" in\n    setup)\n        cmd_setup\n        ;;\n    update)\n        cmd_update\n        ;;\n    deploy)\n        cmd_deploy\n        ;;\n    rollback)\n        cmd_rollback\n        ;;\n    status)\n        cmd_status\n        ;;\n    logs)\n        cmd_logs \"$2\"\n        ;;\n    migrate)\n        cmd_migrate\n        ;;\n    seed)\n        cmd_seed\n        ;;\n    restart)\n        cmd_restart\n        ;;\n    stop)\n        cmd_stop\n        ;;\n    clean)\n        cmd_clean\n        ;;\n    *)\n        echo \"Usage: $0 {setup|update|deploy|rollback|status|logs|migrate|seed|restart|stop|clean}\"\n        exit 1\n        ;;\nesac",
+  "new_string": "# Main\ncase \"${1:-deploy}\" in\n    setup)\n        cmd_setup\n        ;;\n    update)\n        cmd_update\n        ;;\n    deploy)\n        cmd_deploy\n        ;;\n    rollback)\n        cmd_rollback\n        ;;\n    status)\n        cmd_status\n        ;;\n    logs)\n        cmd_logs \"$2\"\n        ;;\n    migrate)\n        cmd_migrate\n        ;;\n    seed)\n        cmd_seed\n        ;;\n    restart)\n        cmd_restart\n        ;;\n    stop)\n        cmd_stop\n        ;;\n    clean)\n        cmd_clean\n        ;;\n    db-check)\n        cmd_db_check\n        ;;\n    *)\n        echo \"Usage: $0 {setup|update|deploy|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}\"\n        exit 1\n        ;;\nesac"
+}
+
+Now let's also update the header comments to document the new command:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "# =============================================================================\n# Kametrix Deployment Script\n# =============================================================================\n# Usage:\n#   ./deploy.sh              - Full deployment (pull, build, migrate, start)\n#   ./deploy.sh setup        - First-time setup (create .env, build, migrate, seed)\n#   ./deploy.sh update       - Quick update (pull, build, migrate, restart)\n#   ./deploy.sh rollback     - Rollback to previous image\n#   ./deploy.sh status       - Show container status\n#   ./deploy.sh logs         - Show app logs\n#   ./deploy.sh logs -f      - Follow app logs\n#   ./deploy.sh migrate      - Run database migrations only\n#   ./deploy.sh seed         - Run database seed only\n#   ./deploy.sh restart      - Restart containers without rebuild\n#   ./deploy.sh stop         - Stop all containers\n#   ./deploy.sh clean        - Remove containers and images (keeps data)\n# =============================================================================",
+  "new_string": "# =============================================================================\n# Kametrix Deployment Script\n# =============================================================================\n# Usage:\n#   ./deploy.sh              - Full deployment (pull, build, migrate, start)\n#   ./deploy.sh setup        - First-time setup (create .env, build, migrate, seed)\n#   ./deploy.sh update       - Quick update (pull, build, migrate, restart)\n#   ./deploy.sh rollback     - Rollback to previous image\n#   ./deploy.sh status       - Show container status\n#   ./deploy.sh logs         - Show app logs\n#   ./deploy.sh logs -f      - Follow app logs\n#   ./deploy.sh migrate      - Run database migrations only (with status)\n#   ./deploy.sh seed         - Run database seed only\n#   ./deploy.sh restart      - Restart containers without rebuild\n#   ./deploy.sh stop         - Stop all containers\n#   ./deploy.sh clean        - Remove containers and images (keeps data)\n#   ./deploy.sh db-check     - Check database schema and applied migrations\n# ============================================================================="
+}
+
+Now let's verify the changes work and test the build:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npm run build 2>&1 | tail -20",
+  "description": "Verify build still works",
+  "timeout": 180000
+}
+
+The build works. Now let me provide you with the commands you need to run on the server to diagnose and fix the issue:
+
+<summary>
+## Summary: Deploy Script Migration Improvements
+
+### Changes Implemented
+- **Enhanced migration command** to show migration status before and after applying migrations, making it easier to debug migration issues
+- **Added `db-check` command** to inspect the database schema and see all applied migrations
+- **Updated docker-compose.prod.yml** migrate service to include status checks
+
+### Files Modified
+- `deploy.sh` - Added `db-check` command and updated documentation
+- `docker-compose.prod.yml` - Enhanced migrate command to show status before/after
+
+### Verification Status
+- Build completes successfully
+- TypeScript compilation passes
+
+### How to Fix Your Migration Issue
+
+Run these commands on your server:
+
+1. **First, check the current database state:**
+```bash
+./deploy.sh db-check
+```
+
+This will show you:
+- What Google columns exist in the User table
+- All migrations recorded in `_prisma_migrations`
+
+2. **If `googleAccessToken` and `googleTokenExpiresAt` columns are MISSING, the migration needs to be applied manually:**
+```bash
+docker exec kametrix-db psql -U kametrix -d kametrix -c "
+ALTER TABLE \"User\" ADD COLUMN IF NOT EXISTS \"googleAccessToken\" TEXT;
+ALTER TABLE \"User\" ADD COLUMN IF NOT EXISTS \"googleTokenExpiresAt\" TIMESTAMP(3);
+"
+```
+
+3. **If the columns exist, the migration already ran successfully** (Prisma just didn't report it clearly)
+
+4. **To understand why "11 migrations" appeared:**
+   - The `_prisma_migrations` table on your server has 11 entries
+   - Your codebase only has 6 migration folders
+   - This mismatch is usually from old migrations that were deleted from code but still exist in the DB
+
+### Notes for Developer
+- The enhanced migrate command now shows `prisma migrate status` before and after deployment
+- Use `./deploy.sh db-check` anytime you want to verify the database schema matches expectations
+- The "No pending migrations" message means Prisma thinks all migrations are applied - use `db-check` to verify the actual columns exist
+</summary>

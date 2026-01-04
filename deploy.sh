@@ -10,11 +10,12 @@
 #   ./deploy.sh status       - Show container status
 #   ./deploy.sh logs         - Show app logs
 #   ./deploy.sh logs -f      - Follow app logs
-#   ./deploy.sh migrate      - Run database migrations only
+#   ./deploy.sh migrate      - Run database migrations only (with status)
 #   ./deploy.sh seed         - Run database seed only
 #   ./deploy.sh restart      - Restart containers without rebuild
 #   ./deploy.sh stop         - Stop all containers
 #   ./deploy.sh clean        - Remove containers and images (keeps data)
+#   ./deploy.sh db-check     - Check database schema and applied migrations
 # =============================================================================
 
 set -e
@@ -306,7 +307,7 @@ cmd_logs() {
 cmd_migrate() {
     check_env_file
     load_env
-    log_info "Running migrations..."
+    log_info "Running migrations (with status checks)..."
     docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate
     log_success "Migrations complete!"
 }
@@ -340,6 +341,24 @@ cmd_clean() {
         docker compose -f $COMPOSE_FILE down --rmi local
         log_success "Cleaned up"
     fi
+}
+
+cmd_db_check() {
+    check_env_file
+    load_env
+    log_info "Checking database schema..."
+
+    echo ""
+    echo "=== User Table Google Columns ==="
+    docker exec $DB_CONTAINER psql -U ${POSTGRES_USER:-kametrix} -d ${POSTGRES_DB:-kametrix} -c \
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'User' AND column_name LIKE 'google%' ORDER BY column_name;"
+
+    echo ""
+    echo "=== Applied Migrations ==="
+    docker exec $DB_CONTAINER psql -U ${POSTGRES_USER:-kametrix} -d ${POSTGRES_DB:-kametrix} -c \
+        "SELECT migration_name, finished_at FROM _prisma_migrations ORDER BY started_at;"
+
+    echo ""
 }
 
 # Main
@@ -377,8 +396,11 @@ case "${1:-deploy}" in
     clean)
         cmd_clean
         ;;
+    db-check)
+        cmd_db_check
+        ;;
     *)
-        echo "Usage: $0 {setup|update|deploy|rollback|status|logs|migrate|seed|restart|stop|clean}"
+        echo "Usage: $0 {setup|update|deploy|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}"
         exit 1
         ;;
 esac

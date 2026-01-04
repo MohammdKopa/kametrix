@@ -49,7 +49,7 @@ services:
       - postgres
     networks:
       - kametrix-network
-    command: npx prisma migrate deploy
+    command: sh -c "echo '=== Migration Status Before ===' && npx prisma migrate status && echo '=== Applying Migrations ===' && npx prisma migrate deploy && echo '=== Migration Status After ===' && npx prisma migrate status"
     profiles:
       - migrate
 
