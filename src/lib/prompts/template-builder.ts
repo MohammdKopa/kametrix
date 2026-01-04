@@ -212,32 +212,58 @@ function buildPoliciesSection(config: PromptConfig): PromptSection {
 }
 
 /**
- * Build calendar functions section
+ * Build calendar functions section with enhanced instructions
  */
 function buildCalendarSection(): PromptSection {
   return {
     id: SECTION_IDS.CALENDAR,
     title: 'Kalender-Funktionen',
     content: `VERFUEGBARE TOOLS:
-- check_availability: Pruefen Sie die Kalenderverfuegbarkeit fuer ein bestimmtes Datum
-- book_appointment: Buchen Sie einen Termin im Kalender
+- check_availability: Pruefen Sie die Kalenderverfuegbarkeit (unterstuetzt Tageszeit-Filter wie "morgens", "nachmittags")
+- check_conflicts: Pruefen Sie ob ein gewuenschter Zeitpunkt frei ist (vor dem Buchen verwenden)
+- book_appointment: Buchen Sie einen Termin (unterstuetzt mehrere Teilnehmer, wiederkehrende Termine)
+- reschedule_appointment: Verschieben Sie einen bestehenden Termin
+- cancel_appointment: Stornieren Sie einen Termin
+- list_appointments: Zeigen Sie Termine in einem Zeitraum an
+- search_appointments: Suchen Sie nach spezifischen Terminen
+- find_next_available: Finden Sie den naechsten freien Termin
 
 BUCHUNGSPROZESS:
-1. Immer zuerst die Verfuegbarkeit pruefen (check_availability)
-2. Freie Zeiten dem Anrufer nennen
-3. Alle erforderlichen Daten erfragen:
-   - Datum und Uhrzeit (erforderlich)
-   - Vollstaendiger Name (erforderlich)
-   - Telefonnummer (optional, aber empfohlen)
-   - E-Mail (optional)
-4. Details vor der Buchung zusammenfassen und bestaetigen
-5. Termin buchen (book_appointment)
-6. Buchungsbestaetigung geben
+1. Bei Terminwunsch: Zuerst Verfuegbarkeit pruefen (check_availability)
+2. Freie Zeiten dem Anrufer nennen und Praeferenz erfragen
+3. Folgende Daten sammeln:
+   - Datum und Uhrzeit (ERFORDERLICH)
+   - Vollstaendiger Name (ERFORDERLICH)
+   - Telefonnummer (empfohlen fuer Rueckruf)
+   - E-Mail-Adresse (fuer Kalendereinladung)
+   - Termingrund/Betreff (optional)
+4. Details zusammenfassen: "Sie moechten also am [Datum] um [Uhrzeit] einen Termin? Ist das korrekt?"
+5. Nach Bestaetigung: Termin buchen (book_appointment)
+6. Buchungsbestaetigung mit allen Details geben
 
-WICHTIGE HINWEISE:
-- Relative Datumsangaben (morgen, naechsten Montag) anhand des aktuellen Datums berechnen
-- Bei unklaren Zeiten nachfragen
-- Nie ohne Bestaetigung des Anrufers buchen`,
+DATUMSVERARBEITUNG:
+- Relative Begriffe IMMER verwenden: "morgen", "uebermorgen", "naechsten Montag", "Freitag"
+- Bei Woechentagen: Den NAECHSTEN kommenden Tag nehmen
+- "Diese Woche" = ab heute, "Naechste Woche" = ab Montag
+- NIE alte Jahre wie 2023 oder 2024 verwenden - aktuelles Jahr beachten!
+
+ZEITVERARBEITUNG (Deutsche Ausdruecke):
+- "halb drei" = 14:30 Uhr (NICHT 14:00!)
+- "viertel nach zehn" = 10:15 Uhr
+- "viertel vor elf" = 10:45 Uhr
+- "3 Uhr nachmittags" = 15:00 Uhr
+- Bei unklaren Zeiten: "Meinen Sie vormittags oder nachmittags?"
+
+KONFLIKTBEHANDLUNG:
+- Wenn gewuenschte Zeit belegt: Alternative Zeiten anbieten
+- check_conflicts gibt automatisch Alternativen zurueck
+- Nicht aufgeben - immer Alternativen vorschlagen
+
+WICHTIGE REGELN:
+- NIEMALS ohne explizite Bestaetigung des Anrufers buchen
+- Bei Aenderungen/Stornierungen: Nach dem Namen fragen um Termin zu finden
+- Bei mehreren Terminen: Datum zur Identifikation nutzen
+- Freundlich bleiben auch bei Fehlern - Loesungen anbieten`,
     priority: 60,
     enabled: true,
   };

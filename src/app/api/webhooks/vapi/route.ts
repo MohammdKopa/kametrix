@@ -15,6 +15,7 @@ import {
   bookAppointment,
   parseDateTime,
   parseDateInput,
+  parseTimeInput,
   parseRecurrenceInput,
   rescheduleEvent,
   deleteEvent,
@@ -22,6 +23,8 @@ import {
   listEvents,
   searchEvents,
   findNextAvailableSlot,
+  checkConflicts,
+  filterSlotsByTimeRange,
   CalendarError,
   CalendarErrorType,
 } from '@/lib/google/calendar';
@@ -412,20 +415,80 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 const correctedDateStr = parseDateInput(args.date);
                 const date = new Date(correctedDateStr);
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
-                const slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
+                let slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
+
+                // Filter by preferred time range if specified
+                if (args.preferredTimeRange && slots.length > 0) {
+                  const filteredSlots = filterSlotsByTimeRange(slots, args.preferredTimeRange, timeZone);
+                  if (filteredSlots.length > 0) {
+                    slots = filteredSlots;
+                  }
+                }
 
                 // Format date in German
                 const formattedDate = formatDateGerman(date);
 
                 if (slots.length === 0) {
-                  result = `Am ${formattedDate} sind leider keine Termine mehr frei. Möchten Sie einen anderen Tag versuchen?`;
+                  // Try to find the next available day
+                  const nextSlot = await findNextAvailableSlot(oauth2Client, date, timeZone, appointmentDuration);
+                  if (nextSlot) {
+                    const nextDate = new Date(nextSlot.start);
+                    const nextFormattedDate = formatDateGerman(nextDate);
+                    result = `Am ${formattedDate} sind leider keine Termine mehr frei. Der nächste freie Termin wäre am ${nextFormattedDate} um ${nextSlot.displayTime}. Passt Ihnen das?`;
+                  } else {
+                    result = `Am ${formattedDate} sind leider keine Termine mehr frei. Möchten Sie einen anderen Tag versuchen?`;
+                  }
                 } else {
                   const slotList = slots.slice(0, 5).map(s => s.displayTime).join(', ');
-                  result = `Am ${formattedDate} habe ich folgende Zeiten verfügbar: ${slotList}. Welche Zeit passt Ihnen am besten?`;
+                  if (args.preferredTimeRange) {
+                    result = `Am ${formattedDate} habe ich ${args.preferredTimeRange} folgende Zeiten verfügbar: ${slotList}. Welche Zeit passt Ihnen am besten?`;
+                  } else {
+                    result = `Am ${formattedDate} habe ich folgende Zeiten verfügbar: ${slotList}. Welche Zeit passt Ihnen am besten?`;
+                  }
                 }
               } catch (error) {
                 console.error('Calendar availability error:', error);
                 result = 'Ich habe gerade Schwierigkeiten, den Kalender zu prüfen. Bitte versuchen Sie es noch einmal.';
+              }
+              break;
+            }
+
+            case 'check_conflicts': {
+              // Get agent's user and check Google connection
+              const agentWithUser = await prisma.agent.findUnique({
+                where: { id: agent.id },
+                include: { user: true },
+              });
+
+              if (!agentWithUser?.user) {
+                result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                break;
+              }
+
+              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              if (!oauth2Client) {
+                result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet.';
+                break;
+              }
+
+              try {
+                const timeZone = args.timeZone || 'Europe/Berlin';
+                const correctedDateStr = parseDateInput(args.date);
+                const parsedTime = parseTimeInput(args.time);
+                const appointmentDuration = args.durationMinutes || agentWithUser.user.appointmentDuration || 30;
+
+                const conflictResult = await checkConflicts(
+                  oauth2Client,
+                  correctedDateStr,
+                  parsedTime,
+                  appointmentDuration,
+                  timeZone
+                );
+
+                result = conflictResult.message;
+              } catch (error) {
+                console.error('Conflict check error:', error);
+                result = 'Ich konnte die Verfügbarkeit nicht prüfen. Bitte versuchen Sie es noch einmal.';
               }
               break;
             }
@@ -451,7 +514,9 @@ async function handleToolCalls(message: WebhookToolCalls) {
               try {
                 const timeZone = args.timeZone || 'Europe/Berlin';
                 const correctedDateStr = parseDateInput(args.date);
-                const start = parseDateTime(correctedDateStr, args.time, timeZone);
+                // Enhanced time parsing for natural language times
+                const parsedTime = parseTimeInput(args.time);
+                const start = parseDateTime(correctedDateStr, parsedTime, timeZone);
 
                 // Use user's configured appointment duration
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
@@ -467,13 +532,29 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 // Parse recurrence if provided
                 const recurrence = args.recurrence ? parseRecurrenceInput(args.recurrence) : undefined;
 
+                // Build description with all available information
+                let description = 'Per Sprachassistent gebucht.';
+                description += `\n\nAnrufer: ${args.callerName}`;
+                if (args.callerPhone) description += `\nTelefon: ${args.callerPhone}`;
+                if (args.callerEmail) description += `\nE-Mail: ${args.callerEmail}`;
+                if (args.notes) description += `\n\nNotizen: ${args.notes}`;
+
+                // Handle multiple attendees if provided
+                const attendeeEmails: string[] = [];
+                if (args.callerEmail) attendeeEmails.push(args.callerEmail);
+                if (args.attendees) {
+                  const additionalAttendees = args.attendees.split(',').map((e: string) => e.trim()).filter((e: string) => e);
+                  attendeeEmails.push(...additionalAttendees);
+                }
+
                 const event = await bookAppointment(oauth2Client, {
                   summary: args.summary || `Termin mit ${args.callerName}`,
                   start,
                   end,
                   timeZone,
-                  attendeeEmail: args.callerEmail,
-                  description: `Per Sprachassistent gebucht.\n\nAnrufer: ${args.callerName}${args.callerPhone ? `\nTelefon: ${args.callerPhone}` : ''}${args.callerEmail ? `\nE-Mail: ${args.callerEmail}` : ''}`,
+                  attendeeEmail: attendeeEmails[0],
+                  attendeeEmails: attendeeEmails.length > 1 ? attendeeEmails : undefined,
+                  description,
                   recurrence: recurrence || undefined,
                   location: args.location,
                 });
@@ -481,17 +562,37 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 // Format date in German for confirmation (using corrected date)
                 const bookingDate = new Date(correctedDateStr);
                 const formattedDate = formatDateGerman(bookingDate);
+                const displayTime = parsedTime;
+
+                // Build confirmation message
+                let confirmationMsg = `Wunderbar, Ihr Termin am ${formattedDate} um ${displayTime} Uhr ist eingetragen.`;
 
                 if (recurrence) {
                   const recurrenceText = args.recurrence.toLowerCase();
-                  result = `Ihr wiederkehrender Termin (${recurrenceText}) am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
-                } else {
-                  result = `Ihr Termin am ${formattedDate} um ${args.time} ist eingetragen. Vielen Dank, ${args.callerName}!`;
+                  confirmationMsg = `Wunderbar, Ihr wiederkehrender Termin (${recurrenceText}) beginnend am ${formattedDate} um ${displayTime} Uhr ist eingetragen.`;
                 }
+
+                if (args.callerEmail) {
+                  confirmationMsg += ' Sie erhalten eine Kalendereinladung per E-Mail.';
+                }
+
+                confirmationMsg += ` Vielen Dank, ${args.callerName}!`;
+
+                if (args.location) {
+                  confirmationMsg += ` Der Termin findet statt in: ${args.location}.`;
+                }
+
+                result = confirmationMsg;
               } catch (error) {
                 console.error('Calendar booking error:', error);
-                if (error instanceof CalendarError && error.type === CalendarErrorType.AUTHENTICATION_EXPIRED) {
-                  result = 'Die Kalenderverbindung muss erneuert werden. Bitte versuchen Sie es später noch einmal.';
+                if (error instanceof CalendarError) {
+                  if (error.type === CalendarErrorType.AUTHENTICATION_EXPIRED) {
+                    result = 'Die Kalenderverbindung muss erneuert werden. Bitte versuchen Sie es später noch einmal.';
+                  } else if (error.type === CalendarErrorType.CONFLICT) {
+                    result = 'Dieser Zeitpunkt ist leider bereits belegt. Möchten Sie eine andere Zeit versuchen? Ich kann Ihnen gerne die verfügbaren Zeiten nennen.';
+                  } else {
+                    result = 'Den Termin konnte ich leider nicht eintragen. Möchten Sie eine andere Zeit versuchen?';
+                  }
                 } else {
                   result = 'Den Termin konnte ich leider nicht eintragen. Dieser Zeitpunkt ist möglicherweise bereits belegt. Möchten Sie eine andere Zeit versuchen?';
                 }
@@ -522,20 +623,44 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
                 // If no eventId, try to find by caller name
                 let eventId = args.eventId;
+                let originalEventSummary = '';
                 if (!eventId && args.callerName) {
                   const events = await searchEvents(oauth2Client, args.callerName, { maxResults: 5, daysAhead: 30 });
                   if (events.length > 0) {
-                    eventId = events[0].id;
+                    // If multiple events found and originalDate provided, try to match
+                    if (events.length > 1 && args.originalDate) {
+                      const originalDateStr = parseDateInput(args.originalDate);
+                      const matchingEvent = events.find(e => e.start.includes(originalDateStr));
+                      if (matchingEvent) {
+                        eventId = matchingEvent.id;
+                        originalEventSummary = matchingEvent.summary;
+                      }
+                    }
+                    if (!eventId) {
+                      eventId = events[0].id;
+                      originalEventSummary = events[0].summary;
+                    }
                   }
                 }
 
                 if (!eventId) {
-                  result = 'Ich konnte keinen Termin unter diesem Namen finden. Könnten Sie mir mehr Details geben?';
+                  result = 'Ich konnte keinen Termin unter diesem Namen finden. Könnten Sie mir den Namen nennen, unter dem der Termin gebucht wurde?';
                   break;
                 }
 
                 const correctedDateStr = parseDateInput(args.newDate);
-                const start = parseDateTime(correctedDateStr, args.newTime, timeZone);
+                const parsedTime = parseTimeInput(args.newTime);
+                const start = parseDateTime(correctedDateStr, parsedTime, timeZone);
+
+                // Check if new slot is available before rescheduling
+                const conflictCheck = await checkConflicts(oauth2Client, correctedDateStr, parsedTime, appointmentDuration, timeZone);
+                if (conflictCheck.hasConflict) {
+                  result = `Der neue Zeitpunkt um ${parsedTime} Uhr ist leider bereits belegt. ` +
+                    (conflictCheck.alternativeSlots.length > 0
+                      ? `Stattdessen wären verfügbar: ${conflictCheck.alternativeSlots.map(s => s.displayTime).join(', ')}. Möchten Sie eine dieser Zeiten?`
+                      : 'Möchten Sie einen anderen Zeitpunkt versuchen?');
+                  break;
+                }
 
                 // Calculate end time
                 const [datePart, timePart] = start.split('T');
@@ -549,7 +674,7 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
                 const newDate = new Date(correctedDateStr);
                 const formattedDate = formatDateGerman(newDate);
-                result = `Ihr Termin wurde auf ${formattedDate} um ${args.newTime} verschoben.`;
+                result = `Alles klar, Ihr Termin wurde erfolgreich auf ${formattedDate} um ${parsedTime} Uhr verschoben. Alle Teilnehmer werden benachrichtigt.`;
               } catch (error) {
                 console.error('Calendar reschedule error:', error);
                 if (error instanceof CalendarError) {
@@ -557,6 +682,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
                     result = 'Ich konnte diesen Termin nicht finden. Wurde er möglicherweise bereits storniert?';
                   } else if (error.type === CalendarErrorType.AUTHENTICATION_EXPIRED) {
                     result = 'Die Kalenderverbindung muss erneuert werden. Bitte versuchen Sie es später noch einmal.';
+                  } else if (error.type === CalendarErrorType.CONFLICT) {
+                    result = 'Der gewünschte Zeitpunkt ist leider bereits belegt. Möchten Sie eine andere Zeit versuchen?';
                   } else {
                     result = 'Das Verschieben des Termins ist leider fehlgeschlagen. Möchten Sie es noch einmal versuchen?';
                   }
@@ -587,25 +714,54 @@ async function handleToolCalls(message: WebhookToolCalls) {
               try {
                 // If no eventId, try to find by caller name
                 let eventId = args.eventId;
+                let eventSummary = '';
+                let eventDate = '';
+
                 if (!eventId && args.callerName) {
                   const events = await searchEvents(oauth2Client, args.callerName, { maxResults: 5, daysAhead: 30 });
                   if (events.length > 0) {
-                    eventId = events[0].id;
+                    // If date is provided, try to match the specific event
+                    if (events.length > 1 && args.date) {
+                      const targetDateStr = parseDateInput(args.date);
+                      const matchingEvent = events.find(e => e.start.includes(targetDateStr));
+                      if (matchingEvent) {
+                        eventId = matchingEvent.id;
+                        eventSummary = matchingEvent.summary;
+                        eventDate = matchingEvent.start;
+                      }
+                    }
+                    if (!eventId) {
+                      eventId = events[0].id;
+                      eventSummary = events[0].summary;
+                      eventDate = events[0].start;
+                    }
                   }
                 }
 
                 if (!eventId) {
-                  result = 'Ich konnte keinen Termin unter diesem Namen finden. Könnten Sie mir mehr Details geben?';
+                  result = 'Ich konnte keinen Termin unter diesem Namen finden. Könnten Sie mir bitte den Namen nennen, unter dem der Termin gebucht wurde?';
                   break;
                 }
 
                 // Check if this is a recurring event and user wants to cancel only one instance
                 if (args.date && args.cancelAll !== 'ja') {
-                  await cancelRecurringInstance(oauth2Client, eventId, args.date);
-                  result = 'Der Termin an diesem Datum wurde storniert.';
+                  const cancelDateStr = parseDateInput(args.date);
+                  await cancelRecurringInstance(oauth2Client, eventId, cancelDateStr);
+                  const formattedDate = formatDateGerman(new Date(cancelDateStr));
+                  result = `Der Termin am ${formattedDate} wurde storniert. Die anderen Termine der Serie bleiben bestehen.`;
                 } else {
                   await deleteEvent(oauth2Client, eventId);
-                  result = 'Der Termin wurde erfolgreich storniert. Alle Teilnehmer werden benachrichtigt.';
+                  // Build a more informative cancellation message
+                  let cancelMsg = 'Ihr Termin wurde erfolgreich storniert.';
+                  if (eventDate) {
+                    const formattedDate = formatDateGerman(new Date(eventDate));
+                    cancelMsg = `Ihr Termin am ${formattedDate} wurde erfolgreich storniert.`;
+                  }
+                  if (args.reason) {
+                    cancelMsg += ` Grund: ${args.reason}.`;
+                  }
+                  cancelMsg += ' Alle Teilnehmer werden benachrichtigt.';
+                  result = cancelMsg;
                 }
               } catch (error) {
                 console.error('Calendar cancel error:', error);

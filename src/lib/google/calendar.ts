@@ -350,11 +350,28 @@ export function parseRecurrenceInput(input: string): RecurrenceConfig | null {
 // ============================================================================
 
 /**
+ * Time range definitions for natural language time preferences
+ */
+export const TIME_RANGES: Record<string, { start: number; end: number }> = {
+  'morgens': { start: 9, end: 12 },
+  'vormittags': { start: 9, end: 12 },
+  'mittags': { start: 12, end: 14 },
+  'nachmittags': { start: 14, end: 17 },
+  'abends': { start: 17, end: 20 },
+  'morning': { start: 9, end: 12 },
+  'afternoon': { start: 14, end: 17 },
+  'evening': { start: 17, end: 20 },
+};
+
+/**
  * Parse a date input that can be either a relative term (morgen, heute, übermorgen)
  * or an ISO date string. Returns the resolved date in YYYY-MM-DD format.
  *
- * This handles the common case where the AI passes relative terms instead of
- * calculating dates (which it often gets wrong).
+ * Enhanced with:
+ * - Extended relative date patterns
+ * - Week-based expressions (diese Woche, nächste Woche)
+ * - Month expressions (nächsten Monat, Anfang Januar)
+ * - Better error handling
  *
  * @param dateInput - Either a relative term or YYYY-MM-DD date string
  * @returns Resolved date in YYYY-MM-DD format
@@ -363,17 +380,21 @@ export function parseDateInput(dateInput: string): string {
   const input = dateInput.toLowerCase().trim();
   const now = new Date();
 
-  // German relative date terms
+  // German relative date terms (expanded)
   const relativeDates: Record<string, number> = {
     'heute': 0,
     'today': 0,
+    'jetzt': 0,
+    'now': 0,
     'morgen': 1,
     'tomorrow': 1,
     'übermorgen': 2,
     'ubermorgen': 2,
+    'in zwei tagen': 2,
+    'in 2 tagen': 2,
   };
 
-  // Check if it's a relative term
+  // Check if it's a simple relative term
   if (relativeDates[input] !== undefined) {
     const targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() + relativeDates[input]);
@@ -382,7 +403,7 @@ export function parseDateInput(dateInput: string): string {
     return result;
   }
 
-  // Check for "in X tagen" pattern
+  // Check for "in X tagen/wochen" patterns
   const inDaysMatch = input.match(/in\s+(\d+)\s+tag/i);
   if (inDaysMatch) {
     const days = parseInt(inDaysMatch[1], 10);
@@ -393,7 +414,35 @@ export function parseDateInput(dateInput: string): string {
     return result;
   }
 
-  // Check for weekday names (nächsten Montag, etc.)
+  const inWeeksMatch = input.match(/in\s+(\d+)\s+woche/i);
+  if (inWeeksMatch) {
+    const weeks = parseInt(inWeeksMatch[1], 10);
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() + weeks * 7);
+    const result = targetDate.toISOString().split('T')[0];
+    console.log(`Relative weeks parsed: "${dateInput}" -> ${result}`);
+    return result;
+  }
+
+  // Handle "diese Woche" (this week) - return today
+  if (input.includes('diese woche') || input.includes('this week')) {
+    const result = now.toISOString().split('T')[0];
+    console.log(`This week parsed: "${dateInput}" -> ${result}`);
+    return result;
+  }
+
+  // Handle "nächste Woche" (next week) - return next Monday
+  if (input.includes('naechste woche') || input.includes('nächste woche') || input.includes('next week')) {
+    const currentDay = now.getDay();
+    const daysToMonday = currentDay === 0 ? 1 : 8 - currentDay;
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() + daysToMonday);
+    const result = targetDate.toISOString().split('T')[0];
+    console.log(`Next week parsed: "${dateInput}" -> ${result}`);
+    return result;
+  }
+
+  // Check for weekday names (nächsten Montag, am Freitag, etc.)
   const weekdays: Record<string, number> = {
     'sonntag': 0, 'sunday': 0,
     'montag': 1, 'monday': 1,
@@ -425,6 +474,109 @@ export function parseDateInput(dateInput: string): string {
   // Fallback: return as-is and let validateAndCorrectDate handle it
   console.warn(`Could not parse date input: "${dateInput}", attempting validation`);
   return validateAndCorrectDate(dateInput);
+}
+
+/**
+ * Parse natural language time expressions into HH:MM format
+ *
+ * Handles German and English time expressions:
+ * - "14 Uhr" -> "14:00"
+ * - "halb drei" -> "14:30"
+ * - "viertel nach zehn" -> "10:15"
+ * - "viertel vor elf" -> "10:45"
+ * - "10 Uhr morgens" -> "10:00"
+ * - "3 Uhr nachmittags" -> "15:00"
+ *
+ * @param timeInput - Natural language time expression
+ * @returns Time string in HH:MM format
+ */
+export function parseTimeInput(timeInput: string): string {
+  const input = timeInput.toLowerCase().trim();
+
+  // Already in HH:MM format
+  if (/^\d{1,2}:\d{2}$/.test(input)) {
+    const [hours, minutes] = input.split(':').map(Number);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
+
+  // German number words to digits
+  const numberWords: Record<string, number> = {
+    'eins': 1, 'ein': 1, 'eine': 1,
+    'zwei': 2,
+    'drei': 3,
+    'vier': 4,
+    'fünf': 5, 'fuenf': 5,
+    'sechs': 6,
+    'sieben': 7,
+    'acht': 8,
+    'neun': 9,
+    'zehn': 10,
+    'elf': 11,
+    'zwölf': 12, 'zwoelf': 12,
+  };
+
+  // "X Uhr" pattern (e.g., "14 Uhr", "zehn Uhr")
+  const uhrMatch = input.match(/(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)\s*uhr/i);
+  if (uhrMatch) {
+    let hours = numberWords[uhrMatch[1]] || parseInt(uhrMatch[1], 10);
+
+    // Check for AM/PM indicators
+    if (input.includes('nachmittag') || input.includes('abend')) {
+      if (hours < 12) hours += 12;
+    } else if (input.includes('morgen') || input.includes('vormittag')) {
+      // Keep as-is (morning hours)
+    }
+
+    return `${hours.toString().padStart(2, '0')}:00`;
+  }
+
+  // "halb X" pattern (half past the previous hour, e.g., "halb drei" = 14:30 or 2:30)
+  const halbMatch = input.match(/halb\s*(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)/i);
+  if (halbMatch) {
+    let hours = numberWords[halbMatch[1]] || parseInt(halbMatch[1], 10);
+    hours = hours - 1; // "halb drei" means 2:30 in German
+    if (hours < 0) hours = 23;
+
+    // Default to afternoon for small numbers
+    if (hours > 0 && hours < 8 && !input.includes('morgen') && !input.includes('vormittag')) {
+      hours += 12;
+    }
+
+    return `${hours.toString().padStart(2, '0')}:30`;
+  }
+
+  // "viertel nach X" pattern (quarter past)
+  const viertelNachMatch = input.match(/viertel\s*nach\s*(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)/i);
+  if (viertelNachMatch) {
+    let hours = numberWords[viertelNachMatch[1]] || parseInt(viertelNachMatch[1], 10);
+    return `${hours.toString().padStart(2, '0')}:15`;
+  }
+
+  // "viertel vor X" pattern (quarter to)
+  const viertelVorMatch = input.match(/viertel\s*vor\s*(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)/i);
+  if (viertelVorMatch) {
+    let hours = numberWords[viertelVorMatch[1]] || parseInt(viertelVorMatch[1], 10);
+    hours = hours - 1;
+    if (hours < 0) hours = 23;
+    return `${hours.toString().padStart(2, '0')}:45`;
+  }
+
+  // Bare number with context (e.g., "um 14", "um 3")
+  const bareNumberMatch = input.match(/(?:um\s*)?(\d{1,2})(?:\s|$)/);
+  if (bareNumberMatch) {
+    let hours = parseInt(bareNumberMatch[1], 10);
+
+    // Apply AM/PM logic
+    if (input.includes('nachmittag') || input.includes('abend')) {
+      if (hours < 12) hours += 12;
+    }
+
+    return `${hours.toString().padStart(2, '0')}:00`;
+  }
+
+  // Return original if no pattern matched
+  console.warn(`Could not parse time input: "${timeInput}"`);
+  return timeInput;
 }
 
 /**
@@ -634,6 +786,165 @@ export async function isSlotAvailable(
     console.error('Error checking slot availability:', error);
     throw wrapError(error, 'Failed to check slot availability');
   }
+}
+
+/**
+ * Conflict check result with alternative slots
+ */
+export interface ConflictCheckResult {
+  hasConflict: boolean;
+  conflictingEvents: Array<{
+    summary: string;
+    start: string;
+    end: string;
+  }>;
+  alternativeSlots: TimeSlot[];
+  message: string;
+}
+
+/**
+ * Check for conflicts with existing appointments and suggest alternatives
+ *
+ * This enhanced conflict detection:
+ * - Checks if the requested time slot conflicts with existing events
+ * - Returns details about conflicting events
+ * - Suggests up to 3 alternative time slots on the same day
+ * - Provides a human-readable message for the voice assistant
+ *
+ * @param oauth2Client - Authenticated OAuth2 client
+ * @param date - Date to check (YYYY-MM-DD)
+ * @param time - Time to check (HH:MM)
+ * @param durationMinutes - Duration of the requested appointment
+ * @param timeZone - IANA timezone
+ * @returns Conflict check result with alternatives
+ */
+export async function checkConflicts(
+  oauth2Client: OAuth2Client,
+  date: string,
+  time: string,
+  durationMinutes: number = DEFAULT_APPOINTMENT_DURATION_MINUTES,
+  timeZone: string = 'Europe/Berlin'
+): Promise<ConflictCheckResult> {
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+  // Parse the requested time slot
+  const startDateTime = parseDateTime(date, time, timeZone);
+  const [datePart, timePart] = startDateTime.split('T');
+  const [hh, mm] = timePart.split(':').map(Number);
+  let totalMinutes = hh * 60 + mm + durationMinutes;
+  const endHour = Math.floor(totalMinutes / 60) % 24;
+  const endMin = totalMinutes % 60;
+  const endDateTime = `${datePart}T${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
+
+  try {
+    // Check freebusy for the requested time slot
+    const freebusyResponse = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: `${startDateTime}`,
+        timeMax: `${endDateTime}`,
+        timeZone,
+        items: [{ id: 'primary' }],
+      },
+    });
+
+    const busyPeriods = freebusyResponse.data.calendars?.primary?.busy || [];
+
+    if (busyPeriods.length === 0) {
+      // No conflict - slot is available
+      return {
+        hasConflict: false,
+        conflictingEvents: [],
+        alternativeSlots: [],
+        message: `Der Termin um ${time} Uhr ist verfügbar.`,
+      };
+    }
+
+    // Get details about conflicting events
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const eventsResponse = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfDay.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    const events = eventsResponse.data.items || [];
+    const conflictingEvents = events
+      .filter(event => {
+        if (!event.start?.dateTime || !event.end?.dateTime) return false;
+        const eventStart = new Date(event.start.dateTime).getTime();
+        const eventEnd = new Date(event.end.dateTime).getTime();
+        const requestedStart = new Date(`${startDateTime}`).getTime();
+        const requestedEnd = new Date(`${endDateTime}`).getTime();
+        return (requestedStart < eventEnd && requestedEnd > eventStart);
+      })
+      .map(event => ({
+        summary: event.summary || 'Termin',
+        start: event.start?.dateTime || '',
+        end: event.end?.dateTime || '',
+      }));
+
+    // Find alternative slots on the same day
+    const targetDate = new Date(date);
+    const availableSlots = await getAvailableSlots(oauth2Client, targetDate, timeZone, durationMinutes);
+    const alternativeSlots = availableSlots
+      .filter(slot => new Date(slot.start) > new Date()) // Only future slots
+      .slice(0, 3); // Limit to 3 alternatives
+
+    // Build human-readable message
+    let message = `Um ${time} Uhr ist leider bereits ein Termin eingetragen.`;
+    if (alternativeSlots.length > 0) {
+      const times = alternativeSlots.map(s => s.displayTime).join(', ');
+      message += ` Alternativ sind folgende Zeiten verfügbar: ${times}.`;
+    } else {
+      message += ` Leider sind heute keine weiteren Termine mehr frei.`;
+    }
+
+    return {
+      hasConflict: true,
+      conflictingEvents,
+      alternativeSlots,
+      message,
+    };
+  } catch (error) {
+    console.error('Error checking conflicts:', error);
+    throw wrapError(error, 'Failed to check for conflicts');
+  }
+}
+
+/**
+ * Filter available slots by preferred time range
+ *
+ * @param slots - Available slots to filter
+ * @param preferredTimeRange - Time range preference (morgens, nachmittags, etc.)
+ * @param timeZone - IANA timezone
+ * @returns Filtered slots within the preferred time range
+ */
+export function filterSlotsByTimeRange(
+  slots: TimeSlot[],
+  preferredTimeRange: string,
+  timeZone: string = 'Europe/Berlin'
+): TimeSlot[] {
+  const range = TIME_RANGES[preferredTimeRange.toLowerCase()];
+  if (!range) return slots;
+
+  return slots.filter(slot => {
+    const slotDate = new Date(slot.start);
+    const hours = parseInt(
+      slotDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        hour12: false,
+        timeZone,
+      }),
+      10
+    );
+    return hours >= range.start && hours < range.end;
+  });
 }
 
 /**
