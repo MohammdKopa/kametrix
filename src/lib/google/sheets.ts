@@ -43,10 +43,47 @@ function calculateBackoffDelay(attemptNum: number): number {
 }
 
 /**
+ * Check if an error is an authentication/authorization error that requires user action
+ * These errors should NOT be retried and should prompt user to reconnect
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const message = (error as Error).message?.toLowerCase() || '';
+
+  // Check for OAuth-related errors
+  if (
+    message.includes('invalid_grant') ||
+    message.includes('token has been expired') ||
+    message.includes('token has been revoked') ||
+    message.includes('invalid_token') ||
+    message.includes('token expired') ||
+    message.includes('access_denied')
+  ) {
+    return true;
+  }
+
+  // Check for 401 status codes (unauthorized)
+  const err = error as { code?: number; status?: number; response?: { status?: number } };
+  const statusCode = err.code || err.status || err.response?.status;
+
+  if (statusCode === 401) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Check if an error is retryable based on status code or error type
  */
 function isRetryableError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
+
+  // Authentication errors should never be retried
+  if (isAuthenticationError(error)) {
+    return false;
+  }
 
   // Check for Google API error codes
   const err = error as { code?: number; status?: number; response?: { status?: number } };
@@ -105,6 +142,8 @@ export interface SheetsOperationResult {
   success: boolean;
   error?: string;
   errorCode?: string;
+  /** True if the error is due to authentication issues requiring user to reconnect */
+  requiresReconnect?: boolean;
 }
 
 /**
@@ -139,8 +178,14 @@ export async function getOrCreateLogSheet(
       // Sheet still exists and is accessible
       return user.googleSheetId;
     } catch (error) {
+      // If it's an authentication error, don't try to create a new sheet
+      // Re-throw so the caller knows the user needs to reconnect
+      if (isAuthenticationError(error)) {
+        console.error('Google authentication error - user needs to reconnect:', error);
+        throw error;
+      }
+      // Sheet was deleted or not found - we can create a new one
       console.log('Existing sheet not accessible, will create new one:', error);
-      // Sheet was deleted or access revoked - create a new one
     }
   }
 
@@ -280,8 +325,22 @@ export async function appendCallLog(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorCode = (error as { code?: string })?.code;
-    console.error('Error appending call log:', error);
-    return { success: false, error: errorMessage, errorCode };
+    const requiresReconnect = isAuthenticationError(error);
+
+    if (requiresReconnect) {
+      console.error('Google authentication error - user needs to reconnect:', error);
+    } else {
+      console.error('Error appending call log:', error);
+    }
+
+    return {
+      success: false,
+      error: requiresReconnect
+        ? 'Google authentication expired. Please reconnect your Google account.'
+        : errorMessage,
+      errorCode,
+      requiresReconnect,
+    };
   }
 }
 
@@ -311,12 +370,8 @@ export async function verifySheetConnection(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Check for specific error types that indicate token issues
-    if (
-      errorMessage.includes('invalid_grant') ||
-      errorMessage.includes('Token has been expired') ||
-      errorMessage.includes('Token has been revoked')
-    ) {
+    // Check for authentication errors that require reconnection
+    if (isAuthenticationError(error)) {
       return {
         healthy: false,
         error: 'Token expired or revoked. Please reconnect your Google account.',

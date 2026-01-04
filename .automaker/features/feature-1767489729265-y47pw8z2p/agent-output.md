@@ -563,3 +563,531 @@ Let me provide a final summary:
 - Token expiration errors will suggest user reconnect their Google account
 - The `SheetsOperationResult` type change is backward-compatible (functions now return objects with `success: boolean`)
 </summary>
+
+---
+
+## Follow-up Session
+
+Looking at the error logs, I can see the issue: when a user's Google token becomes invalid (invalid_grant), the system is trying to create a new sheet which also fails. The `invalid_grant` error should not trigger a retry since it's an authentication issue, and the system should handle this gracefully by notifying that reconnection is needed.
+
+Let me analyze the current implementation and fix the issues:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/auth.ts"
+}
+
+Now I understand the issue. The problem is:
+
+1. When `invalid_grant` error occurs (token expired/revoked), `getOrCreateLogSheet` catches the error from the existing sheet check, logs it, and then tries to create a NEW sheet - which also fails with `invalid_grant`.
+2. The `invalid_grant` error should be detected as a non-recoverable auth error and should not proceed to create a new sheet.
+3. The system should also clear the invalid tokens from the database so the user knows they need to reconnect.
+
+Let me fix these issues:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Fix invalid_grant error handling in getOrCreateLogSheet",
+      "status": "in_progress",
+      "activeForm": "Fixing invalid_grant error handling"
+    },
+    {
+      "content": "Add isAuthenticationError helper function",
+      "status": "pending",
+      "activeForm": "Adding isAuthenticationError helper"
+    },
+    {
+      "content": "Update appendCallLog to detect auth errors",
+      "status": "pending",
+      "activeForm": "Updating appendCallLog for auth errors"
+    },
+    {
+      "content": "Run tests and verify build",
+      "status": "pending",
+      "activeForm": "Running tests and verifying build"
+    }
+  ]
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "/**\n * Check if an error is retryable based on status code or error type\n */\nfunction isRetryableError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  // Check for Google API error codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {\n    return true;\n  }\n\n  // Check for network errors\n  const message = (error as Error).message?.toLowerCase() || '';\n  return (\n    message.includes('econnreset') ||\n    message.includes('etimedout') ||\n    message.includes('socket hang up') ||\n    message.includes('network error')\n  );\n}",
+  "new_string": "/**\n * Check if an error is an authentication/authorization error that requires user action\n * These errors should NOT be retried and should prompt user to reconnect\n */\nexport function isAuthenticationError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  const message = (error as Error).message?.toLowerCase() || '';\n\n  // Check for OAuth-related errors\n  if (\n    message.includes('invalid_grant') ||\n    message.includes('token has been expired') ||\n    message.includes('token has been revoked') ||\n    message.includes('invalid_token') ||\n    message.includes('token expired') ||\n    message.includes('unauthorized') ||\n    message.includes('access_denied')\n  ) {\n    return true;\n  }\n\n  // Check for 401/403 status codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode === 401 || statusCode === 403) {\n    return true;\n  }\n\n  return false;\n}\n\n/**\n * Check if an error is retryable based on status code or error type\n */\nfunction isRetryableError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  // Authentication errors should never be retried\n  if (isAuthenticationError(error)) {\n    return false;\n  }\n\n  // Check for Google API error codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {\n    return true;\n  }\n\n  // Check for network errors\n  const message = (error as Error).message?.toLowerCase() || '';\n  return (\n    message.includes('econnreset') ||\n    message.includes('etimedout') ||\n    message.includes('socket hang up') ||\n    message.includes('network error')\n  );\n}"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "/**\n * Check if an error is retryable based on status code or error type\n */\nfunction isRetryableError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  // Check for Google API error codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {\n    return true;\n  }\n\n  // Check for network errors\n  const message = (error as Error).message?.toLowerCase() || '';\n  return (\n    message.includes('econnreset') ||\n    message.includes('etimedout') ||\n    message.includes('socket hang up') ||\n    message.includes('network error')\n  );\n}",
+  "new_string": "/**\n * Check if an error is an authentication/authorization error that requires user action\n * These errors should NOT be retried and should prompt user to reconnect\n */\nexport function isAuthenticationError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  const message = (error as Error).message?.toLowerCase() || '';\n\n  // Check for OAuth-related errors\n  if (\n    message.includes('invalid_grant') ||\n    message.includes('token has been expired') ||\n    message.includes('token has been revoked') ||\n    message.includes('invalid_token') ||\n    message.includes('token expired') ||\n    message.includes('access_denied')\n  ) {\n    return true;\n  }\n\n  // Check for 401 status codes (but not 403 which could be permission-related)\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode === 401) {\n    return true;\n  }\n\n  return false;\n}\n\n/**\n * Check if an error is retryable based on status code or error type\n */\nfunction isRetryableError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  // Authentication errors should never be retried\n  if (isAuthenticationError(error)) {\n    return false;\n  }\n\n  // Check for Google API error codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {\n    return true;\n  }\n\n  // Check for network errors\n  const message = (error as Error).message?.toLowerCase() || '';\n  return (\n    message.includes('econnreset') ||\n    message.includes('etimedout') ||\n    message.includes('socket hang up') ||\n    message.includes('network error')\n  );\n}"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && git status",
+  "description": "Check git status"
+}
+
+It seems the previous changes were not committed. Let me check the current state of the sheets.ts file:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && git diff src/lib/google/sheets.ts 2>/dev/null | head -30",
+  "description": "Check if sheets.ts has changes"
+}
+
+The file has no changes. Let me check if there's a different version or if the previous agent's work was reverted:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && git log --oneline -5",
+  "description": "Check recent git commits"
+}
+
+Let me check what's in the latest commit:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && git show 85624c3 --stat",
+  "description": "Check latest commit changes"
+}
+
+The previous changes were committed. Let me re-read the current state of the sheets.ts file to see what we have and what needs to be fixed:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts"
+}
+
+Now I understand the current state. The issue from the error logs is:
+1. When checking if an existing sheet is accessible, if the token is invalid (`invalid_grant`), the code catches it and logs "Existing sheet not accessible, will create new one"
+2. Then it tries to create a new sheet, which also fails with `invalid_grant`
+
+The fix needs to:
+1. Add an `isAuthenticationError` function to detect auth errors
+2. In `getOrCreateLogSheet`, re-throw auth errors instead of trying to create a new sheet
+3. Update the result type to indicate when auth reconnection is needed
+
+Let me make these changes:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "/**\n * Check if an error is retryable based on status code or error type\n */\nfunction isRetryableError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  // Check for Google API error codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {\n    return true;\n  }\n\n  // Check for network errors\n  const message = (error as Error).message?.toLowerCase() || '';\n  return (\n    message.includes('econnreset') ||\n    message.includes('etimedout') ||\n    message.includes('socket hang up') ||\n    message.includes('network error')\n  );\n}",
+  "new_string": "/**\n * Check if an error is an authentication/authorization error that requires user action\n * These errors should NOT be retried and should prompt user to reconnect\n */\nexport function isAuthenticationError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  const message = (error as Error).message?.toLowerCase() || '';\n\n  // Check for OAuth-related errors\n  if (\n    message.includes('invalid_grant') ||\n    message.includes('token has been expired') ||\n    message.includes('token has been revoked') ||\n    message.includes('invalid_token') ||\n    message.includes('token expired') ||\n    message.includes('access_denied')\n  ) {\n    return true;\n  }\n\n  // Check for 401 status codes (unauthorized)\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode === 401) {\n    return true;\n  }\n\n  return false;\n}\n\n/**\n * Check if an error is retryable based on status code or error type\n */\nfunction isRetryableError(error: unknown): boolean {\n  if (!error || typeof error !== 'object') return false;\n\n  // Authentication errors should never be retried\n  if (isAuthenticationError(error)) {\n    return false;\n  }\n\n  // Check for Google API error codes\n  const err = error as { code?: number; status?: number; response?: { status?: number } };\n  const statusCode = err.code || err.status || err.response?.status;\n\n  if (statusCode && RETRYABLE_ERROR_CODES.includes(statusCode)) {\n    return true;\n  }\n\n  // Check for network errors\n  const message = (error as Error).message?.toLowerCase() || '';\n  return (\n    message.includes('econnreset') ||\n    message.includes('etimedout') ||\n    message.includes('socket hang up') ||\n    message.includes('network error')\n  );\n}"
+}
+
+Now let me update the `SheetsOperationResult` type to include a flag for authentication errors, and update `getOrCreateLogSheet` to properly handle auth errors:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "offset": 130,
+  "limit": 50
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "/**\n * Result type for sheets operations with detailed status\n */\nexport interface SheetsOperationResult {\n  success: boolean;\n  error?: string;\n  errorCode?: string;\n}",
+  "new_string": "/**\n * Result type for sheets operations with detailed status\n */\nexport interface SheetsOperationResult {\n  success: boolean;\n  error?: string;\n  errorCode?: string;\n  /** True if the error is due to authentication issues requiring user to reconnect */\n  requiresReconnect?: boolean;\n}"
+}
+
+Now let me update the `getOrCreateLogSheet` function to detect auth errors and re-throw them instead of trying to create a new sheet:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "  // If sheet exists, verify it's still accessible\n  if (user?.googleSheetId) {\n    try {\n      await withRetry(\n        () => sheets.spreadsheets.get({ spreadsheetId: user.googleSheetId! }),\n        'Sheets.get'\n      );\n      // Sheet still exists and is accessible\n      return user.googleSheetId;\n    } catch (error) {\n      console.log('Existing sheet not accessible, will create new one:', error);\n      // Sheet was deleted or access revoked - create a new one\n    }\n  }",
+  "new_string": "  // If sheet exists, verify it's still accessible\n  if (user?.googleSheetId) {\n    try {\n      await withRetry(\n        () => sheets.spreadsheets.get({ spreadsheetId: user.googleSheetId! }),\n        'Sheets.get'\n      );\n      // Sheet still exists and is accessible\n      return user.googleSheetId;\n    } catch (error) {\n      // If it's an authentication error, don't try to create a new sheet\n      // Re-throw so the caller knows the user needs to reconnect\n      if (isAuthenticationError(error)) {\n        console.error('Google authentication error - user needs to reconnect:', error);\n        throw error;\n      }\n      // Sheet was deleted or not found - we can create a new one\n      console.log('Existing sheet not accessible, will create new one:', error);\n    }\n  }"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "offset": 160,
+  "limit": 40
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "  // If sheet exists, verify it's still accessible\n  if (user?.googleSheetId) {\n    try {\n      await withRetry(\n        () => sheets.spreadsheets.get({ spreadsheetId: user.googleSheetId! }),\n        'Sheets.get'\n      );\n      // Sheet still exists and is accessible\n      return user.googleSheetId;\n    } catch (error) {\n      console.log('Existing sheet not accessible, will create new one:', error);\n      // Sheet was deleted or access revoked - create a new one\n    }\n  }",
+  "new_string": "  // If sheet exists, verify it's still accessible\n  if (user?.googleSheetId) {\n    try {\n      await withRetry(\n        () => sheets.spreadsheets.get({ spreadsheetId: user.googleSheetId! }),\n        'Sheets.get'\n      );\n      // Sheet still exists and is accessible\n      return user.googleSheetId;\n    } catch (error) {\n      // If it's an authentication error, don't try to create a new sheet\n      // Re-throw so the caller knows the user needs to reconnect\n      if (isAuthenticationError(error)) {\n        console.error('Google authentication error - user needs to reconnect:', error);\n        throw error;\n      }\n      // Sheet was deleted or not found - we can create a new one\n      console.log('Existing sheet not accessible, will create new one:', error);\n    }\n  }"
+}
+
+Now let me update the `appendCallLog` function to properly detect and report auth errors:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "offset": 300,
+  "limit": 50
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "    console.log(`Logged call to sheet ${sheetId}`);\n    return { success: true };\n  } catch (error) {\n    const errorMessage = error instanceof Error ? error.message : 'Unknown error';\n    const errorCode = (error as { code?: string })?.code;\n    console.error('Error appending call log:', error);\n    return { success: false, error: errorMessage, errorCode };\n  }\n}",
+  "new_string": "    console.log(`Logged call to sheet ${sheetId}`);\n    return { success: true };\n  } catch (error) {\n    const errorMessage = error instanceof Error ? error.message : 'Unknown error';\n    const errorCode = (error as { code?: string })?.code;\n    const requiresReconnect = isAuthenticationError(error);\n\n    if (requiresReconnect) {\n      console.error('Google authentication error - user needs to reconnect:', error);\n    } else {\n      console.error('Error appending call log:', error);\n    }\n\n    return {\n      success: false,\n      error: requiresReconnect\n        ? 'Google authentication expired. Please reconnect your Google account.'\n        : errorMessage,\n      errorCode,\n      requiresReconnect,\n    };\n  }\n}"
+}
+
+Now let me also update the `verifySheetConnection` function to use the `isAuthenticationError` helper:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "offset": 345,
+  "limit": 40
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/sheets.ts",
+  "old_string": "    return { healthy: true };\n  } catch (error) {\n    const errorMessage = error instanceof Error ? error.message : 'Unknown error';\n\n    // Check for specific error types that indicate token issues\n    if (\n      errorMessage.includes('invalid_grant') ||\n      errorMessage.includes('Token has been expired') ||\n      errorMessage.includes('Token has been revoked')\n    ) {\n      return {\n        healthy: false,\n        error: 'Token expired or revoked. Please reconnect your Google account.',\n      };\n    }",
+  "new_string": "    return { healthy: true };\n  } catch (error) {\n    const errorMessage = error instanceof Error ? error.message : 'Unknown error';\n\n    // Check for authentication errors that require reconnection\n    if (isAuthenticationError(error)) {\n      return {\n        healthy: false,\n        error: 'Token expired or revoked. Please reconnect your Google account.',\n      };\n    }"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Fix invalid_grant error handling in getOrCreateLogSheet",
+      "status": "completed",
+      "activeForm": "Fixing invalid_grant error handling"
+    },
+    {
+      "content": "Add isAuthenticationError helper function",
+      "status": "completed",
+      "activeForm": "Adding isAuthenticationError helper"
+    },
+    {
+      "content": "Update appendCallLog to detect auth errors",
+      "status": "completed",
+      "activeForm": "Updating appendCallLog for auth errors"
+    },
+    {
+      "content": "Update calls.ts to handle requiresReconnect",
+      "status": "in_progress",
+      "activeForm": "Updating calls.ts error handling"
+    },
+    {
+      "content": "Run tests and verify build",
+      "status": "pending",
+      "activeForm": "Running tests and verifying build"
+    }
+  ]
+}
+
+Now let me check the calls.ts to see how it handles the sheets result and update it to log the reconnect requirement:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "appendCallLog",
+  "path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "output_mode": "content",
+  "-n": true,
+  "-C": 5
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "offset": 278,
+  "limit": 30
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "old_string": "    if (!result.success) {\n      console.error('Failed to log call to Sheets:', result.error);\n    }\n  } catch (error) {\n    // Log error but don't throw - this is fire-and-forget\n    console.error('Error logging call to Sheets:', error);\n  }\n}",
+  "new_string": "    if (!result.success) {\n      if (result.requiresReconnect) {\n        console.warn(\n          'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'\n        );\n        // TODO: Consider sending a notification to the user that they need to reconnect\n      } else {\n        console.error('Failed to log call to Sheets:', result.error);\n      }\n    }\n  } catch (error) {\n    // Log error but don't throw - this is fire-and-forget\n    // Check if it's an auth error that bubbled up from getOrCreateLogSheet\n    const { isAuthenticationError } = await import('@/lib/google/sheets');\n    if (isAuthenticationError(error)) {\n      console.warn(\n        'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'\n      );\n    } else {\n      console.error('Error logging call to Sheets:', error);\n    }\n  }\n}"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "offset": 290,
+  "limit": 20
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "old_string": "    if (!result.success) {\n      console.error('Failed to log call to Sheets:', result.error);\n    }\n  } catch (error) {\n    // Log error but don't throw - this is fire-and-forget\n    console.error('Error logging call to Sheets:', error);\n  }\n}",
+  "new_string": "    if (!result.success) {\n      if (result.requiresReconnect) {\n        console.warn(\n          'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'\n        );\n        // TODO: Consider sending a notification to the user that they need to reconnect\n      } else {\n        console.error('Failed to log call to Sheets:', result.error);\n      }\n    }\n  } catch (error) {\n    // Log error but don't throw - this is fire-and-forget\n    // Check if it's an auth error that bubbled up from getOrCreateLogSheet\n    const { isAuthenticationError } = await import('@/lib/google/sheets');\n    if (isAuthenticationError(error)) {\n      console.warn(\n        'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'\n      );\n    } else {\n      console.error('Error logging call to Sheets:', error);\n    }\n  }\n}"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "offset": 1,
+  "limit": 10
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && git diff src/lib/calls.ts | head -30",
+  "description": "Check calls.ts changes"
+}
+
+The file has no changes. Let me try again:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "offset": 290,
+  "limit": 15
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "old_string": "import { getOrCreateLogSheet, appendCallLog } from '@/lib/google/sheets';",
+  "new_string": "import {\n  getOrCreateLogSheet,\n  appendCallLog,\n  isAuthenticationError,\n} from '@/lib/google/sheets';"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "offset": 293,
+  "limit": 15
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/calls.ts",
+  "old_string": "    if (!result.success) {\n      console.error('Failed to log call to Sheets:', result.error);\n    }\n  } catch (error) {\n    // Log error but don't throw - this is fire-and-forget\n    console.error('Error logging call to Sheets:', error);\n  }\n}",
+  "new_string": "    if (!result.success) {\n      if (result.requiresReconnect) {\n        console.warn(\n          'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'\n        );\n        // TODO: Consider sending a notification to the user that they need to reconnect\n      } else {\n        console.error('Failed to log call to Sheets:', result.error);\n      }\n    }\n  } catch (error) {\n    // Log error but don't throw - this is fire-and-forget\n    // Check if it's an auth error that bubbled up from getOrCreateLogSheet\n    if (isAuthenticationError(error)) {\n      console.warn(\n        'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'\n      );\n    } else {\n      console.error('Error logging call to Sheets:', error);\n    }\n  }\n}"
+}
+
+Now let me update the tests to include the new `isAuthenticationError` function and run them:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "offset": 1,
+  "limit": 50
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "offset": 50,
+  "limit": 100
+}
+
+Let me add tests for the `isAuthenticationError` function and the new `requiresReconnect` field. First, let me see the end of the test file:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "offset": 300,
+  "limit": 120
+}
+
+Now let me add tests for the `isAuthenticationError` function and the `requiresReconnect` field:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "old_string": "      // Appointment should be \"Yes\"\n      expect(capturedValues[7]).toBe('Yes');\n    });\n  });\n});",
+  "new_string": "      // Appointment should be \"Yes\"\n      expect(capturedValues[7]).toBe('Yes');\n    });\n  });\n\n  describe('isAuthenticationError', () => {\n    it('should detect invalid_grant errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('invalid_grant');\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should detect token expired errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('Token has been expired or revoked');\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should detect 401 status code errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 401, message: 'Unauthorized' };\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should not detect 400 bad request as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 400, message: 'Bad request' };\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n\n    it('should not detect 429 rate limit as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 429, message: 'Rate limit exceeded' };\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n\n    it('should not detect network errors as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('ECONNRESET');\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n  });\n\n  describe('Authentication error handling', () => {\n    it('should return requiresReconnect=true on invalid_grant', async () => {\n      const { appendCallLog } = await import('../sheets');\n\n      const mockError = new Error('invalid_grant');\n      const mockAppend = vi.fn().mockRejectedValue(mockError);\n      const mockSheets = {\n        spreadsheets: {\n          values: {\n            append: mockAppend,\n          },\n        },\n      };\n      (google.sheets as any).mockReturnValue(mockSheets);\n\n      const mockOAuth2Client = {} as any;\n      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {\n        startedAt: new Date(),\n        phoneNumber: '+1234567890',\n        agentName: 'Test Agent',\n        status: 'completed',\n      });\n\n      expect(result.success).toBe(false);\n      expect(result.requiresReconnect).toBe(true);\n      expect(result.error).toContain('reconnect');\n    });\n\n    it('should not retry on authentication errors', async () => {\n      const { appendCallLog } = await import('../sheets');\n\n      let callCount = 0;\n      const mockAppend = vi.fn().mockImplementation(() => {\n        callCount++;\n        return Promise.reject(new Error('invalid_grant'));\n      });\n\n      const mockSheets = {\n        spreadsheets: {\n          values: {\n            append: mockAppend,\n          },\n        },\n      };\n      (google.sheets as any).mockReturnValue(mockSheets);\n\n      const mockOAuth2Client = {} as any;\n      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {\n        startedAt: new Date(),\n        phoneNumber: '+1234567890',\n        agentName: 'Test Agent',\n        status: 'completed',\n      });\n\n      expect(result.success).toBe(false);\n      expect(callCount).toBe(1); // Should NOT retry on auth errors\n      expect(result.requiresReconnect).toBe(true);\n    });\n  });\n});"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "offset": 410,
+  "limit": 15
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "old_string": "      // Appointment should be \"Yes\"\n      expect(capturedValues[7]).toBe('Yes');\n    });\n  });\n});",
+  "new_string": "      // Appointment should be \"Yes\"\n      expect(capturedValues[7]).toBe('Yes');\n    });\n  });\n\n  describe('isAuthenticationError', () => {\n    it('should detect invalid_grant errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('invalid_grant');\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should detect token expired errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('Token has been expired or revoked');\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should detect 401 status code errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 401, message: 'Unauthorized' };\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should not detect 400 bad request as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 400, message: 'Bad request' };\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n\n    it('should not detect 429 rate limit as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 429, message: 'Rate limit exceeded' };\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n\n    it('should not detect network errors as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('ECONNRESET');\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n  });\n\n  describe('Authentication error handling', () => {\n    it('should return requiresReconnect=true on invalid_grant', async () => {\n      const { appendCallLog } = await import('../sheets');\n\n      const mockError = new Error('invalid_grant');\n      const mockAppend = vi.fn().mockRejectedValue(mockError);\n      const mockSheets = {\n        spreadsheets: {\n          values: {\n            append: mockAppend,\n          },\n        },\n      };\n      (google.sheets as any).mockReturnValue(mockSheets);\n\n      const mockOAuth2Client = {} as any;\n      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {\n        startedAt: new Date(),\n        phoneNumber: '+1234567890',\n        agentName: 'Test Agent',\n        status: 'completed',\n      });\n\n      expect(result.success).toBe(false);\n      expect(result.requiresReconnect).toBe(true);\n      expect(result.error).toContain('reconnect');\n    });\n\n    it('should not retry on authentication errors', async () => {\n      const { appendCallLog } = await import('../sheets');\n\n      let callCount = 0;\n      const mockAppend = vi.fn().mockImplementation(() => {\n        callCount++;\n        return Promise.reject(new Error('invalid_grant'));\n      });\n\n      const mockSheets = {\n        spreadsheets: {\n          values: {\n            append: mockAppend,\n          },\n        },\n      };\n      (google.sheets as any).mockReturnValue(mockSheets);\n\n      const mockOAuth2Client = {} as any;\n      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {\n        startedAt: new Date(),\n        phoneNumber: '+1234567890',\n        agentName: 'Test Agent',\n        status: 'completed',\n      });\n\n      expect(result.success).toBe(false);\n      expect(callCount).toBe(1); // Should NOT retry on auth errors\n      expect(result.requiresReconnect).toBe(true);\n    });\n  });\n});"
+}
+
+Let me check the file status and try a different approach:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && tail -20 src/lib/google/__tests__/sheets.test.ts",
+  "description": "Read end of test file"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "offset": 410,
+  "limit": 10
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:/CodeBase/Kametrix/src/lib/google/__tests__/sheets.test.ts",
+  "old_string": "    });\n  });\n});",
+  "new_string": "    });\n  });\n\n  describe('isAuthenticationError', () => {\n    it('should detect invalid_grant errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('invalid_grant');\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should detect token expired errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('Token has been expired or revoked');\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should detect 401 status code errors', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 401, message: 'Unauthorized' };\n      expect(isAuthenticationError(error)).toBe(true);\n    });\n\n    it('should not detect 400 bad request as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 400, message: 'Bad request' };\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n\n    it('should not detect 429 rate limit as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = { code: 429, message: 'Rate limit exceeded' };\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n\n    it('should not detect network errors as auth error', async () => {\n      const { isAuthenticationError } = await import('../sheets');\n      const error = new Error('ECONNRESET');\n      expect(isAuthenticationError(error)).toBe(false);\n    });\n  });\n\n  describe('Authentication error handling', () => {\n    it('should return requiresReconnect=true on invalid_grant', async () => {\n      const { appendCallLog } = await import('../sheets');\n\n      const mockError = new Error('invalid_grant');\n      const mockAppend = vi.fn().mockRejectedValue(mockError);\n      const mockSheets = {\n        spreadsheets: {\n          values: {\n            append: mockAppend,\n          },\n        },\n      };\n      (google.sheets as any).mockReturnValue(mockSheets);\n\n      const mockOAuth2Client = {} as any;\n      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {\n        startedAt: new Date(),\n        phoneNumber: '+1234567890',\n        agentName: 'Test Agent',\n        status: 'completed',\n      });\n\n      expect(result.success).toBe(false);\n      expect(result.requiresReconnect).toBe(true);\n      expect(result.error).toContain('reconnect');\n    });\n\n    it('should not retry on authentication errors', async () => {\n      const { appendCallLog } = await import('../sheets');\n\n      let callCount = 0;\n      const mockAppend = vi.fn().mockImplementation(() => {\n        callCount++;\n        return Promise.reject(new Error('invalid_grant'));\n      });\n\n      const mockSheets = {\n        spreadsheets: {\n          values: {\n            append: mockAppend,\n          },\n        },\n      };\n      (google.sheets as any).mockReturnValue(mockSheets);\n\n      const mockOAuth2Client = {} as any;\n      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {\n        startedAt: new Date(),\n        phoneNumber: '+1234567890',\n        agentName: 'Test Agent',\n        status: 'completed',\n      });\n\n      expect(result.success).toBe(false);\n      expect(callCount).toBe(1); // Should NOT retry on auth errors\n      expect(result.requiresReconnect).toBe(true);\n    });\n  });\n});"
+}
+
+Now let me run the tests:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && npm test -- --reporter=verbose src/lib/google/__tests__/sheets.test.ts 2>&1",
+  "description": "Run sheets tests",
+  "timeout": 60000
+}
+
+All 21 tests pass! Now let me run all tests and verify the build:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Fix invalid_grant error handling in getOrCreateLogSheet",
+      "status": "completed",
+      "activeForm": "Fixing invalid_grant error handling"
+    },
+    {
+      "content": "Add isAuthenticationError helper function",
+      "status": "completed",
+      "activeForm": "Adding isAuthenticationError helper"
+    },
+    {
+      "content": "Update appendCallLog to detect auth errors",
+      "status": "completed",
+      "activeForm": "Updating appendCallLog for auth errors"
+    },
+    {
+      "content": "Update calls.ts to handle requiresReconnect",
+      "status": "completed",
+      "activeForm": "Updating calls.ts error handling"
+    },
+    {
+      "content": "Run tests and verify build",
+      "status": "in_progress",
+      "activeForm": "Running tests and verifying build"
+    }
+  ]
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && npm test 2>&1",
+  "description": "Run all tests",
+  "timeout": 120000
+}
+
+All 45 tests pass. Now let me verify the build:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && npm run build 2>&1 | tail -30",
+  "description": "Verify the build",
+  "timeout": 180000
+}
+
+Excellent! The build passes. Let me check git status for a summary of all changes:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && git diff --stat HEAD",
+  "description": "Show git diff stats"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Fix invalid_grant error handling in getOrCreateLogSheet",
+      "status": "completed",
+      "activeForm": "Fixing invalid_grant error handling"
+    },
+    {
+      "content": "Add isAuthenticationError helper function",
+      "status": "completed",
+      "activeForm": "Adding isAuthenticationError helper"
+    },
+    {
+      "content": "Update appendCallLog to detect auth errors",
+      "status": "completed",
+      "activeForm": "Updating appendCallLog for auth errors"
+    },
+    {
+      "content": "Update calls.ts to handle requiresReconnect",
+      "status": "completed",
+      "activeForm": "Updating calls.ts error handling"
+    },
+    {
+      "content": "Run tests and verify build",
+      "status": "completed",
+      "activeForm": "Running tests and verifying build"
+    }
+  ]
+}
+
+<summary>
+## Summary: Fix Google Integration Authentication Error Handling
+
+### Changes Implemented
+
+1. **Added `isAuthenticationError()` helper function**
+   - Detects OAuth errors: `invalid_grant`, `token expired`, `token revoked`, `access_denied`
+   - Detects 401 status codes
+   - Exported for use in other modules
+
+2. **Fixed retry logic to NOT retry on auth errors**
+   - Modified `isRetryableError()` to exclude authentication errors
+   - Prevents futile retry attempts when user needs to reconnect
+
+3. **Fixed `getOrCreateLogSheet()` to fail fast on auth errors**
+   - Previously: When sheet access failed with `invalid_grant`, it would try to create a new sheet (which also failed)
+   - Now: Detects auth errors and re-throws them immediately instead of attempting to create a new sheet
+   - Cleaner error message: "Google authentication error - user needs to reconnect"
+
+4. **Enhanced `SheetsOperationResult` type**
+   - Added `requiresReconnect?: boolean` field to indicate when user action is needed
+
+5. **Updated `appendCallLog()` to report auth errors**
+   - Sets `requiresReconnect: true` when authentication fails
+   - Returns user-friendly message: "Google authentication expired. Please reconnect your Google account."
+
+6. **Updated `calls.ts` to handle reconnect requirement**
+   - Imports `isAuthenticationError` function
+   - Uses `console.warn` instead of `console.error` for auth issues (less alarming, expected scenario)
+   - Handles both `result.requiresReconnect` and errors thrown from `getOrCreateLogSheet`
+
+### Files Modified
+- `src/lib/google/sheets.ts` - Core auth error detection and handling
+- `src/lib/calls.ts` - Updated import and error handling logic
+- `src/lib/google/__tests__/sheets.test.ts` - Added 8 new tests for auth error handling
+
+### Verification Status
+- ✅ All 45 unit tests pass (8 new tests for authentication error handling)
+- ✅ TypeScript build completes successfully
+- ✅ Tests verify:
+  - `isAuthenticationError()` correctly detects `invalid_grant`, token expiration, 401 errors
+  - `isAuthenticationError()` correctly ignores 400, 429, and network errors
+  - `appendCallLog()` returns `requiresReconnect: true` on auth errors
+  - No retry attempts on authentication errors (single API call)
+
+### Notes for Developer
+- When `invalid_grant` occurs, the system now logs a clear warning message instead of attempting futile operations
+- The `requiresReconnect` field can be used by frontend to prompt user to reconnect their Google account
+- Consider adding a user notification system to alert users when their Google connection expires
+</summary>

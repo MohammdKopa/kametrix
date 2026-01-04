@@ -413,4 +413,102 @@ describe('Google Sheets Integration', () => {
       expect(capturedValues[7]).toBe('Yes');
     });
   });
+
+  describe('isAuthenticationError', () => {
+    it('should detect invalid_grant errors', async () => {
+      const { isAuthenticationError } = await import('../sheets');
+      const error = new Error('invalid_grant');
+      expect(isAuthenticationError(error)).toBe(true);
+    });
+
+    it('should detect token expired errors', async () => {
+      const { isAuthenticationError } = await import('../sheets');
+      const error = new Error('Token has been expired or revoked');
+      expect(isAuthenticationError(error)).toBe(true);
+    });
+
+    it('should detect 401 status code errors', async () => {
+      const { isAuthenticationError } = await import('../sheets');
+      const error = { code: 401, message: 'Unauthorized' };
+      expect(isAuthenticationError(error)).toBe(true);
+    });
+
+    it('should not detect 400 bad request as auth error', async () => {
+      const { isAuthenticationError } = await import('../sheets');
+      const error = { code: 400, message: 'Bad request' };
+      expect(isAuthenticationError(error)).toBe(false);
+    });
+
+    it('should not detect 429 rate limit as auth error', async () => {
+      const { isAuthenticationError } = await import('../sheets');
+      const error = { code: 429, message: 'Rate limit exceeded' };
+      expect(isAuthenticationError(error)).toBe(false);
+    });
+
+    it('should not detect network errors as auth error', async () => {
+      const { isAuthenticationError } = await import('../sheets');
+      const error = new Error('ECONNRESET');
+      expect(isAuthenticationError(error)).toBe(false);
+    });
+  });
+
+  describe('Authentication error handling', () => {
+    it('should return requiresReconnect=true on invalid_grant', async () => {
+      const { appendCallLog } = await import('../sheets');
+
+      const mockError = new Error('invalid_grant');
+      const mockAppend = vi.fn().mockRejectedValue(mockError);
+      const mockSheets = {
+        spreadsheets: {
+          values: {
+            append: mockAppend,
+          },
+        },
+      };
+      (google.sheets as any).mockReturnValue(mockSheets);
+
+      const mockOAuth2Client = {} as any;
+      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {
+        startedAt: new Date(),
+        phoneNumber: '+1234567890',
+        agentName: 'Test Agent',
+        status: 'completed',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.requiresReconnect).toBe(true);
+      expect(result.error).toContain('reconnect');
+    });
+
+    it('should not retry on authentication errors', async () => {
+      const { appendCallLog } = await import('../sheets');
+
+      let callCount = 0;
+      const mockAppend = vi.fn().mockImplementation(() => {
+        callCount++;
+        return Promise.reject(new Error('invalid_grant'));
+      });
+
+      const mockSheets = {
+        spreadsheets: {
+          values: {
+            append: mockAppend,
+          },
+        },
+      };
+      (google.sheets as any).mockReturnValue(mockSheets);
+
+      const mockOAuth2Client = {} as any;
+      const result = await appendCallLog(mockOAuth2Client, 'test-sheet-id', {
+        startedAt: new Date(),
+        phoneNumber: '+1234567890',
+        agentName: 'Test Agent',
+        status: 'completed',
+      });
+
+      expect(result.success).toBe(false);
+      expect(callCount).toBe(1); // Should NOT retry on auth errors
+      expect(result.requiresReconnect).toBe(true);
+    });
+  });
 });

@@ -1,7 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { CallStatus } from '@/generated/prisma/client';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
-import { getOrCreateLogSheet, appendCallLog } from '@/lib/google/sheets';
+import {
+  getOrCreateLogSheet,
+  appendCallLog,
+  isAuthenticationError,
+} from '@/lib/google/sheets';
 
 /**
  * Webhook payload type definitions
@@ -292,10 +296,24 @@ export async function logCallToSheets(
     });
 
     if (!result.success) {
-      console.error('Failed to log call to Sheets:', result.error);
+      if (result.requiresReconnect) {
+        console.warn(
+          'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'
+        );
+        // TODO: Consider sending a notification to the user that they need to reconnect
+      } else {
+        console.error('Failed to log call to Sheets:', result.error);
+      }
     }
   } catch (error) {
     // Log error but don't throw - this is fire-and-forget
-    console.error('Error logging call to Sheets:', error);
+    // Check if it's an auth error that bubbled up from getOrCreateLogSheet
+    if (isAuthenticationError(error)) {
+      console.warn(
+        'Google Sheets logging failed - authentication expired. User needs to reconnect Google account.'
+      );
+    } else {
+      console.error('Error logging call to Sheets:', error);
+    }
   }
 }
