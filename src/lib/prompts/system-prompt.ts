@@ -4,9 +4,17 @@
  * Single source of truth for all system prompt generation.
  * Uses Vapi dynamic variables for real-time date/time:
  * https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
+ *
+ * Enhanced with:
+ * - Context-aware business type detection
+ * - Dynamic variable substitution
+ * - Modular section-based templates
+ * - Improved clarity and specificity
  */
 
-import type { PromptConfig } from './types';
+import type { PromptConfig, GeneratedPrompt, BusinessType } from './types';
+import { buildEnhancedPrompt } from './template-builder';
+import { detectBusinessType } from './business-type-detector';
 
 /**
  * Build the date header with Vapi dynamic variables
@@ -31,7 +39,7 @@ WICHTIG - DATUMSREGELN:
 }
 
 /**
- * Build a complete system prompt for a voice AI assistant
+ * Build a complete system prompt for a voice AI assistant (Legacy API)
  *
  * Uses section-based structure for LLM parsing clarity:
  * - [AKTUELLES DATUM...] - Date header (calendar-enabled only)
@@ -47,68 +55,81 @@ WICHTIG - DATUMSREGELN:
  * @returns Complete system prompt string
  */
 export function buildSystemPrompt(config: PromptConfig): string {
-  const sections: string[] = [];
+  // Use the enhanced prompt builder for improved context awareness
+  const result = buildEnhancedPrompt(config);
+  return result.prompt;
+}
 
-  // Date header (only for calendar-enabled agents)
-  if (config.hasGoogleCalendar) {
-    sections.push(buildDateHeader());
+/**
+ * Build a complete system prompt with full metadata (Enhanced API)
+ *
+ * Returns the prompt along with section details, variables used,
+ * and generation metadata for debugging and analytics.
+ *
+ * @param config - Business configuration for the prompt
+ * @returns Generated prompt with full metadata
+ */
+export function buildSystemPromptWithMetadata(config: PromptConfig): GeneratedPrompt {
+  return buildEnhancedPrompt(config);
+}
+
+/**
+ * Detect business type from configuration
+ *
+ * Utility function to detect the business type without building the full prompt.
+ * Useful for UI display and conditional logic.
+ *
+ * @param config - Business configuration
+ * @returns Detected business type
+ */
+export function getBusinessType(config: PromptConfig): BusinessType {
+  return config.businessType || detectBusinessType(
+    config.businessName,
+    config.businessDescription,
+    config.services
+  );
+}
+
+/**
+ * Validate prompt configuration
+ *
+ * Checks for common issues in the configuration that could
+ * result in a suboptimal prompt.
+ *
+ * @param config - Business configuration to validate
+ * @returns Array of warning messages (empty if valid)
+ */
+export function validatePromptConfig(config: PromptConfig): string[] {
+  const warnings: string[] = [];
+
+  if (!config.businessName.trim()) {
+    warnings.push('Firmenname ist erforderlich');
   }
 
-  // Identity section
-  sections.push('[Identity]');
-  sections.push(`Sie sind der KI-Assistent fuer ${config.businessName}.`);
-  if (config.businessDescription) {
-    sections.push(config.businessDescription);
+  if (!config.businessHours.trim()) {
+    warnings.push('Oeffnungszeiten sollten angegeben werden');
   }
 
-  // Business info section
-  sections.push('');
-  sections.push('[Geschaeftsinformationen]');
-  sections.push(`- Firmenname: ${config.businessName}`);
-  sections.push(`- Oeffnungszeiten: ${config.businessHours}`);
-  if (config.services.length > 0) {
-    sections.push(`- Dienstleistungen: ${config.services.join(', ')}`);
+  if (config.services.length === 0) {
+    warnings.push('Mindestens eine Dienstleistung sollte angegeben werden');
   }
 
-  // FAQ section (conditional)
+  if (config.faqs.length === 0) {
+    warnings.push('FAQs verbessern die Qualitaet der Antworten erheblich');
+  }
+
   if (config.faqs.length > 0) {
-    sections.push('');
-    sections.push('[Haeufige Fragen]');
-    config.faqs.forEach((faq) => {
-      sections.push(`F: ${faq.question}`);
-      sections.push(`A: ${faq.answer}`);
-    });
-  }
-
-  // Policies section (conditional)
-  if (config.policies) {
-    sections.push('');
-    sections.push('[Richtlinien]');
-    sections.push(config.policies);
-  }
-
-  // Calendar section (conditional)
-  if (config.hasGoogleCalendar) {
-    sections.push('');
-    sections.push('[Kalender-Funktionen]');
-    sections.push('- Verfuegbarkeit pruefen mit check_availability');
-    sections.push('- Termine buchen mit book_appointment');
-    sections.push(
-      '- Bei Buchungen erfragen: Datum, Uhrzeit, Name (erforderlich), Telefon (optional), E-Mail (optional)'
+    const emptyFaqs = config.faqs.filter(
+      (faq) => !faq.question.trim() || !faq.answer.trim()
     );
-    sections.push('- Details vor Buchung bestaetigen');
-    sections.push('- Relative Datumsangaben (morgen, naechsten Montag) anhand des aktuellen Datums berechnen');
+    if (emptyFaqs.length > 0) {
+      warnings.push(`${emptyFaqs.length} FAQ(s) haben leere Fragen oder Antworten`);
+    }
   }
 
-  // Style section - voice-optimized guidelines
-  sections.push('');
-  sections.push('[Style]');
-  sections.push('- Sprechen Sie Anrufer IMMER mit "Sie" an (formell)');
-  sections.push('- Seien Sie freundlich, professionell und praezise');
-  sections.push('- Halten Sie Antworten kurz (max 2-3 Saetze)');
-  sections.push('- Natuerlich fuer Telefongespraeche sprechen');
-  sections.push('- Keine Markdown-Formatierung verwenden');
-  sections.push('- Wenn Sie etwas nicht wissen, sagen Sie hoeflich, dass sich jemand melden wird');
+  if (config.hasGoogleCalendar && !config.businessHours.trim()) {
+    warnings.push('Bei aktiviertem Kalender sind Oeffnungszeiten besonders wichtig');
+  }
 
-  return sections.join('\n');
+  return warnings;
 }

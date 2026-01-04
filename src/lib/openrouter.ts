@@ -1,4 +1,10 @@
 import { WizardState } from '@/types/wizard';
+import {
+  detectBusinessType,
+  getBusinessTypeContext,
+  getBusinessTypeDisplayName,
+  type BusinessType,
+} from '@/lib/prompts';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -48,41 +54,32 @@ async function callOpenRouter(messages: OpenRouterMessage[], model = 'openai/gpt
 }
 
 export interface GeneratedContent {
-  faqs: { question: string; answer: string }[];
+  faqs: { question: string; answer: string; category?: string }[];
   policies: string;
   greeting: string;
   endCallMessage: string;
+  detectedBusinessType?: BusinessType;
 }
 
-export async function generateWizardContent(
-  businessInfo: WizardState['businessInfo']
-): Promise<GeneratedContent> {
-  const { businessName, businessDescription, businessHours, services } = businessInfo;
+/**
+ * Build context-aware system prompt for FAQ generation
+ * Uses centralized business type detection for consistency
+ */
+function buildFAQGenerationPrompt(businessType: BusinessType): string {
+  const context = getBusinessTypeContext(businessType);
+  const displayName = getBusinessTypeDisplayName(businessType);
 
-  const servicesText = services.filter(s => s.trim()).join(', ') || 'general services';
+  return `Du bist Experte für die Erstellung von Inhalten für KI-Sprachassistenten, die Telefonanrufe für kleine Unternehmen in Deutschland bearbeiten.
 
-  const systemPrompt = `Du bist Experte für die Erstellung von Inhalten für KI-Sprachassistenten, die Telefonanrufe für kleine Unternehmen in Deutschland bearbeiten.
+ERKANNTE BRANCHE: ${displayName}
 
-SCHRITT 1 - BRANCHENERKENNUNG:
-Analysiere zuerst den Unternehmenstyp anhand von Schlüsselwörtern:
+TYPISCHE ANFRAGEN IN DIESER BRANCHE:
+${context.typicalQueries.map((q) => `- ${q}`).join('\n')}
 
-GASTRONOMIE erkennen an: Restaurant, Ristorante, Pizzeria, Bistro, Café, Kaffee, Bäckerei, Konditorei, Bar, Kneipe, Imbiss, Döner, Sushi, Küche, Speisen, Essen, Koch, kulinarisch, Gasthaus, Wirtshaus, Trattoria
-→ FAQs über: Reservierung, Tischverfügbarkeit, Speisekarte, Allergien, vegetarisch/vegan, Lieferung, Parken, Gruppenreservierung, Kindermenü, Mittagstisch
+HAUPTAUFGABEN DES ASSISTENTEN:
+${context.keyResponsibilities.map((r) => `- ${r}`).join('\n')}
 
-FRISEUR/KOSMETIK erkennen an: Friseur, Salon, Haare, Schnitt, Färben, Styling, Kosmetik, Nagel, Maniküre, Pediküre, Wellness, Spa, Massage, Beauty, Pflege, Frisör
-→ FAQs über: Terminvereinbarung, Wartezeit ohne Termin, Preisliste, Dauer der Behandlung, Beratung, Produkte, Parken, Absage/Umbuchung
-
-MEDIZIN/GESUNDHEIT erkennen an: Arzt, Praxis, Klinik, Zahnarzt, Orthopäde, Physiotherapie, Heilpraktiker, Therapeut, Psychologe, Apotheke, medizinisch, Gesundheit, Patient, Behandlung
-→ FAQs über: Terminvereinbarung, Wartezeit, mitzubringende Unterlagen, Rezeptbestellung, Überweisung, Notfälle, Privatpatienten/Kassen, Parkplätze
-
-HANDWERK erkennen an: Handwerker, Elektriker, Klempner, Sanitär, Heizung, Maler, Schreiner, Tischler, Dachdecker, Installateur, Reparatur, Montage, Renovierung, Bauarbeiten
-→ FAQs über: Kostenvoranschlag, Anfahrtskosten, Terminvereinbarung, Notdienst, Dauer, Garantie, Zahlungsmöglichkeiten
-
-EINZELHANDEL erkennen an: Laden, Shop, Geschäft, Boutique, Kaufen, Verkauf, Produkte, Waren, Sortiment, Bestellung
-→ FAQs über: Öffnungszeiten, Verfügbarkeit, Bestellung, Lieferung, Umtausch, Rückgabe, Parken
-
-DIENSTLEISTUNG (Allgemein): Beratung, Service, Agentur, Büro, Versicherung, Steuerberater, Rechtsanwalt, IT
-→ FAQs über: Terminvereinbarung, Leistungsumfang, Preise/Kosten, Erstberatung, Erreichbarkeit
+EMPFOHLENER TONFALL: ${context.suggestedTone}
 
 TONFALL - HERZLICH, NICHT FÖRMLICH:
 Beispiele für HERZLICHEN Ton (so soll es klingen):
@@ -98,70 +95,78 @@ Beispiele für ZU FÖRMLICHEN Ton (so NICHT):
 WICHTIGE REGELN:
 - Alle Inhalte auf Deutsch mit Sie-Form
 - Schreibe so, wie es natürlich am Telefon klingt
+- FAQs müssen spezifisch für die erkannte Branche sein
+- Antworten kurz und praezise (2-3 Saetze maximal)
 
 Antworte mit gültigem JSON:
 {
   "faqs": [
-    { "question": "...", "answer": "..." },
-    { "question": "...", "answer": "..." },
-    { "question": "...", "answer": "..." },
-    { "question": "...", "answer": "..." },
-    { "question": "...", "answer": "..." }
+    { "question": "...", "answer": "...", "category": "..." },
+    { "question": "...", "answer": "...", "category": "..." },
+    { "question": "...", "answer": "...", "category": "..." },
+    { "question": "...", "answer": "...", "category": "..." },
+    { "question": "...", "answer": "...", "category": "..." }
   ],
   "policies": "...",
   "greeting": "...",
   "endCallMessage": "..."
 }`;
+}
 
+export async function generateWizardContent(
+  businessInfo: WizardState['businessInfo']
+): Promise<GeneratedContent> {
+  const { businessName, businessDescription, businessHours, services } = businessInfo;
+
+  const servicesText = services.filter(s => s.trim()).join(', ') || 'general services';
+
+  // Use centralized business type detection for consistency
+  const detectedType = detectBusinessType(businessName, businessDescription, services);
+  const typeContext = getBusinessTypeContext(detectedType);
+  const displayName = getBusinessTypeDisplayName(detectedType);
+
+  // Build context-aware system prompt
+  const systemPrompt = buildFAQGenerationPrompt(detectedType);
+
+  // Build enhanced user prompt with business-specific examples
   const userPrompt = `Generiere Inhalte für einen KI-Sprachassistenten:
 
 UNTERNEHMENSDATEN:
 - Firmenname: ${businessName}
-- Beschreibung: ${businessDescription}
-- Öffnungszeiten: ${businessHours}
+- Beschreibung: ${businessDescription || 'Keine Beschreibung angegeben'}
+- Öffnungszeiten: ${businessHours || 'Nicht angegeben'}
 - Dienstleistungen: ${servicesText}
 
+ERKANNTE BRANCHE: ${displayName}
+
 AUFGABE:
-1. Erkenne zuerst die Branche aus Name, Beschreibung und Dienstleistungen
-2. Generiere 5 FAQs, die SPEZIFISCH für diese Branche sind
+Generiere 5 FAQs, die SPEZIFISCH für diese Branche sind und typische Kundenanfragen abdecken:
+${typeContext.typicalQueries.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
-BEISPIELE FÜR BRANCHENSPEZIFISCHE FAQs:
+FAQ-KATEGORIEN für diese Branche:
+- Termine/Verfuegbarkeit
+- Preise/Kosten
+- Ablauf/Dauer
+- Sonstiges
 
-Wenn RESTAURANT/GASTRO erkannt:
-- "Kann ich bei Ihnen einen Tisch reservieren?" → "Gerne! Für wie viele Personen und wann möchten Sie kommen?"
-- "Haben Sie vegetarische Gerichte?" → "Selbstverständlich! Wir haben eine schöne Auswahl..."
-- "Kann man bei Ihnen auch bestellen und abholen?" → "Ja, das geht! Sie können telefonisch bestellen..."
-- "Haben Sie Parkmöglichkeiten?" → "..."
-- "Gibt es ein Mittagsmenü?" → "..."
+QUALITAETSKRITERIEN FÜR DIE FAQs:
+1. Fragen muessen natuerlich klingen (so wie Kunden wirklich fragen)
+2. Antworten muessen spezifisch und hilfreich sein
+3. Antworten muessen zum Unternehmen passen
+4. Herzlicher, freundlicher Ton mit "Gerne!", "Selbstverstaendlich!", "Natuerlich!"
+5. Kurz und praezise (2-3 Saetze)
 
-Wenn FRISEUR/SALON erkannt:
-- "Kann ich einen Termin vereinbaren?" → "Gerne! Wann würde es Ihnen passen?"
-- "Was kostet ein Haarschnitt bei Ihnen?" → "Das hängt von der Behandlung ab..."
-- "Muss ich vorher einen Termin machen oder kann ich auch spontan kommen?" → "..."
-- "Wie lange dauert eine Färbung?" → "..."
-- "Verkaufen Sie auch Haarpflegeprodukte?" → "..."
+RICHTLINIEN:
+Erstelle kurze, klare Richtlinien fuer das Unternehmen (Stornierung, Bezahlung, etc.)
 
-Wenn ARZTPRAXIS erkannt:
-- "Ich brauche einen Termin, wann haben Sie frei?" → "Gerne schaue ich nach. Ist es dringend?"
-- "Brauche ich eine Überweisung?" → "..."
-- "Kann ich ein Rezept abholen?" → "..."
-- "Was muss ich zum Termin mitbringen?" → "..."
-- "Behandeln Sie auch Privatpatienten?" → "..."
+BEGRUESSUNG:
+- Verwende {{businessName}} als Platzhalter fuer den Firmennamen
+- Herzlich und einladend, nicht "Sie haben X erreicht"
+- Beispiel: "{{businessName}}, guten Tag! Schoen, dass Sie anrufen. Wie kann ich Ihnen helfen?"
 
-Wenn HANDWERKER erkannt:
-- "Können Sie vorbeikommen für einen Kostenvoranschlag?" → "Gerne! Worum geht es?"
-- "Was kostet bei Ihnen die Anfahrt?" → "..."
-- "Haben Sie auch einen Notdienst?" → "..."
-- "Wie schnell können Sie kommen?" → "..."
-- "Geben Sie Garantie auf Ihre Arbeit?" → "..."
-
-WICHTIG:
-- FAQs müssen zur erkannten Branche passen, NICHT generisch sein
-- Antworten herzlich formulieren, mit "Gerne!", "Selbstverständlich!", "Natürlich!"
-- Konkrete, hilfreiche Antworten basierend auf den Unternehmensdaten
-
-GREETING: Verwende {businessName} als Platzhalter. Herzlich, nicht "Sie haben X erreicht."
-VERABSCHIEDUNG: Warmherzig, nicht "Der Anruf wird beendet."`;
+VERABSCHIEDUNG:
+- Warmherzig und persoenlich
+- Beispiel: "Vielen herzlichen Dank fuer Ihren Anruf! Ich wuensche Ihnen noch einen wunderschoenen Tag."`;
 
   const content = await callOpenRouter([
     { role: 'system', content: systemPrompt },
@@ -183,7 +188,11 @@ VERABSCHIEDUNG: Warmherzig, nicht "Der Anruf wird beendet."`;
       throw new Error('Invalid response structure');
     }
 
-    return parsed;
+    // Add detected business type to response
+    return {
+      ...parsed,
+      detectedBusinessType: detectedType,
+    };
   } catch (parseError) {
     console.error('Failed to parse AI response:', content);
     throw new Error('Failed to parse AI-generated content');
@@ -200,11 +209,19 @@ export async function generateFAQsOnly(
 export async function generateGreetingOnly(
   businessInfo: WizardState['businessInfo'],
   agentName: string
-): Promise<{ greeting: string; endCallMessage: string }> {
+): Promise<{ greeting: string; endCallMessage: string; detectedBusinessType?: BusinessType }> {
   const { businessName, businessDescription, services } = businessInfo;
   const servicesText = services.filter(s => s.trim()).join(', ') || 'general services';
 
+  // Use centralized business type detection
+  const detectedType = detectBusinessType(businessName, businessDescription, services);
+  const typeContext = getBusinessTypeContext(detectedType);
+  const displayName = getBusinessTypeDisplayName(detectedType);
+
   const systemPrompt = `Du bist Experte für die Erstellung von herzlichen Begrüßungen für KI-Sprachassistenten in Deutschland.
+
+ERKANNTE BRANCHE: ${displayName}
+EMPFOHLENER TONFALL: ${typeContext.suggestedTone}
 
 TONFALL - HERZLICH, NICHT FÖRMLICH:
 Der Ton soll "herzlich" (warm, einladend) sein, NICHT "förmlich" (steif, bürokratisch).
@@ -227,17 +244,20 @@ Antworte immer mit gültigem JSON:
 
   const userPrompt = `Generiere eine herzliche Begrüßung und Verabschiedung für einen KI-Sprachassistenten:
 
-Firmenname: ${businessName}
-Assistentenname: ${agentName}
-Beschreibung: ${businessDescription}
-Dienstleistungen: ${servicesText}
+UNTERNEHMENSDATEN:
+- Firmenname: ${businessName}
+- Assistentenname: ${agentName}
+- Beschreibung: ${businessDescription || 'Keine Beschreibung angegeben'}
+- Dienstleistungen: ${servicesText}
+- Branche: ${displayName}
 
 BEGRÜSSUNG:
-- Verwende {businessName} als Platzhalter für den Firmennamen
+- Verwende {{businessName}} als Platzhalter für den Firmennamen
 - Erwähne den Namen des Assistenten (${agentName})
 - Soll herzlich und einladend klingen, wie ein freundlicher Mensch am Telefon
-- Beispiel herzlich: "{businessName}, guten Tag! Hier spricht ${agentName}. Schön, dass Sie anrufen! Wie kann ich Ihnen helfen?"
-- NICHT so: "Sie haben {businessName} erreicht. Mein Name ist ${agentName}. Bitte nennen Sie Ihr Anliegen."
+- Passe den Ton an die Branche an (${typeContext.suggestedTone})
+- Beispiel herzlich: "{{businessName}}, guten Tag! Hier spricht ${agentName}. Schön, dass Sie anrufen! Wie kann ich Ihnen helfen?"
+- NICHT so: "Sie haben {{businessName}} erreicht. Mein Name ist ${agentName}. Bitte nennen Sie Ihr Anliegen."
 
 VERABSCHIEDUNG:
 - Soll persönlich und warmherzig klingen
@@ -260,6 +280,7 @@ Verwende die Sie-Form, aber schreibe so, dass es natürlich und warm klingt wenn
     return {
       greeting: parsed.greeting || '',
       endCallMessage: parsed.endCallMessage || '',
+      detectedBusinessType: detectedType,
     };
   } catch {
     throw new Error('Failed to parse AI-generated greeting');

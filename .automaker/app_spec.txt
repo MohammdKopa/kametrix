@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_specification>
+  <project_name>Kametrix</project_name>
+
+  <overview>
+    Kametrix is a self-serve, production-ready AI voice agent platform designed specifically for the German small business market. It enables small business owners (local shops, clinics, service providers) to deploy AI voice agents in minutes for phone support and appointment booking without requiring technical expertise. The platform handles the complete workflow: signup, agent creation, phone number provisioning, integration with Google Calendar for bookings, Stripe payments with credit-based billing, and comprehensive call management. Currently at v2.1 with premium dark-themed UI using shadcn/ui components, ElevenLabs German voice integration, complete security hardening, and optimized German-language prompts.
+  </overview>
+
+  <technology_stack>
+    <technology>Next.js 15 (full-stack framework)</technology>
+    <technology>React 19 (UI rendering)</technology>
+    <technology>TypeScript 5.9 (type safety)</technology>
+    <technology>PostgreSQL (database)</technology>
+    <technology>Prisma 7 (ORM with pg adapter)</technology>
+    <technology>Tailwind CSS 4 (styling with CSS-first config)</technology>
+    <technology>shadcn/ui (premium dark-theme components)</technology>
+    <technology>Radix UI (accessible component primitives)</technology>
+    <technology>Vapi AI (voice agent infrastructure)</technology>
+    <technology>ElevenLabs (German TTS voices)</technology>
+    <technology>Deepgram (German STT speech-to-text)</technology>
+    <technology>Google APIs (Calendar &amp; Sheets integration with OAuth)</technology>
+    <technology>Stripe (payment processing)</technology>
+    <technology>Rate Limiter Flexible (API rate limiting)</technology>
+    <technology>bcryptjs (password hashing)</technology>
+    <technology>nodemailer (email notifications)</technology>
+    <technology>motion (scroll animation library)</technology>
+    <technology>next-themes (dark mode management)</technology>
+    <technology>Vitest (unit testing)</technology>
+    <technology>Lucide React (icons)</technology>
+    <technology>Vanilla Cookie Consent (GDPR compliance)</technology>
+  </technology_stack>
+
+  <core_capabilities>
+    <capability>Self-serve user signup with email/password authentication</capability>
+    <capability>AI voice agent creation via templates and custom builder wizard</capability>
+    <capability>Phone number provisioning and management (Vapi-managed)</capability>
+    <capability>Incoming call handling with voice AI interaction</capability>
+    <capability>Appointment booking integration with Google Calendar</capability>
+    <capability>Business information Q&amp;A capability via configured knowledge base</capability>
+    <capability>Call history tracking with transcripts and summaries</capability>
+    <capability>Credit-based billing system with Stripe payments (€0.15/min)</capability>
+    <capability>Grace period for overage when credits run low</capability>
+    <capability>User dashboard for agent management, call logs, and credit balance</capability>
+    <capability>Admin dashboard for user management, credit adjustments, and system settings</capability>
+    <capability>German localization with Sie-form prompts and German voices</capability>
+    <capability>Rate limiting for API protection</capability>
+    <capability>Webhook signature verification for security</capability>
+    <capability>Dark-themed glassmorphic premium UI with scroll animations</capability>
+    <capability>Multi-language voice support (ElevenLabs + Deepgram for German)</capability>
+    <capability>Admin-configurable per-minute billing rates</capability>
+    <capability>Email notifications for account events</capability>
+    <capability>Google Sheets logging for call data</capability>
+    <capability>Secure token encryption (AES-256-GCM)</capability>
+  </core_capabilities>
+
+  <implemented_features>
+    <feature>
+      <name>User Authentication &amp; Session Management</name>
+      <description>Email/password signup and login with session tokens, password hashing via bcryptjs</description>
+      <file_locations>
+        <location>src/lib/auth.ts</location>
+        <location>src/app/api/auth/login/route.ts</location>
+        <location>src/app/api/auth/register/route.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>AI Voice Agent Builder Wizard</name>
+      <description>Multi-step wizard for creating agents with business info, greeting, voice selection, and knowledge configuration</description>
+      <file_locations>
+        <location>src/components/wizard/agent-wizard.tsx</location>
+        <location>src/components/wizard/steps/</location>
+        <location>src/app/api/agents/route.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Vapi Integration</name>
+      <description>End-to-end voice agent creation, phone number provisioning, and call handling via Vapi API</description>
+      <file_locations>
+        <location>src/lib/vapi/client.ts</location>
+        <location>src/lib/vapi/types.ts</location>
+        <location>src/lib/vapi/index.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Google Calendar Integration</name>
+      <description>OAuth-based appointment booking with automatic calendar event creation for confirmed bookings</description>
+      <file_locations>
+        <location>src/lib/google/calendar.ts</location>
+        <location>src/lib/google/auth.ts</location>
+        <location>src/app/api/auth/google/route.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Google Sheets Data Logging</name>
+      <description>Auto-creation of logging spreadsheet for call data and appointment information</description>
+      <file_locations>
+        <location>src/lib/google/</location>
+        <location>src/lib/calls.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Stripe Payment Integration</name>
+      <description>Credit pack purchases with Stripe payment processing and webhook handling</description>
+      <file_locations>
+        <location>src/lib/stripe.ts</location>
+        <location>src/app/api/payments/</location>
+        <location>src/components/dashboard/credit-pack-card.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Credit System &amp; Billing</name>
+      <description>Usage tracking, grace period for low credits, transaction history, and admin credit adjustments</description>
+      <file_locations>
+        <location>src/lib/credits-utils.ts</location>
+        <location>src/app/api/admin/credits/adjust/route.ts</location>
+        <location>src/components/dashboard/credit-balance.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>User Dashboard</name>
+      <description>Complete user interface for managing agents, viewing call history, checking credit balance, and managing settings</description>
+      <file_locations>
+        <location>src/app/(dashboard)/dashboard/</location>
+        <location>src/components/dashboard/</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Admin Dashboard</name>
+      <description>Administrative controls for user management, agent management, phone number provisioning, and dynamic pricing settings</description>
+      <file_locations>
+        <location>src/app/(dashboard)/admin/</location>
+        <location>src/components/admin/</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Call Management &amp; History</name>
+      <description>Recording, storing, and displaying call metadata including transcripts, duration, status, and AI-generated summaries</description>
+      <file_locations>
+        <location>src/lib/calls.ts</location>
+        <location>src/app/api/calls/</location>
+        <location>src/components/dashboard/call-list.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>ElevenLabs German Voice Integration</name>
+      <description>Native German voice options including Sarah, Matilda, Adam, and Antoni with voice preview capability</description>
+      <file_locations>
+        <location>src/lib/constants/voices.ts</location>
+        <location>src/components/wizard/steps/voice-step.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Deepgram German STT</name>
+      <description>German speech-to-text recognition for voice agent understanding</description>
+      <file_locations>
+        <location>src/lib/vapi/</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>AI System Prompt Generation</name>
+      <description>Consolidated prompt builder for voice agents with support for German localization, business context, and appointment booking</description>
+      <file_locations>
+        <location>src/lib/prompts/system-prompt.ts</location>
+        <location>src/lib/prompts/index.ts</location>
+        <location>src/lib/prompts/types.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Rate Limiting &amp; Webhook Security</name>
+      <description>API rate limiting with rate-limiter-flexible and Vapi webhook signature verification</description>
+      <file_locations>
+        <location>src/lib/rate-limit.ts</location>
+        <location>src/lib/webhook-auth.ts</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Premium Dark Theme UI</name>
+      <description>Glassmorphic design with OKLCH color system, radial glows, scroll animations, and premium hover effects</description>
+      <file_locations>
+        <location>src/components/ui/</location>
+        <location>src/app/layout.tsx</location>
+        <location>src/app/(marketing)/</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Marketing Landing Page</name>
+      <description>Hero section, features showcase, how-it-works guide with atmospheric animations and call-to-action</description>
+      <file_locations>
+        <location>src/app/(marketing)/page.tsx</location>
+        <location>src/components/marketing/</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Legal Pages</name>
+      <description>GDPR-compliant Datenschutzerklärung (privacy) and Impressum (legal notice) pages for German market</description>
+      <file_locations>
+        <location>src/app/(marketing)/datenschutz/page.tsx</location>
+        <location>src/app/(marketing)/impressum/page.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Email Notifications</name>
+      <description>Welcome emails, low credit warnings, and important event notifications</description>
+      <file_locations>
+        <location>src/lib/</location>
+        <location>nodemailer integration</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Admin Pricing Control</name>
+      <description>Dynamic per-minute billing rate management by administrators via SiteSetting model</description>
+      <file_locations>
+        <location>src/lib/settings.ts</location>
+        <location>src/app/api/admin/settings/route.ts</location>
+        <location>src/app/(dashboard)/admin/settings/page.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>Phone Number Management</name>
+      <description>Provisioning, assignment to agents, release, and status tracking with Twilio/Vapi integration</description>
+      <file_locations>
+        <location>src/app/api/admin/phone-numbers/</location>
+        <location>src/components/admin/phone-number-list.tsx</location>
+      </file_locations>
+    </feature>
+    <feature>
+      <name>German Localization</name>
+      <description>Full German UI text, Sie-form prompts, German voice options, Euro currency, and proper date/time formatting</description>
+      <file_locations>
+        <location>src/lib/localization/spoken-format.ts</location>
+        <location>throughout codebase</location>
+      </file_locations>
+    </feature>
+  </implemented_features>
+
+  <additional_requirements>
+    <requirement>Environment Requirements: Node.js with npm for package management</requirement>
+    <requirement>Database: PostgreSQL instance (self-hosted or managed service)</requirement>
+    <requirement>External Services: Vapi account with API keys for voice agents</requirement>
+    <requirement>Stripe account for payment processing (production and test environments)</requirement>
+    <requirement>Google Cloud project with Calendar and Sheets API credentials</requirement>
+    <requirement>ElevenLabs API key for German voice synthesis</requirement>
+    <requirement>Deepgram API key for German speech recognition</requirement>
+    <requirement>Email service (SMTP) for notifications</requirement>
+    <requirement>Docker and Docker Compose for containerized deployment</requirement>
+    <requirement>SSL/TLS certificates for HTTPS (self-hosted deployment)</requirement>
+    <requirement>Rate limiting requirements: API endpoints protected against abuse</requirement>
+    <requirement>Security: AES-256-GCM for token encryption, bcryptjs for passwords, secure session management</requirement>
+    <requirement>Performance: Optimized database queries with Prisma, caching where appropriate</requirement>
+    <requirement>Monitoring: Health check endpoint for deployment verification</requirement>
+    <requirement>Compliance: GDPR-compliant privacy policy and legal notice for German market</requirement>
+    <requirement>Scalability: Database schema supports thousands of users and millions of calls</requirement>
+    <requirement>Reliability: Proper error handling, retry logic for external API calls, transaction consistency</requirement>
+    <requirement>Backup strategy: Regular database backups for production deployments</requirement>
+  </additional_requirements>
+
+  <development_guidelines>
+    <guideline>Type-safe development with TypeScript - all code must be properly typed</guideline>
+    <guideline>Use Next.js 15 App Router pattern for all new routes and API endpoints</guideline>
+    <guideline>Database queries via Prisma ORM with type-safe generated models</guideline>
+    <guideline>Server-side authentication checks using session tokens from database</guideline>
+    <guideline>Protected API routes with authentication middleware validation</guideline>
+    <guideline>Rate limit sensitive endpoints (auth, payments, voice APIs)</guideline>
+    <guideline>Verify Vapi webhook signatures for security</guideline>
+    <guideline>Use shadcn/ui components as base for all UI elements</guideline>
+    <guideline>Follow Tailwind CSS utility-first styling approach</guideline>
+    <guideline>Implement glassmorphic design with appropriate OKLCH colors</guideline>
+    <guideline>German localization required - ensure all user-facing text supports German market</guideline>
+    <guideline>All sensitive credentials stored in environment variables (.env)</guideline>
+    <guideline>Encrypt Google OAuth tokens using AES-256-GCM</guideline>
+    <guideline>Use consolidated prompts module for all agent prompt generation</guideline>
+    <guideline>Implement proper error handling with user-friendly error messages</guideline>
+    <guideline>Test all payment flows with Stripe test keys before production</guideline>
+    <guideline>Log important events for audit trails and debugging</guideline>
+    <guideline>Follow consistent naming conventions: kebab-case for files, camelCase for functions/variables</guideline>
+    <guideline>Keep API responses consistent with standardized status codes</guideline>
+    <guideline>Document database schema changes and migrations</guideline>
+    <guideline>Monitor credit calculations to ensure accuracy (15€ per minute with ceiling)</guideline>
+    <guideline>Validate all user input before processing</guideline>
+    <guideline>Implement proper CORS and security headers</guideline>
+  </development_guidelines>
+
+  <implementation_roadmap>
+    <phase>
+      <name>v1.0 MVP (Phases 1-6)</name>
+      <status>completed</status>
+      <description>Foundation, core dashboard, Vapi integration, Google integrations, payment system, and launch polish. Delivered working end-to-end flow with appointment booking and credit system.</description>
+    </phase>
+    <phase>
+      <name>v1.1 German Market &amp; Polish (Phases 7-10)</name>
+      <status>completed</status>
+      <description>German voice setup (Azure TTS), German prompts with Sie-form, glassmorphic dark mode, landing page, legal pages, and market localization.</description>
+    </phase>
+    <phase>
+      <name>v1.2 shadcn/ui &amp; Premium Dark Theme (Phases 11-13)</name>
+      <status>completed</status>
+      <description>shadcn/ui component migration, Proximab OKLCH dark theme, dashboard redesign with glassmorphism, and landing page animation enhancements.</description>
+    </phase>
+    <phase>
+      <name>v2.0 Security &amp; Admin Controls (Phases 14-18)</name>
+      <status>completed</status>
+      <description>Critical bug fixes (appointment year validation), rate limiting, webhook security, auth UI polish, admin pricing control, and appointment logic improvements.</description>
+    </phase>
+    <phase>
+      <name>v2.1 Prompt &amp; Voice Excellence (Phases 19-22)</name>
+      <status>completed</status>
+      <description>Consolidated system prompts module, switched from Azure to ElevenLabs German voices, wizard UI polish, German localization refinement, and Euro currency display across platform.</description>
+    </phase>
+    <phase>
+      <name>v2.2+ Future (TBD)</name>
+      <status>pending</status>
+      <description>Potential directions: English localization for international markets, enhanced pricing pages, advanced analytics and reporting, multi-agent support, outbound calling capabilities, and additional payment methods.</description>
+    </phase>
+  </implementation_roadmap>
+</project_specification>
