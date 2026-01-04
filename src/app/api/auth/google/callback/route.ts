@@ -53,8 +53,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Save encrypted refresh token to database
-    await saveGoogleTokens(sessionData.user.id, tokens.refresh_token);
+    // Save encrypted tokens to database (including access token for caching)
+    await saveGoogleTokens(
+      sessionData.user.id,
+      tokens.refresh_token,
+      tokens.access_token || undefined,
+      tokens.expiry_date || undefined
+    );
 
     // Redirect to dashboard with success message
     return NextResponse.redirect(

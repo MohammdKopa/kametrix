@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { bookAppointment, parseDateTime } from '@/lib/google/calendar';
+import { isAuthenticationError } from '@/lib/google/sheets';
 
 /**
  * POST /api/google/calendar/book
@@ -144,6 +145,16 @@ export async function POST(req: NextRequest) {
     } catch (error) {
       console.error('Error booking appointment:', error);
 
+      // Check if this is an authentication error requiring reconnection
+      if (isAuthenticationError(error)) {
+        return NextResponse.json({
+          success: false,
+          message: "I'm sorry, the calendar connection needs to be refreshed. Please try again later.",
+          error: 'Google authentication expired',
+          requiresReconnect: true,
+        });
+      }
+
       // Check for specific error types
       const errorMessage = error instanceof Error ? error.message : '';
 
@@ -162,6 +173,16 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('Error in booking endpoint:', error);
+
+    // Check if this is an authentication error requiring reconnection
+    if (isAuthenticationError(error)) {
+      return NextResponse.json({
+        success: false,
+        message: "I'm sorry, the calendar connection needs to be refreshed. Please try again later.",
+        error: 'Google authentication expired',
+        requiresReconnect: true,
+      });
+    }
 
     return NextResponse.json({
       success: false,

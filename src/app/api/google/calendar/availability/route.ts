@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { getAvailableSlots } from '@/lib/google/calendar';
+import { isAuthenticationError } from '@/lib/google/sheets';
 
 /**
  * POST /api/google/calendar/availability
@@ -100,6 +101,17 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error checking calendar availability:', error);
+
+    // Check if this is an authentication error requiring reconnection
+    if (isAuthenticationError(error)) {
+      return NextResponse.json({
+        available: false,
+        message: "I'm sorry, the calendar connection needs to be refreshed. Please try again later.",
+        slots: [],
+        error: 'Google authentication expired',
+        requiresReconnect: true,
+      });
+    }
 
     return NextResponse.json({
       available: false,

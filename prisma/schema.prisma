@@ -54,10 +54,12 @@ model User {
   stripeCustomerId    String?             @unique // Stripe customer ID
 
   // Google integration
-  googleRefreshToken  String?             // encrypted refresh token for Google OAuth
-  googleSheetId       String?             // auto-created logging spreadsheet ID
-  googleConnectedAt   DateTime?           // when Google was connected
-  appointmentDuration Int                 @default(30) // appointment duration in minutes
+  googleRefreshToken   String?             // encrypted refresh token for Google OAuth
+  googleAccessToken    String?             // encrypted access token for Google OAuth (cached)
+  googleTokenExpiresAt DateTime?           // when the access token expires
+  googleSheetId        String?             // auto-created logging spreadsheet ID
+  googleConnectedAt    DateTime?           // when Google was connected
+  appointmentDuration  Int                 @default(30) // appointment duration in minutes
 
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
