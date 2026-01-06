@@ -10,12 +10,24 @@ import {
   metrics,
   MetricNames,
 } from '@/lib/performance';
+import {
+  withErrorHandling,
+  apiResponse,
+  validationError,
+  vapiError,
+  databaseError,
+  withCircuitBreaker,
+  ServiceCircuitBreakers,
+  createRequestContext,
+  getRequestDuration,
+} from '@/lib/errors';
 
 /**
  * GET /api/agents - List all agents for authenticated user
  */
-export async function GET(request: NextRequest) {
+export const GET = withErrorHandling(async (request: NextRequest) => {
   const timer = metrics.startTimer(MetricNames.API_AGENTS);
+  const context = createRequestContext(request);
 
   try {
     const user = await requireAuth(request);
@@ -24,26 +36,26 @@ export async function GET(request: NextRequest) {
     const agents = await getCachedUserAgents(user.id);
 
     metrics.endTimer(timer);
-    return NextResponse.json({ agents });
+    context.logger.info('Agents fetched successfully', {
+      userId: user.id,
+      agentCount: agents.length,
+      duration: getRequestDuration(context),
+    });
+
+    return apiResponse({ agents }, 200, context.requestId);
   } catch (error) {
     metrics.endTimer(timer, true);
-    console.error('Error fetching agents:', error);
-
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch agents' },
-      { status: 500 }
-    );
+    throw error;
   }
-}
+});
 
 /**
  * POST /api/agents - Create a new agent
  */
-export async function POST(request: NextRequest) {
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const timer = metrics.startTimer(MetricNames.API_AGENTS);
+  const context = createRequestContext(request);
+
   try {
     const user = await requireAuth(request);
     const body = await request.json();
@@ -57,17 +69,15 @@ export async function POST(request: NextRequest) {
 
       // Validate required wizard fields
       if (!wizardData.businessInfo?.businessName) {
-        return NextResponse.json(
-          { error: 'Business name is required' },
-          { status: 400 }
-        );
+        throw validationError('Business name is required', {
+          field: 'businessInfo.businessName',
+        });
       }
 
       if (!wizardData.greeting?.agentName) {
-        return NextResponse.json(
-          { error: 'Agent name is required' },
-          { status: 400 }
-        );
+        throw validationError('Agent name is required', {
+          field: 'greeting.agentName',
+        });
       }
 
       // Filter out empty FAQs (both question and answer must be filled)
@@ -88,28 +98,40 @@ export async function POST(request: NextRequest) {
 
       let vapiAssistantId: string | null = null;
 
+      // Create Vapi assistant with circuit breaker protection
       try {
-        // Create Vapi assistant
-        const vapiResponse = await createBusinessAssistant({
-          name: wizardData.greeting.agentName,
-          businessName: wizardData.businessInfo.businessName,
-          businessHours: wizardData.businessInfo.businessHours,
-          services: validServices,
-          faqs: validFaqs,
-          voiceId: wizardData.voice.voiceId,
-          greeting: wizardData.greeting.greeting.replace(
-            /{businessName}/g,
-            wizardData.businessInfo.businessName
-          ),
-          hasGoogleCalendar,
-        });
+        const vapiResponse = await withCircuitBreaker(
+          ServiceCircuitBreakers.VAPI,
+          async () => {
+            return createBusinessAssistant({
+              name: wizardData.greeting.agentName,
+              businessName: wizardData.businessInfo.businessName,
+              businessHours: wizardData.businessInfo.businessHours,
+              services: validServices,
+              faqs: validFaqs,
+              voiceId: wizardData.voice.voiceId,
+              greeting: wizardData.greeting.greeting.replace(
+                /{businessName}/g,
+                wizardData.businessInfo.businessName
+              ),
+              hasGoogleCalendar,
+            });
+          }
+        );
 
         vapiAssistantId = vapiResponse.id;
-      } catch (vapiError) {
-        console.error('Error creating Vapi assistant:', vapiError);
-        return NextResponse.json(
-          { error: 'Failed to create Vapi assistant. Please check your VAPI_API_KEY.' },
-          { status: 502 }
+        context.logger.info('Vapi assistant created', {
+          assistantId: vapiAssistantId,
+          userId: user.id,
+        });
+      } catch (error) {
+        context.logger.error('Failed to create Vapi assistant', error, {
+          userId: user.id,
+          agentName: wizardData.greeting.agentName,
+        });
+        throw vapiError(
+          'Failed to create voice assistant. The voice service may be temporarily unavailable.',
+          error as Error
         );
       }
 
@@ -143,54 +165,71 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Phone numbers are assigned manually by admin via Vapi dashboard
-        // After admin assigns phone to assistant in Vapi, they run sync to update our DB
-
         // Invalidate user's agent cache
         invalidateUserCache(user.id);
 
-        return NextResponse.json(
+        context.logger.info('Agent created successfully', {
+          agentId: agent.id,
+          userId: user.id,
+          hasGoogleCalendar,
+          duration: getRequestDuration(context),
+        });
+
+        metrics.endTimer(timer);
+
+        return apiResponse(
           {
             agent,
             message: 'Agent created successfully. Admin will assign a phone number.',
           },
-          { status: 201 }
+          201,
+          context.requestId
         );
       } catch (dbError) {
         // If DB creation fails but Vapi succeeded, try to cleanup Vapi assistant
         if (vapiAssistantId) {
           try {
             await deleteAssistant(vapiAssistantId);
+            context.logger.info('Cleaned up Vapi assistant after DB error', {
+              assistantId: vapiAssistantId,
+            });
           } catch (cleanupError) {
-            console.error('Failed to cleanup Vapi assistant after DB error:', cleanupError);
+            context.logger.error('Failed to cleanup Vapi assistant after DB error', cleanupError, {
+              assistantId: vapiAssistantId,
+            });
           }
         }
-        throw dbError;
+        throw databaseError('Failed to save agent to database', dbError as Error);
       }
     } else {
       // Legacy format support (for backward compatibility)
       const { name, greeting, systemPrompt, voiceId, businessName, businessDescription } = body;
 
       if (!name || !greeting || !systemPrompt || !voiceId || !businessName) {
-        return NextResponse.json(
-          { error: 'Missing required fields: name, greeting, systemPrompt, voiceId, businessName' },
-          { status: 400 }
+        throw validationError(
+          'Missing required fields: name, greeting, systemPrompt, voiceId, businessName',
+          {
+            required: ['name', 'greeting', 'systemPrompt', 'voiceId', 'businessName'],
+            received: Object.keys(body),
+          }
         );
       }
 
       // Validate field lengths
       if (name.length > 100) {
-        return NextResponse.json(
-          { error: 'Name must be 100 characters or less' },
-          { status: 400 }
-        );
+        throw validationError('Name must be 100 characters or less', {
+          field: 'name',
+          maxLength: 100,
+          actualLength: name.length,
+        });
       }
 
       if (greeting.length > 500) {
-        return NextResponse.json(
-          { error: 'Greeting must be 500 characters or less' },
-          { status: 400 }
-        );
+        throw validationError('Greeting must be 500 characters or less', {
+          field: 'greeting',
+          maxLength: 500,
+          actualLength: greeting.length,
+        });
       }
 
       // Create agent (legacy format)
@@ -210,19 +249,18 @@ export async function POST(request: NextRequest) {
       // Invalidate user's agent cache
       invalidateUserCache(user.id);
 
-      return NextResponse.json({ agent }, { status: 201 });
+      context.logger.info('Agent created (legacy format)', {
+        agentId: agent.id,
+        userId: user.id,
+        duration: getRequestDuration(context),
+      });
+
+      metrics.endTimer(timer);
+
+      return apiResponse({ agent }, 201, context.requestId);
     }
   } catch (error) {
-    console.error('Error creating agent:', error);
-
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to create agent' },
-      { status: 500 }
-    );
+    metrics.endTimer(timer, true);
+    throw error;
   }
-}
-
+});

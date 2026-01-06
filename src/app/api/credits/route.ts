@@ -1,39 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import {
+  withErrorHandling,
+  apiResponse,
+  createRequestContext,
+  getRequestDuration,
+  userNotFoundError,
+} from '@/lib/errors';
 
-export async function GET(request: NextRequest) {
-  try {
-    // Authenticate user
-    const user = await requireAuth(request);
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const context = createRequestContext(request);
 
-    // Fetch user's credit info
-    const userWithCredits = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        creditBalance: true,
-        graceCreditsUsed: true,
-      },
-    });
+  // Authenticate user
+  const user = await requireAuth(request);
 
-    if (!userWithCredits) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+  // Fetch user's credit info
+  const userWithCredits = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      creditBalance: true,
+      graceCreditsUsed: true,
+    },
+  });
 
-    return NextResponse.json({
-      balance: userWithCredits.creditBalance,
-      graceCreditsUsed: userWithCredits.graceCreditsUsed,
-    });
-  } catch (error) {
-    console.error('Error fetching credits:', error);
-
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch credits' },
-      { status: 500 }
-    );
+  if (!userWithCredits) {
+    throw userNotFoundError(user.id);
   }
-}
+
+  context.logger.info('Credits fetched', {
+    userId: user.id,
+    balance: userWithCredits.creditBalance,
+    duration: getRequestDuration(context),
+  });
+
+  return apiResponse({
+    balance: userWithCredits.creditBalance,
+    graceCreditsUsed: userWithCredits.graceCreditsUsed,
+  }, 200, context.requestId);
+});

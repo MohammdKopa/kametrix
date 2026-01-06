@@ -1,0 +1,108 @@
+# =============================================================================
+# Kametrix Staging Environment Docker Compose
+# =============================================================================
+# Configuration for staging environment deployment
+# Uses environment-specific configuration for isolated testing
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kametrix-staging-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kametrix_staging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-kametrix_staging}
+    volumes:
+      - kametrix_staging_postgres_data:/var/lib/postgresql/data
+    networks:
+      - kametrix-staging-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kametrix_staging}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ${IMAGE:-ghcr.io/your-org/kametrix:staging-latest}
+    container_name: kametrix-staging-app
+    environment:
+      - NODE_ENV=staging
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix_staging}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-kametrix_staging}
+      - VAPI_API_KEY=${VAPI_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_ENCRYPTION_KEY=${GOOGLE_ENCRYPTION_KEY}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-eur}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kametrix-staging-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Migration runner
+  migrate:
+    image: ${IMAGE:-ghcr.io/your-org/kametrix:staging-latest}
+    container_name: kametrix-staging-migrate
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix_staging}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-kametrix_staging}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kametrix-staging-network
+    command: sh -c "echo '=== Migration Status ===' && npx prisma migrate status && echo '=== Applying Migrations ===' && npx prisma migrate deploy"
+    profiles:
+      - migrate
+
+  # Seed runner
+  seed:
+    image: ${IMAGE:-ghcr.io/your-org/kametrix:staging-latest}
+    container_name: kametrix-staging-seed
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix_staging}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-kametrix_staging}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-eur}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kametrix-staging-network
+    command: npm run db:seed
+    profiles:
+      - seed
+
+volumes:
+  kametrix_staging_postgres_data:
+
+networks:
+  kametrix-staging-network:
+    driver: bridge

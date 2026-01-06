@@ -1,0 +1,391 @@
+# =============================================================================
+# Kametrix Rollback Workflow
+# =============================================================================
+# Emergency rollback to previous deployment
+# Can rollback to:
+# - The automatically saved rollback image
+# - A specific version tag
+# - A specific commit SHA
+# =============================================================================
+
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      target:
+        description: 'Rollback target (leave empty for last working version, or specify version/sha)'
+        required: false
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+      skip_confirmation:
+        description: 'Skip confirmation for staging (production always requires approval)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/kametrix
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Validate Rollback Request
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate Rollback
+    runs-on: ubuntu-latest
+    outputs:
+      target_image: ${{ steps.determine.outputs.target_image }}
+      current_version: ${{ steps.determine.outputs.current_version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine rollback target
+        id: determine
+        run: |
+          TARGET="${{ github.event.inputs.target }}"
+          ENV="${{ github.event.inputs.environment }}"
+
+          if [ -z "$TARGET" ]; then
+            # Use the automatic rollback image
+            TARGET_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${ENV}-rollback"
+            echo "Using automatic rollback image: ${TARGET_IMAGE}"
+          elif [[ "$TARGET" =~ ^v[0-9] ]]; then
+            # Version tag specified
+            TARGET_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TARGET}"
+            echo "Using version tag: ${TARGET_IMAGE}"
+          elif [[ "$TARGET" =~ ^[0-9a-f]{7,40}$ ]]; then
+            # Commit SHA specified
+            TARGET_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${ENV}-${TARGET:0:7}"
+            echo "Using commit SHA: ${TARGET_IMAGE}"
+          else
+            # Assume it's a full image tag
+            TARGET_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TARGET}"
+            echo "Using custom tag: ${TARGET_IMAGE}"
+          fi
+
+          echo "target_image=${TARGET_IMAGE}" >> $GITHUB_OUTPUT
+
+      - name: Verify target image exists
+        run: |
+          echo "Verifying image exists: ${{ steps.determine.outputs.target_image }}"
+          # This will be verified on the target server
+
+      - name: Generate rollback summary
+        run: |
+          echo "### Rollback Request :warning:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ github.event.inputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target Image | \`${{ steps.determine.outputs.target_image }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ github.event.inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Requested by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Rollback Staging (No approval required unless production)
+  # ---------------------------------------------------------------------------
+  rollback-staging:
+    name: Rollback Staging
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event.inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+
+    steps:
+      - name: Create rollback record
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## Staging Rollback Initiated :rewind:
+
+              **Reason:** ${{ github.event.inputs.reason }}
+              **Target:** \`${{ needs.validate.outputs.target_image }}\`
+              **Initiated by:** @${{ github.actor }}
+              `
+            });
+
+      - name: Execute rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          script: |
+            set -e
+
+            cd ${{ vars.STAGING_APP_PATH || '/opt/kametrix' }}
+
+            echo "=== Starting Staging Rollback ==="
+            TARGET_IMAGE="${{ needs.validate.outputs.target_image }}"
+
+            # Pull target image
+            echo "Pulling rollback image: ${TARGET_IMAGE}"
+            docker pull ${TARGET_IMAGE}
+
+            # Stop current container
+            echo "Stopping current application..."
+            docker compose -f docker-compose.staging.yml stop app || true
+
+            # Tag rollback image as staging-latest
+            docker tag ${TARGET_IMAGE} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest
+
+            # Start rollback version
+            echo "Starting rollback version..."
+            docker compose -f docker-compose.staging.yml up -d app
+
+            # Health check
+            echo "Running health check..."
+            sleep 10
+            for i in {1..15}; do
+              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "Health check passed!"
+                break
+              fi
+              echo "Waiting for application... ($i/15)"
+              sleep 2
+            done
+
+            if ! curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "ERROR: Rollback health check failed!"
+              exit 1
+            fi
+
+            echo "=== Staging Rollback Complete ==="
+
+      - name: Notify rollback success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## Staging Rollback Successful :white_check_mark:
+
+              **Target:** \`${{ needs.validate.outputs.target_image }}\`
+              **Reason:** ${{ github.event.inputs.reason }}
+              **Completed by:** @${{ github.actor }}
+              `
+            });
+
+  # ---------------------------------------------------------------------------
+  # Rollback Production (Requires manual approval)
+  # ---------------------------------------------------------------------------
+  rollback-production:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: Create rollback record
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Create an issue to track the rollback
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Production Rollback - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Production Rollback Record :rewind:
+
+              **Reason:** ${{ github.event.inputs.reason }}
+              **Target:** \`${{ needs.validate.outputs.target_image }}\`
+              **Initiated by:** @${{ github.actor }}
+              **Workflow Run:** [View Run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+              ---
+              This issue was auto-created to track the production rollback.
+              `,
+              labels: ['deployment', 'rollback', 'production']
+            });
+
+            return issue.data.number;
+
+      - name: Execute rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            set -e
+
+            cd ${{ vars.PRODUCTION_APP_PATH || '/opt/kametrix' }}
+
+            echo "=== Starting Production Rollback ==="
+            TARGET_IMAGE="${{ needs.validate.outputs.target_image }}"
+
+            # Save current state before rollback
+            CURRENT_IMAGE=$(docker inspect kametrix-app --format='{{.Config.Image}}' 2>/dev/null || echo "unknown")
+            echo "Current image: ${CURRENT_IMAGE}"
+
+            # Create pre-rollback database backup
+            echo "Creating database backup..."
+            BACKUP_FILE="backup-pre-rollback-$(date +%Y%m%d-%H%M%S).sql"
+            docker exec kametrix-db pg_dump -U ${POSTGRES_USER:-kametrix} ${POSTGRES_DB:-kametrix} > ${BACKUP_FILE} || true
+            echo "Backup saved to: ${BACKUP_FILE}"
+
+            # Pull target image
+            echo "Pulling rollback image: ${TARGET_IMAGE}"
+            docker pull ${TARGET_IMAGE}
+
+            # Stop current container gracefully
+            echo "Stopping current application (graceful)..."
+            docker compose -f docker-compose.prod.yml stop -t 30 app || true
+
+            # Tag rollback image as latest
+            docker tag ${TARGET_IMAGE} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+            # Save rollback metadata
+            echo "{\"rolled_back_from\": \"${CURRENT_IMAGE}\", \"rolled_back_to\": \"${TARGET_IMAGE}\", \"reason\": \"${{ github.event.inputs.reason }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"actor\": \"${{ github.actor }}\"}" > .rollback-metadata.json
+
+            # Start rollback version
+            echo "Starting rollback version..."
+            docker compose -f docker-compose.prod.yml up -d app
+
+            # Extended health check for production
+            echo "Running health checks..."
+            MAX_RETRIES=30
+            RETRY_COUNT=0
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "Health check passed!"
+                break
+              fi
+              echo "Waiting for application to be healthy... ($RETRY_COUNT/$MAX_RETRIES)"
+              sleep 2
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+            done
+
+            if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+              echo "ERROR: Rollback health check failed!"
+              echo "Attempting to restore previous version..."
+              docker tag ${CURRENT_IMAGE} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest 2>/dev/null || true
+              docker compose -f docker-compose.prod.yml up -d app
+              exit 1
+            fi
+
+            # Verify key endpoints
+            echo "Verifying key endpoints..."
+            curl -sf http://localhost:3000/api/health | jq .
+
+            echo "=== Production Rollback Complete ==="
+
+      - name: Notify rollback success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## Production Rollback Successful :white_check_mark:
+
+              **Target:** \`${{ needs.validate.outputs.target_image }}\`
+              **Reason:** ${{ github.event.inputs.reason }}
+              **Completed by:** @${{ github.actor }}
+
+              Please verify the application at: ${{ vars.PRODUCTION_URL }}
+              `
+            });
+
+      - name: Notify rollback failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `CRITICAL: Production Rollback Failed - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Production Rollback FAILED :x:
+
+              **Reason:** ${{ github.event.inputs.reason }}
+              **Target:** \`${{ needs.validate.outputs.target_image }}\`
+              **Initiated by:** @${{ github.actor }}
+              **Workflow Run:** [View Run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+              ## IMMEDIATE ACTION REQUIRED
+
+              1. Check server status manually
+              2. Review workflow logs
+              3. Consider manual intervention
+
+              /cc @${{ github.repository_owner }}
+              `,
+              labels: ['deployment', 'rollback', 'production', 'urgent', 'critical']
+            });
+
+  # ---------------------------------------------------------------------------
+  # Post-Rollback Verification
+  # ---------------------------------------------------------------------------
+  verify:
+    name: Verify Rollback
+    runs-on: ubuntu-latest
+    needs: [validate, rollback-staging, rollback-production]
+    if: always() && (needs.rollback-staging.result == 'success' || needs.rollback-production.result == 'success')
+    steps:
+      - name: Determine environment URL
+        id: env
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            echo "url=${{ vars.PRODUCTION_URL }}" >> $GITHUB_OUTPUT
+          else
+            echo "url=${{ vars.STAGING_URL }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify health endpoint
+        run: |
+          echo "Verifying rollback at: ${{ steps.env.outputs.url }}"
+          for i in {1..5}; do
+            response=$(curl -sf "${{ steps.env.outputs.url }}/api/health" || echo "failed")
+            if [ "$response" != "failed" ]; then
+              echo "Health check passed!"
+              echo "$response" | jq . || echo "$response"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+          echo "Health verification failed"
+          exit 1
+
+      - name: Generate summary
+        run: |
+          echo "### Rollback Complete :rewind:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ github.event.inputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target | \`${{ needs.validate.outputs.target_image }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ github.event.inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | :white_check_mark: Success |" >> $GITHUB_STEP_SUMMARY
+          echo "| Completed by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY

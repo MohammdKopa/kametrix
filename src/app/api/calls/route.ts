@@ -8,9 +8,16 @@ import {
   metrics,
   MetricNames,
 } from '@/lib/performance';
+import {
+  withErrorHandling,
+  apiResponse,
+  createRequestContext,
+  getRequestDuration,
+} from '@/lib/errors';
 
-export async function GET(request: NextRequest) {
+export const GET = withErrorHandling(async (request: NextRequest) => {
   const timer = metrics.startTimer(MetricNames.API_CALLS);
+  const context = createRequestContext(request);
 
   try {
     // Authenticate user
@@ -34,12 +41,19 @@ export async function GET(request: NextRequest) {
       });
 
       metrics.endTimer(timer);
-      return NextResponse.json({
+      context.logger.info('Calls fetched (cursor pagination)', {
+        userId: user.id,
+        callCount: result.items.length,
+        hasMore: result.hasMore,
+        duration: getRequestDuration(context),
+      });
+
+      return apiResponse({
         calls: result.items,
         nextCursor: result.nextCursor,
         prevCursor: result.prevCursor,
         hasMore: result.hasMore,
-      });
+      }, 200, context.requestId);
     }
 
     // Build where clause for offset pagination (legacy support)
@@ -89,24 +103,23 @@ export async function GET(request: NextRequest) {
     const hasMore = skip + result.calls.length < result.total;
 
     metrics.endTimer(timer);
-    return NextResponse.json({
+    context.logger.info('Calls fetched (offset pagination)', {
+      userId: user.id,
+      callCount: result.calls.length,
+      total: result.total,
+      page,
+      duration: getRequestDuration(context),
+    });
+
+    return apiResponse({
       calls: result.calls,
       total: result.total,
       hasMore,
       page,
       limit,
-    });
+    }, 200, context.requestId);
   } catch (error) {
     metrics.endTimer(timer, true);
-    console.error('Error fetching calls:', error);
-
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch calls' },
-      { status: 500 }
-    );
+    throw error;
   }
-}
+});
