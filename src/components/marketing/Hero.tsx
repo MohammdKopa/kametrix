@@ -7,83 +7,179 @@ export function Hero() {
   const { scrollYProgress } = useScroll();
 
   // Scroll-linked transforms for the glow layers
-  const primaryGlowOpacity = useTransform(scrollYProgress, [0, 0.25], [0.6, 0]);
+  const primaryGlowOpacity = useTransform(scrollYProgress, [0, 0.25], [0.7, 0]);
   const primaryGlowScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.5]);
-  const secondaryGlowOpacity = useTransform(scrollYProgress, [0, 0.2], [0.4, 0]);
-  const accentGlowOpacity = useTransform(scrollYProgress, [0, 0.15], [0.3, 0]);
+  const secondaryGlowOpacity = useTransform(scrollYProgress, [0, 0.2], [0.5, 0]);
+  const accentGlowOpacity = useTransform(scrollYProgress, [0, 0.15], [0.4, 0]);
+  const tertiaryGlowOpacity = useTransform(scrollYProgress, [0, 0.2], [0.3, 0]);
 
   // Parallax for floating elements
   const floatY1 = useTransform(scrollYProgress, [0, 0.3], [0, -80]);
   const floatY2 = useTransform(scrollYProgress, [0, 0.3], [0, -120]);
+  const floatY3 = useTransform(scrollYProgress, [0, 0.3], [0, -60]);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* ═══════════════════════════════════════════════════════════════════
-          ATMOSPHERIC GLOW LAYERS - Creates the "void with light" effect
+          ATMOSPHERIC GLOW LAYERS - Enhanced with breathing animations
           Multiple layers at different positions for depth
       ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* Primary glow - large purple behind headline */}
+      {/* Primary glow - large purple behind headline with breathing effect */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-[900px] h-[600px] rounded-full pointer-events-none"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-[1000px] h-[700px] rounded-full pointer-events-none"
         style={{
           opacity: primaryGlowOpacity,
           scale: primaryGlowScale,
-          background: "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0.1) 40%, transparent 70%)",
+          background: "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.45) 0%, rgba(139, 92, 246, 0.15) 35%, rgba(139, 92, 246, 0.05) 55%, transparent 70%)",
           filter: "blur(80px)",
         }}
+        animate={{
+          scale: [1, 1.05, 1],
+        }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Secondary glow - magenta/pink offset */}
+      {/* Secondary glow - magenta/pink offset with drift animation */}
       <motion.div
-        className="absolute top-[30%] left-[60%] -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
+        className="absolute top-[30%] left-[60%] -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{
           opacity: secondaryGlowOpacity,
-          background: "radial-gradient(ellipse at center, rgba(236, 72, 153, 0.35) 0%, rgba(168, 85, 247, 0.15) 50%, transparent 70%)",
+          background: "radial-gradient(ellipse at center, rgba(236, 72, 153, 0.4) 0%, rgba(168, 85, 247, 0.2) 40%, rgba(168, 85, 247, 0.05) 60%, transparent 70%)",
           filter: "blur(100px)",
         }}
+        animate={{
+          x: [0, 20, 0, -20, 0],
+          y: [0, -15, 0, 15, 0],
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Accent glow - subtle blue undertone for depth */}
+      {/* Accent glow - blue undertone for depth with shimmer */}
       <motion.div
-        className="absolute top-[60%] left-[30%] -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full pointer-events-none"
+        className="absolute top-[60%] left-[30%] -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
         style={{
           opacity: accentGlowOpacity,
-          background: "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.25) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0.1) 50%, transparent 70%)",
           filter: "blur(80px)",
         }}
+        animate={{
+          opacity: [0.4, 0.5, 0.4],
+          scale: [1, 1.08, 1],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+
+      {/* Tertiary glow - subtle cyan accent at bottom */}
+      <motion.div
+        className="absolute top-[75%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full pointer-events-none"
+        style={{
+          opacity: tertiaryGlowOpacity,
+          background: "radial-gradient(ellipse at center, rgba(34, 211, 238, 0.15) 0%, rgba(139, 92, 246, 0.08) 50%, transparent 70%)",
+          filter: "blur(100px)",
+        }}
+        animate={{
+          opacity: [0.3, 0.4, 0.3],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          FLOATING ORBS - Adds depth and movement
+          FLOATING ORBS - Enhanced with glow halos
       ═══════════════════════════════════════════════════════════════════ */}
 
+      {/* Large orb with glow halo */}
       <motion.div
-        className="absolute top-[20%] right-[15%] w-2 h-2 rounded-full bg-purple-400/60 pointer-events-none"
+        className="absolute top-[20%] right-[15%] pointer-events-none"
         style={{ y: floatY1 }}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.6, 0.8, 0.6],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      />
+      >
+        <motion.div
+          className="relative w-3 h-3"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.7, 0.9, 0.7],
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="absolute inset-0 rounded-full bg-purple-400" />
+          <div className="absolute -inset-2 rounded-full bg-purple-400/30 blur-md" />
+          <div className="absolute -inset-4 rounded-full bg-purple-500/15 blur-lg" />
+        </motion.div>
+      </motion.div>
+
+      {/* Medium orb - pink */}
       <motion.div
-        className="absolute top-[35%] left-[12%] w-1.5 h-1.5 rounded-full bg-pink-400/50 pointer-events-none"
+        className="absolute top-[35%] left-[12%] pointer-events-none"
         style={{ y: floatY2 }}
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.5, 0.7, 0.5],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      />
+      >
+        <motion.div
+          className="relative w-2.5 h-2.5"
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.6, 0.8, 0.6],
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        >
+          <div className="absolute inset-0 rounded-full bg-pink-400" />
+          <div className="absolute -inset-2 rounded-full bg-pink-400/30 blur-md" />
+          <div className="absolute -inset-3 rounded-full bg-pink-500/15 blur-lg" />
+        </motion.div>
+      </motion.div>
+
+      {/* Small orb - violet */}
       <motion.div
-        className="absolute top-[60%] right-[20%] w-1 h-1 rounded-full bg-violet-300/40 pointer-events-none"
-        animate={{
-          scale: [1, 1.4, 1],
-          opacity: [0.4, 0.6, 0.4],
-        }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      />
+        className="absolute top-[60%] right-[20%] pointer-events-none"
+        style={{ y: floatY3 }}
+      >
+        <motion.div
+          className="relative w-2 h-2"
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.5, 0.7, 0.5],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        >
+          <div className="absolute inset-0 rounded-full bg-violet-300" />
+          <div className="absolute -inset-1.5 rounded-full bg-violet-300/30 blur-sm" />
+          <div className="absolute -inset-3 rounded-full bg-violet-400/15 blur-md" />
+        </motion.div>
+      </motion.div>
+
+      {/* Extra orb - subtle blue */}
+      <motion.div
+        className="absolute top-[45%] right-[8%] pointer-events-none"
+        style={{ y: floatY1 }}
+      >
+        <motion.div
+          className="relative w-1.5 h-1.5"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+        >
+          <div className="absolute inset-0 rounded-full bg-blue-400" />
+          <div className="absolute -inset-1 rounded-full bg-blue-400/30 blur-sm" />
+        </motion.div>
+      </motion.div>
+
+      {/* Extra orb - subtle cyan left side */}
+      <motion.div
+        className="absolute top-[70%] left-[18%] pointer-events-none"
+        style={{ y: floatY3 }}
+      >
+        <motion.div
+          className="relative w-1 h-1"
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+        >
+          <div className="absolute inset-0 rounded-full bg-cyan-400" />
+          <div className="absolute -inset-1 rounded-full bg-cyan-400/25 blur-sm" />
+        </motion.div>
+      </motion.div>
 
       {/* ═══════════════════════════════════════════════════════════════════
           NOISE TEXTURE OVERLAY - Adds grain for premium feel
@@ -161,19 +257,28 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.6 }}
         >
-          {/* Primary CTA - Glowing gradient button */}
+          {/* Primary CTA - Enhanced glowing gradient button */}
           <Link
             href="/signup"
             className="group relative px-10 py-5 rounded-2xl font-semibold text-white overflow-hidden transition-all duration-300"
           >
+            {/* Ambient outer glow - always visible */}
+            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600/50 via-pink-500/40 to-purple-600/50 rounded-3xl blur-xl opacity-50 group-hover:opacity-80 transition-all duration-500" />
+
+            {/* Secondary outer glow layer for depth */}
+            <div className="absolute -inset-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl opacity-40 group-hover:opacity-70 transition-all duration-500" />
+
             {/* Button background with gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 transition-all duration-300 group-hover:scale-105" />
 
             {/* Inner glow on hover */}
             <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            {/* Outer glow */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity duration-300" />
+            {/* Shimmer effect on hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+
+            {/* Primary outer glow */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-all duration-300" />
 
             {/* Button text */}
             <span className="relative z-10 flex items-center gap-2">
@@ -184,7 +289,7 @@ export function Hero() {
             </span>
           </Link>
 
-          {/* Secondary CTA - Glassmorphic */}
+          {/* Secondary CTA - Enhanced Glassmorphic with glow border */}
           <Link
             href="#how-it-works"
             className="group relative px-10 py-5 rounded-2xl font-semibold text-gray-200 overflow-hidden transition-all duration-300"
@@ -194,8 +299,23 @@ export function Hero() {
               border: "1px solid rgba(255, 255, 255, 0.1)",
             }}
           >
+            {/* Subtle outer glow on hover */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/20 via-transparent to-pink-500/20 rounded-2xl blur-md opacity-0 group-hover:opacity-100 transition-all duration-500" />
+
             {/* Hover gradient border */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-500/20 via-transparent to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            {/* Border glow effect */}
+            <div
+              className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background: "linear-gradient(135deg, rgba(139, 92, 246, 0.3), transparent 50%, rgba(236, 72, 153, 0.2))",
+                mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                padding: "1px",
+              }}
+            />
 
             <span className="relative z-10 flex items-center gap-2 group-hover:text-white transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -61,6 +61,11 @@ model User {
   googleConnectedAt    DateTime?           // when Google was connected
   appointmentDuration  Int                 @default(30) // appointment duration in minutes
 
+  // Calendar settings
+  calendarSyncEnabled  Boolean             @default(false)
+  defaultTimezone      String?
+  lastCalendarSync     DateTime?
+
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
@@ -69,6 +74,9 @@ model User {
   calls               Call[]
   creditTransactions  CreditTransaction[]
   sessions            Session[]
+  calendarEvents      CalendarEvent[]
+  calendarSyncLogs    CalendarSyncLog[]
+  calendarSyncQueues  CalendarSyncQueue[]
 }
 
 model Agent {
@@ -82,6 +90,12 @@ model Agent {
   businessName        String
   businessDescription String?     @db.Text
   isActive            Boolean     @default(true)
+
+  // Calendar integration
+  primaryCalendarId   String?     // Google calendar ID for scheduling
+  checkCalendarIds    String[]    @default([]) // Calendar IDs to check for conflicts
+  defaultTimezone     String?     // Timezone for appointments
+
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -89,6 +103,7 @@ model Agent {
   user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   calls               Call[]
   phoneNumber         PhoneNumber?
+  calendarEvents      CalendarEvent[]
 
   // Performance indexes
   @@index([userId])
@@ -98,11 +113,13 @@ model Agent {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id                 String   @id @default(cuid())
+  userId             String
+  token              String   @unique
+  expiresAt          DateTime
+  browserFingerprint String?  // Browser fingerprint for session validation
+  csrfToken          String?  // CSRF token for form validation
+  createdAt          DateTime @default(now())
 
   // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -125,6 +142,16 @@ model Call {
   creditsUsed     Int         @default(0)
   summary         String?     @db.Text // AI-generated call summary
   transcript      String?     @db.Text // full transcript
+
+  // AI Analysis fields
+  sentiment        String?     // "positive", "negative", "neutral"
+  sentimentScore   Float?      // -1.0 to 1.0
+  keyTopics        String[]    @default([])
+  customerIntents  String[]    @default([])
+  actionItems      String[]    @default([])
+  followUpRequired Boolean     @default(false)
+  analysisJson     Json?       // Full analysis data
+
   createdAt       DateTime    @default(now())
 
   // Relations
@@ -190,4 +217,199 @@ model SiteSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// Calendar Models
+// ============================================
+
+enum CalendarSyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model CalendarEvent {
+  id              String    @id @default(cuid())
+  userId          String
+  googleEventId   String    // Google Calendar event ID
+  title           String
+  description     String?   @db.Text
+  startTime       DateTime
+  endTime         DateTime
+  location        String?
+  attendees       Json?     // Array of attendee emails
+  createdByAgent  String?   // Agent ID if created by an agent
+  metadata        Json?     // Additional event data
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent           Agent?    @relation(fields: [createdByAgent], references: [id], onDelete: SetNull)
+
+  @@unique([userId, googleEventId])
+  @@index([startTime])
+  @@index([userId, startTime])
+}
+
+model CalendarSyncLog {
+  id            String   @id @default(cuid())
+  userId        String
+  eventsCreated Int      @default(0)
+  eventsUpdated Int      @default(0)
+  eventsDeleted Int      @default(0)
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model CalendarSyncQueue {
+  id          String             @id @default(cuid())
+  userId      String
+  status      CalendarSyncStatus @default(PENDING)
+  priority    Int                @default(0)
+  attempts    Int                @default(0)
+  lastError   String?
+  scheduledAt DateTime           @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  // Relations
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId, status])
+}
+
+// ============================================
+// Monitoring & Analytics Models
+// ============================================
+
+enum MetricType {
+  COUNTER
+  GAUGE
+  HISTOGRAM
+  TIMING
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum ServiceStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}
+
+// Persistent system metrics for historical analysis
+model SystemMetric {
+  id          String     @id @default(cuid())
+  name        String
+  type        MetricType
+  value       Float
+  tags        Json?      // {"route": "/api/calls", "method": "GET"}
+  recordedAt  DateTime   @default(now())
+
+  @@index([name, recordedAt(sort: Desc)])
+  @@index([recordedAt(sort: Desc)])
+}
+
+// Uptime monitoring records
+model UptimeRecord {
+  id            String        @id @default(cuid())
+  serviceName   String        // "api", "database", "vapi", "google", "stripe"
+  status        ServiceStatus
+  responseTimeMs Int?
+  errorMessage  String?
+  checkedAt     DateTime      @default(now())
+
+  @@index([serviceName, checkedAt(sort: Desc)])
+  @@index([checkedAt(sort: Desc)])
+}
+
+// User analytics and engagement tracking
+model UserAnalytics {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  totalSessions     Int      @default(0)
+  totalCallsPlaced  Int      @default(0)
+  totalCallDuration Int      @default(0)  // in seconds
+  totalCreditsUsed  Int      @default(0)
+  lastActiveAt      DateTime?
+  firstSeenAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([lastActiveAt(sort: Desc)])
+  @@index([userId])
+}
+
+// Event log for user activity tracking
+model EventLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  eventType  String   // "login", "logout", "agent_created", "call_made", "credits_purchased"
+  eventData  Json?    // Additional event-specific data
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+// Alerts for anomalies and issues
+model MonitoringAlert {
+  id          String        @id @default(cuid())
+  severity    AlertSeverity
+  status      AlertStatus   @default(ACTIVE)
+  title       String
+  message     String        @db.Text
+  source      String        // "error_rate", "latency", "memory", "service_down"
+  metadata    Json?
+  triggeredAt DateTime      @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?       // admin userId who resolved
+
+  @@index([status, severity])
+  @@index([triggeredAt(sort: Desc)])
+  @@index([source, status])
+}
+
+// Aggregated metrics for dashboard (hourly/daily rollups)
+model MetricAggregate {
+  id         String   @id @default(cuid())
+  name       String
+  period     String   // "hourly", "daily"
+  periodKey  String   // "2024-01-15-14" for hourly, "2024-01-15" for daily
+  count      Int      @default(0)
+  sum        Float    @default(0)
+  min        Float?
+  max        Float?
+  avg        Float?
+  p50        Float?
+  p95        Float?
+  p99        Float?
+  createdAt  DateTime @default(now())
+
+  @@unique([name, period, periodKey])
+  @@index([name, periodKey(sort: Desc)])
 }

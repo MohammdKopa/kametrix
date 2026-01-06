@@ -1,16 +1,45 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { metrics, appCache, queryCache } from '@/lib/performance';
 import { getMonitoringHealth, circuitBreakers, errorMonitor } from '@/lib/errors';
+import { performHealthCheck, quickHealthCheck } from '@/lib/monitoring';
 
-export async function GET() {
+/**
+ * GET /api/health - Health check endpoint
+ *
+ * Query params:
+ * - detailed=true: Include detailed service checks (requires more time)
+ * - quick=true: Minimal check for load balancers
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const isQuick = searchParams.get('quick') === 'true';
+  const isDetailed = searchParams.get('detailed') === 'true';
+
   const timestamp = new Date().toISOString();
-  const startTime = Date.now();
 
   try {
-    // Simple database connectivity check
-    await prisma.$queryRaw`SELECT 1`;
+    // Quick check for load balancers
+    if (isQuick) {
+      const health = await quickHealthCheck();
+      return NextResponse.json(health, {
+        status: health.status === 'healthy' ? 200 : 503,
+        headers: { 'Cache-Control': 'no-store, max-age=0' },
+      });
+    }
 
+    // Detailed check with external services
+    if (isDetailed) {
+      const health = await performHealthCheck(true);
+      return NextResponse.json(health, {
+        status: health.status === 'unhealthy' ? 503 : 200,
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+      });
+    }
+
+    // Standard check (original behavior)
+    const startTime = Date.now();
+    await prisma.$queryRaw`SELECT 1`;
     const dbLatency = Date.now() - startTime;
 
     // Get basic cache stats
@@ -79,8 +108,9 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        status: 'error',
+        status: 'unhealthy',
         database: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp,
       },
       { status: 503 }

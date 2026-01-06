@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useCallback, useRef } from "react";
 import {
   Clock,
   Calendar,
@@ -83,16 +84,48 @@ const features = [
 ];
 
 export function Features() {
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Mouse tracking for spotlight effect on grid
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const cards = gridRef.current?.querySelectorAll<HTMLElement>('[data-card]');
+    if (!cards) return;
+
+    cards.forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    });
+  }, []);
+
   return (
     <section id="features" className="relative py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION AMBIENT GLOW
+          SECTION AMBIENT GLOW - Enhanced with multiple layers
       ═══════════════════════════════════════════════════════════════════ */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
+
+      {/* Primary ambient glow */}
+      <motion.div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.08) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 40%, transparent 70%)",
           filter: "blur(60px)",
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Secondary ambient glow - offset for depth */}
+      <div
+        className="absolute top-[20%] right-[10%] w-[400px] h-[400px] pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at center, rgba(236, 72, 153, 0.08) 0%, transparent 60%)",
+          filter: "blur(80px)",
         }}
       />
 
@@ -122,19 +155,22 @@ export function Features() {
           </p>
         </motion.div>
 
-        {/* Features grid */}
+        {/* Features grid with mouse tracking */}
         <motion.div
+          ref={gridRef}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
+          onMouseMove={handleMouseMove}
         >
           {features.map((feature, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
               className="group relative"
+              data-card
             >
               {/* Card */}
               <div
@@ -146,7 +182,7 @@ export function Features() {
                   boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.03)",
                 }}
               >
-                {/* Hover glow effect */}
+                {/* Primary hover glow effect - follows mouse */}
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                   style={{
@@ -154,47 +190,68 @@ export function Features() {
                   }}
                 />
 
+                {/* Secondary hover glow - larger, softer */}
+                <div
+                  className="absolute -inset-4 opacity-0 group-hover:opacity-60 transition-opacity duration-700 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${feature.glowColor.replace('0.4', '0.15')}, transparent 60%)`,
+                    filter: "blur(20px)",
+                  }}
+                />
+
                 {/* Gradient border on hover */}
                 <div
                   className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                   style={{
-                    background: `linear-gradient(135deg, ${feature.glowColor}, transparent 50%)`,
+                    background: `linear-gradient(135deg, ${feature.glowColor}, transparent 40%, ${feature.glowColor.replace('0.4', '0.2')})`,
                     mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                    maskComposite: "xor",
+                    maskComposite: "exclude",
                     WebkitMaskComposite: "xor",
                     padding: "1px",
                   }}
                 />
 
-                {/* Icon container */}
+                {/* Icon container with enhanced glow */}
                 <div className="relative mb-6">
                   <div
-                    className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} p-0.5 transition-transform duration-300 group-hover:scale-110`}
+                    className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} p-0.5 transition-all duration-300 group-hover:scale-110`}
                   >
                     <div className="w-full h-full rounded-[10px] bg-[#0a0812] flex items-center justify-center">
                       <feature.icon className="w-6 h-6 text-white" />
                     </div>
                   </div>
 
-                  {/* Icon glow */}
+                  {/* Multi-layer icon glow */}
                   <div
-                    className={`absolute inset-0 w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-300`}
+                    className={`absolute inset-0 w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} blur-lg opacity-40 group-hover:opacity-70 transition-opacity duration-300`}
+                  />
+                  <div
+                    className={`absolute -inset-2 w-18 h-18 rounded-xl bg-gradient-to-br ${feature.gradient} blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500`}
                   />
                 </div>
 
                 {/* Content */}
-                <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-white transition-colors">
+                <h3 className="relative z-10 text-xl font-semibold text-white mb-3 group-hover:text-white transition-colors">
                   {feature.title}
                 </h3>
-                <p className="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300 transition-colors">
+                <p className="relative z-10 text-gray-400 text-sm leading-relaxed group-hover:text-gray-300 transition-colors">
                   {feature.description}
                 </p>
 
-                {/* Corner accent */}
+                {/* Corner accent glow - enhanced */}
                 <div
-                  className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  className="absolute -top-24 -right-24 w-48 h-48 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
                   style={{
-                    background: `radial-gradient(circle, ${feature.glowColor}, transparent 70%)`,
+                    background: `radial-gradient(circle, ${feature.glowColor}, transparent 60%)`,
+                    filter: "blur(50px)",
+                  }}
+                />
+
+                {/* Bottom accent glow */}
+                <div
+                  className="absolute -bottom-16 -left-16 w-32 h-32 rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-700 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle, ${feature.glowColor.replace('0.4', '0.3')}, transparent 70%)`,
                     filter: "blur(40px)",
                   }}
                 />

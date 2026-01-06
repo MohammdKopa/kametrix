@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, Bot, Phone, Settings, type LucideIcon } from 'lucide-react';
+import { Users, Bot, Phone, Settings, Activity, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Tab {
@@ -15,6 +15,7 @@ const tabs: Tab[] = [
   { name: 'Users', href: '/admin', icon: Users },
   { name: 'Agents', href: '/admin/agents', icon: Bot },
   { name: 'Phone Numbers', href: '/admin/phone-numbers', icon: Phone },
+  { name: 'Monitoring', href: '/admin/monitoring', icon: Activity },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

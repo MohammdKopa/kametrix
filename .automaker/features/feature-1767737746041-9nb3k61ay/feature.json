@@ -1,0 +1,22 @@
+{
+  "category": "enhancement",
+  "description": "Enhance Visual Glow Effects on Landing and Authentication Pages\n\nImprove the visual glow effects on the landing page and login/signup pages using frontend design expertise to create a more polished and appealing user interface.\n\nRequirements:\n- Review existing glow effects on landing page and identify areas for enhancement\n- Review existing glow effects on login/signup pages and identify areas for enhancement\n- Refine glow properties (color, intensity, blur radius, spread) for better visual appeal\n- Ensure glow effects are consistent with the overall design system\n- Optimize performance to prevent excessive repaints or layout shifts\n- Test glow effects across different screen sizes and devices\n- Verify accessibility (ensure glows don't interfere with text readability or contrast ratios)\n- Consider dark mode compatibility if applicable\n\nTechnical Considerations:\n- Use CSS box-shadow, filter effects, or canvas-based solutions as appropriate\n- Ensure animations are smooth (60fps) and use GPU acceleration where possible\n- Test on various browsers for consistent rendering\n- Keep file sizes minimal if using image-based glows",
+  "title": "Enhance visual glow effects on authentication pages",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "verified",
+  "id": "feature-1767737746041-9nb3k61ay",
+  "startedAt": "2026-01-06T22:15:46.297Z",
+  "updatedAt": "2026-01-06T22:25:26.079Z",
+  "justFinishedAt": "2026-01-06T22:25:26.079Z"
+}

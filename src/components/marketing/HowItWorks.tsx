@@ -55,13 +55,38 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="relative py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION AMBIENT GLOW
+          SECTION AMBIENT GLOW - Enhanced with multiple animated layers
       ═══════════════════════════════════════════════════════════════════ */}
-      <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] pointer-events-none"
+
+      {/* Primary ambient glow with breathing animation */}
+      <motion.div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[1100px] h-[600px] pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at center, rgba(168, 85, 247, 0.06) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at center, rgba(168, 85, 247, 0.1) 0%, rgba(139, 92, 246, 0.04) 40%, transparent 70%)",
           filter: "blur(80px)",
+        }}
+        animate={{
+          opacity: [0.7, 1, 0.7],
+          scale: [1, 1.03, 1],
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Secondary glow - pink accent */}
+      <div
+        className="absolute top-[50%] left-[20%] w-[400px] h-[400px] pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at center, rgba(236, 72, 153, 0.08) 0%, transparent 60%)",
+          filter: "blur(100px)",
+        }}
+      />
+
+      {/* Tertiary glow - teal accent for the last step */}
+      <div
+        className="absolute top-[40%] right-[15%] w-[350px] h-[350px] pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at center, rgba(52, 211, 153, 0.06) 0%, transparent 60%)",
+          filter: "blur(90px)",
         }}
       />
 
@@ -95,15 +120,52 @@ export function HowItWorks() {
 
         {/* Steps */}
         <div className="relative">
-          {/* Connector line - desktop only */}
+          {/* Connector line - desktop only - Enhanced with multi-layer glow */}
           <div className="hidden lg:block absolute top-24 left-[10%] right-[10%] h-px">
-            <div className="w-full h-full bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
-            {/* Animated glow traveling along the line */}
-            <motion.div
-              className="absolute top-0 w-20 h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent"
-              animate={{ left: ["0%", "100%", "0%"] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            {/* Base line */}
+            <div className="w-full h-full bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+
+            {/* Glow layer under the line */}
+            <div
+              className="absolute -top-1 left-0 right-0 h-3 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent"
+              style={{ filter: "blur(4px)" }}
             />
+
+            {/* Primary animated glow traveling along the line */}
+            <motion.div
+              className="absolute -top-1 w-32 h-3"
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.6), rgba(236, 72, 153, 0.5), transparent)",
+                filter: "blur(6px)",
+              }}
+              animate={{ left: ["-10%", "110%"] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+            />
+
+            {/* Secondary trailing glow */}
+            <motion.div
+              className="absolute -top-0.5 w-16 h-2"
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), transparent)",
+                filter: "blur(2px)",
+              }}
+              animate={{ left: ["-5%", "105%"] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear", delay: 0.1 }}
+            />
+
+            {/* Pulse points at step positions */}
+            {[0, 50, 100].map((position, idx) => (
+              <motion.div
+                key={idx}
+                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-purple-400"
+                style={{ left: `${position}%`, marginLeft: position === 100 ? '-8px' : position === 0 ? '0' : '-4px' }}
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: idx * 0.3 }}
+              />
+            ))}
           </div>
 
           <motion.div
@@ -121,20 +183,45 @@ export function HowItWorks() {
               >
                 {/* Step card */}
                 <div className="group relative text-center lg:text-left">
-                  {/* Number badge with glow */}
+                  {/* Number badge with enhanced multi-layer glow */}
                   <div className="relative inline-flex items-center justify-center mb-8">
-                    {/* Outer glow ring */}
+                    {/* Outer glow ring - large diffuse */}
+                    <motion.div
+                      className="absolute w-24 h-24 rounded-full opacity-30 group-hover:opacity-50 transition-opacity duration-500"
+                      style={{
+                        background: `radial-gradient(circle, ${step.glowColor}, transparent 60%)`,
+                        filter: "blur(25px)",
+                      }}
+                      animate={{
+                        scale: [1, 1.1, 1],
+                        opacity: [0.3, 0.4, 0.3],
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: index * 0.5 }}
+                    />
+
+                    {/* Middle glow ring */}
                     <div
-                      className="absolute w-20 h-20 rounded-full opacity-40 group-hover:opacity-60 transition-opacity duration-500"
+                      className="absolute w-20 h-20 rounded-full opacity-50 group-hover:opacity-70 transition-opacity duration-500"
                       style={{
                         background: `radial-gradient(circle, ${step.glowColor}, transparent 70%)`,
-                        filter: "blur(20px)",
+                        filter: "blur(15px)",
+                      }}
+                    />
+
+                    {/* Inner glow ring */}
+                    <div
+                      className="absolute w-16 h-16 rounded-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-300"
+                      style={{
+                        background: `linear-gradient(135deg, ${step.glowColor}, transparent)`,
+                        filter: "blur(8px)",
                       }}
                     />
 
                     {/* Number container */}
-                    <div
+                    <motion.div
                       className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${step.gradient} p-[2px] transition-transform duration-300 group-hover:scale-110`}
+                      whileHover={{ rotate: [0, -3, 3, 0] }}
+                      transition={{ duration: 0.4 }}
                     >
                       <div
                         className="w-full h-full rounded-[14px] flex items-center justify-center"
@@ -146,7 +233,7 @@ export function HowItWorks() {
                           {step.number}
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
 
                   {/* Content card */}
