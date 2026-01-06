@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'motion/react';
+import { PasswordStrengthIndicator, analyzePassword } from '@/components/ui/password-strength-indicator';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,6 +17,14 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    // Client-side password strength validation
+    const passwordAnalysis = analyzePassword(password);
+    if (passwordAnalysis.strength === 'weak') {
+      setError('Please choose a stronger password. It should include uppercase, lowercase, and numbers.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -140,7 +149,12 @@ export default function SignupPage() {
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
               placeholder="Create a password"
             />
-            <p className="text-xs text-gray-500 mt-2">Must be at least 8 characters</p>
+            {/* Password strength indicator */}
+            <PasswordStrengthIndicator
+              password={password}
+              showRequirements={true}
+              showSuggestions={true}
+            />
           </div>
 
           {/* Submit button */}
