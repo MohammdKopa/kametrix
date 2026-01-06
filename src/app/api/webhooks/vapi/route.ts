@@ -34,6 +34,7 @@ import { sendLowCreditEmail } from '@/lib/email';
 import { formatDateGerman } from '@/lib/localization';
 import { verifyVapiSignature } from '@/lib/webhook-auth';
 import { buildDateHeader, buildCalendarTools } from '@/lib/prompts';
+import { logInvalidWebhookSignature } from '@/lib/security';
 
 /**
  * Tool call payload from Vapi
@@ -81,6 +82,10 @@ export async function POST(req: NextRequest) {
 
       if (!isValid) {
         console.error('Vapi webhook: signature verification failed');
+        // Log security audit event for invalid signature
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+          req.headers.get('x-real-ip') || 'unknown';
+        logInvalidWebhookSignature('vapi', ip).catch(console.error);
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
       }
     }
