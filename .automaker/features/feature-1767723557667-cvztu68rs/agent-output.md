@@ -839,3 +839,163 @@ Input: {
 6. **Environment Variables**: Set `LOG_LEVEL` (DEBUG, INFO, WARN, ERROR) to control logging verbosity
 7. **Health Endpoint**: `/api/health` now returns comprehensive monitoring data including circuit breaker status
 </summary>
+
+---
+
+## Follow-up Session
+
+I need to fix the TypeScript error in the route handler. The issue is with the `withErrorHandling` wrapper's type definition for the second argument. Let me fix this.
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\handler.ts"
+}
+
+Now I need to check how Next.js defines the RouteContext type. Let me look at an existing working route to understand the correct type signature:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "export async function (GET|POST|PUT|DELETE|PATCH)",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api",
+  "output_mode": "content",
+  "head_limit": 20
+}
+
+Let me check how the RouteContext is defined in a working route:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\calls\\[id]\\route.ts"
+}
+
+Now I understand - in Next.js App Router, the params are wrapped in a Promise. The issue is that my `RouteHandler` type has the wrong signature. Let me fix the handler.ts file to use the correct Next.js types:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\handler.ts",
+  "old_string": "/**\n * Wrap a route handler with error handling\n */\nexport type RouteHandler = (\n  request: NextRequest,\n  context?: { params?: Record<string, string> }\n) => Promise<NextResponse>;",
+  "new_string": "/**\n * Route context type for Next.js App Router\n */\nexport interface RouteContext {\n  params: Promise<Record<string, string>>;\n}\n\n/**\n * Wrap a route handler with error handling\n * Note: For routes without params, handler can omit the second argument\n */\nexport type RouteHandler = (\n  request: NextRequest,\n  context: RouteContext\n) => Promise<NextResponse>;\n\n/**\n * Simple route handler without params\n */\nexport type SimpleRouteHandler = (\n  request: NextRequest\n) => Promise<NextResponse>;"
+}
+
+Now I need to update the `withErrorHandling` function to handle both types:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\handler.ts",
+  "old_string": "/**\n * Create a wrapped route handler with error handling\n */\nexport function withErrorHandling(\n  handler: RouteHandler,\n  options: ErrorHandlerOptions = DEFAULT_OPTIONS\n): RouteHandler {\n  return async (\n    request: NextRequest,\n    routeContext?: { params?: Record<string, string> }\n  ): Promise<NextResponse> => {\n    const context = createRequestContext(request);\n\n    try {\n      const response = await handler(request, routeContext);\n\n      // Add request ID to successful responses\n      addRequestIdToResponse(response, context.requestId);\n\n      // Log successful request\n      const duration = getRequestDuration(context);\n      context.logger.request(\n        context.method,\n        context.path,\n        response.status,\n        duration\n      );\n\n      return response;\n    } catch (error) {\n      return handleError(error, context, options);\n    }\n  };\n}",
+  "new_string": "/**\n * Create a wrapped route handler with error handling\n * Supports both simple handlers (no params) and handlers with route context\n */\nexport function withErrorHandling(\n  handler: SimpleRouteHandler,\n  options?: ErrorHandlerOptions\n): SimpleRouteHandler;\nexport function withErrorHandling(\n  handler: RouteHandler,\n  options?: ErrorHandlerOptions\n): RouteHandler;\nexport function withErrorHandling(\n  handler: SimpleRouteHandler | RouteHandler,\n  options: ErrorHandlerOptions = DEFAULT_OPTIONS\n): SimpleRouteHandler | RouteHandler {\n  return async (\n    request: NextRequest,\n    routeContext?: RouteContext\n  ): Promise<NextResponse> => {\n    const context = createRequestContext(request);\n\n    try {\n      // Call handler with or without route context depending on function signature\n      const response = handler.length > 1\n        ? await (handler as RouteHandler)(request, routeContext as RouteContext)\n        : await (handler as SimpleRouteHandler)(request);\n\n      // Add request ID to successful responses\n      addRequestIdToResponse(response, context.requestId);\n\n      // Log successful request\n      const duration = getRequestDuration(context);\n      context.logger.request(\n        context.method,\n        context.path,\n        response.status,\n        duration\n      );\n\n      return response;\n    } catch (error) {\n      return handleError(error, context, options);\n    }\n  };\n}"
+}
+
+Now I need to update the index.ts to export the new types:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\index.ts"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\index.ts",
+  "old_string": "// Error handler\nexport {\n  normalizeError,\n  createErrorResponse,\n  handleError,\n  withErrorHandling,\n  apiResponse,\n  apiError,\n  tryCatch,\n  assertOrThrow,\n  assertFound,\n  type RouteHandler,\n  type ErrorHandlerOptions,\n} from './handler';",
+  "new_string": "// Error handler\nexport {\n  normalizeError,\n  createErrorResponse,\n  handleError,\n  withErrorHandling,\n  apiResponse,\n  apiError,\n  tryCatch,\n  assertOrThrow,\n  assertFound,\n  type RouteHandler,\n  type SimpleRouteHandler,\n  type RouteContext,\n  type ErrorHandlerOptions,\n} from './handler';"
+}
+
+Now I need to check that there's no conflict with the RequestContext type in request-context.ts:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\request-context.ts"
+}
+
+There's a naming conflict - `RequestContext` in request-context.ts (for logging/tracking) vs `RouteContext` in handler.ts (for Next.js route params). The exports are correctly named differently so they won't conflict. Now let me verify the build works by running a type check:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npx tsc --noEmit 2>&1 | head -50",
+  "description": "Type check the project",
+  "timeout": 120000
+}
+
+Let me fix that type issue:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\handler.ts",
+  "offset": 250,
+  "limit": 40
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\errors\\handler.ts",
+  "old_string": "export function apiResponse<T>(\n  data: T,\n  status: number = 200,\n  requestId?: string\n): NextResponse<{ success: true; data: T }> {\n  const response = NextResponse.json(\n    { success: true, data },\n    { status }\n  );\n\n  if (requestId) {\n    response.headers.set(REQUEST_ID_HEADER, requestId);\n  }\n\n  return response;\n}",
+  "new_string": "export function apiResponse<T>(\n  data: T,\n  status: number = 200,\n  requestId?: string\n): NextResponse<{ success: true; data: T }> {\n  const response = NextResponse.json(\n    { success: true as const, data },\n    { status }\n  );\n\n  if (requestId) {\n    response.headers.set(REQUEST_ID_HEADER, requestId);\n  }\n\n  return response as NextResponse<{ success: true; data: T }>;\n}"
+}
+
+Now let me run the type check again:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npx tsc --noEmit 2>&1 | head -80",
+  "description": "Type check the project",
+  "timeout": 120000
+}
+
+No errors. Let me try to run the build to make sure everything compiles correctly:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npm run build 2>&1 | tail -60",
+  "description": "Run Next.js build",
+  "timeout": 300000
+}
+
+The build succeeded! Now let me verify by running the Playwright tests again to make sure everything still works:
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\tests\\e2e\\error-handling-verification.spec.ts",
+  "content": "import { test, expect } from '@playwright/test';\n\n/**\n * Verification test for comprehensive error handling implementation\n *\n * This test verifies:\n * 1. Health endpoint returns monitoring data\n * 2. Error responses follow the standard format\n * 3. Request IDs are included in responses\n * 4. Validation errors are properly formatted\n */\n\ntest.describe('Error Handling Implementation', () => {\n  test('Health endpoint returns monitoring data with circuit breaker info', async ({ request }) => {\n    const response = await request.get('/api/health');\n\n    // Should return 200 or 503 depending on system health\n    expect([200, 503]).toContain(response.status());\n\n    const body = await response.json();\n\n    // Verify health endpoint structure\n    expect(body).toHaveProperty('status');\n    expect(['healthy', 'degraded', 'unhealthy', 'error']).toContain(body.status);\n    expect(body).toHaveProperty('database');\n    expect(body).toHaveProperty('timestamp');\n\n    // Verify monitoring data is present\n    if (body.status !== 'error') {\n      expect(body).toHaveProperty('monitoring');\n      expect(body.monitoring).toHaveProperty('errorRate');\n      expect(body.monitoring).toHaveProperty('recentErrors');\n      expect(body.monitoring).toHaveProperty('openCircuits');\n\n      // Verify circuits data is present\n      expect(body).toHaveProperty('circuits');\n\n      // Verify errors data is present\n      expect(body).toHaveProperty('errors');\n      expect(body.errors).toHaveProperty('topErrors');\n      expect(body.errors).toHaveProperty('ratePerMinute');\n    }\n  });\n\n  test('Unauthorized API request returns proper error format with request ID', async ({ request }) => {\n    // Make request without authentication to agents endpoint\n    const response = await request.get('/api/agents');\n\n    expect(response.status()).toBe(401);\n\n    // Check for request ID header\n    const requestId = response.headers()['x-request-id'];\n    expect(requestId).toBeTruthy();\n    expect(requestId.length).toBeGreaterThan(10);\n\n    const body = await response.json();\n\n    // Verify error response format\n    expect(body).toHaveProperty('success', false);\n    expect(body).toHaveProperty('error');\n    expect(body.error).toHaveProperty('code');\n    expect(body.error).toHaveProperty('message');\n    expect(body.error).toHaveProperty('timestamp');\n\n    // Error code should be authentication-related\n    expect(body.error.code).toMatch(/^E2/); // Auth errors start with E2\n  });\n\n  test('POST request with invalid body returns validation error', async ({ request }) => {\n    // Make POST request with invalid data\n    const response = await request.post('/api/agents', {\n      data: {\n        // Missing required fields\n        invalid: 'data'\n      },\n      headers: {\n        'Content-Type': 'application/json',\n        // Note: Without a valid session, this will return 401 first\n        // This test verifies the error format is correct\n      }\n    });\n\n    // Should return 401 (unauthorized) or 400 (validation)\n    expect([400, 401]).toContain(response.status());\n\n    const body = await response.json();\n\n    // Verify error response structure\n    expect(body).toHaveProperty('success', false);\n    expect(body).toHaveProperty('error');\n    expect(body.error).toHaveProperty('code');\n    expect(body.error).toHaveProperty('message');\n\n    // Should have a request ID\n    const requestId = response.headers()['x-request-id'];\n    expect(requestId).toBeTruthy();\n  });\n\n  test('Error response includes request ID for correlation', async ({ request }) => {\n    // Make multiple requests and verify each has unique request ID\n    const responses = await Promise.all([\n      request.get('/api/agents'),\n      request.get('/api/agents'),\n      request.get('/api/calls'),\n    ]);\n\n    const requestIds = responses.map(r => r.headers()['x-request-id']);\n\n    // All should have request IDs\n    requestIds.forEach(id => {\n      expect(id).toBeTruthy();\n    });\n\n    // Request IDs should be unique\n    const uniqueIds = new Set(requestIds);\n    expect(uniqueIds.size).toBe(requestIds.length);\n  });\n\n  test('Health endpoint includes error rate monitoring', async ({ request }) => {\n    // First, make a few requests that might generate errors\n    await Promise.all([\n      request.get('/api/agents'),\n      request.get('/api/calls'),\n      request.get('/api/credits'),\n    ]);\n\n    // Then check health endpoint for error tracking\n    const response = await request.get('/api/health');\n    const body = await response.json();\n\n    if (body.status !== 'error') {\n      // Verify error rate tracking\n      expect(typeof body.errors.ratePerMinute).toBe('number');\n      expect(Array.isArray(body.errors.topErrors)).toBe(true);\n\n      // Verify monitoring health indicators\n      expect(typeof body.monitoring.errorRate).toBe('number');\n      expect(typeof body.monitoring.recentErrors).toBe('number');\n      expect(Array.isArray(body.monitoring.openCircuits)).toBe(true);\n    }\n  });\n});\n\ntest.describe('API Response Consistency', () => {\n  test('Successful health check follows response format', async ({ request }) => {\n    const response = await request.get('/api/health');\n\n    if (response.status() === 200) {\n      const body = await response.json();\n\n      // Verify consistent structure\n      expect(body).toHaveProperty('status');\n      expect(body).toHaveProperty('timestamp');\n      expect(body).toHaveProperty('dbLatencyMs');\n      expect(typeof body.dbLatencyMs).toBe('number');\n    }\n  });\n\n  test('Error responses are consistent across endpoints', async ({ request }) => {\n    // Test multiple protected endpoints without auth\n    const endpoints = ['/api/agents', '/api/calls', '/api/credits'];\n\n    for (const endpoint of endpoints) {\n      const response = await request.get(endpoint);\n\n      if (response.status() === 401) {\n        const body = await response.json();\n\n        // All error responses should have consistent structure\n        expect(body).toHaveProperty('success', false);\n        expect(body).toHaveProperty('error');\n        expect(body.error).toHaveProperty('code');\n        expect(body.error).toHaveProperty('message');\n        expect(body.error).toHaveProperty('timestamp');\n\n        // Timestamp should be valid ISO format\n        expect(new Date(body.error.timestamp).getTime()).not.toBeNaN();\n      }\n    }\n  });\n});\n"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npx playwright test tests/e2e/error-handling-verification.spec.ts --reporter=list 2>&1 | tail -30",
+  "description": "Run Playwright tests",
+  "timeout": 180000
+}
+
+All 14 tests passed! Now let me clean up by deleting the test file:
+
+🔧 Tool: Bash
+Input: {
+  "command": "rm \"F:\\CodeBase\\Kametrix\\tests\\e2e\\error-handling-verification.spec.ts\"",
+  "description": "Delete verification test file"
+}
+
+<summary>
+## Summary: Fix TypeScript Build Error in Error Handling Implementation
+
+### Changes Implemented
+- Fixed TypeScript type error in `withErrorHandling` function that caused build failure
+- Updated `RouteHandler` type to use correct Next.js App Router `RouteContext` interface with `params: Promise<Record<string, string>>`
+- Added `SimpleRouteHandler` type for routes without URL parameters
+- Added function overloads for `withErrorHandling` to support both handler types
+- Fixed type assertion in `apiResponse` function using `as const` for literal types
+
+### Files Modified
+- `src/lib/errors/handler.ts` - Fixed RouteHandler/RouteContext types and withErrorHandling function signatures
+- `src/lib/errors/index.ts` - Added exports for new types (SimpleRouteHandler, RouteContext)
+
+### Verification Status
+- TypeScript type check (`npx tsc --noEmit`) passes with no errors
+- Next.js build (`npm run build`) completes successfully
+- All 14 Playwright tests passed successfully
+- Test file deleted after verification
+
+### Notes for Developer
+1. The `RouteContext` type in handler.ts is for Next.js route parameters (with `params: Promise<Record<string, string>>`)
+2. The `RequestContext` type in request-context.ts is for logging/tracking (with `requestId`, `logger`, etc.)
+3. Use `withErrorHandling(handler)` for simple routes without params
+4. For routes with params, the second argument will be properly typed as `RouteContext`
+</summary>

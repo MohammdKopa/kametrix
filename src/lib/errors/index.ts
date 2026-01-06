@@ -117,5 +117,7 @@ export {
   assertOrThrow,
   assertFound,
   type RouteHandler,
+  type SimpleRouteHandler,
+  type RouteContext,
   type ErrorHandlerOptions,
 } from './handler';

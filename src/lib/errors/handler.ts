@@ -23,11 +23,26 @@ import {
 import { getUserMessage } from './messages';
 
 /**
+ * Route context type for Next.js App Router
+ */
+export interface RouteContext {
+  params: Promise<Record<string, string>>;
+}
+
+/**
  * Wrap a route handler with error handling
+ * Note: For routes without params, handler can omit the second argument
  */
 export type RouteHandler = (
   request: NextRequest,
-  context?: { params?: Record<string, string> }
+  context: RouteContext
+) => Promise<NextResponse>;
+
+/**
+ * Simple route handler without params
+ */
+export type SimpleRouteHandler = (
+  request: NextRequest
 ) => Promise<NextResponse>;
 
 /**
@@ -185,19 +200,31 @@ export function handleError(
 
 /**
  * Create a wrapped route handler with error handling
+ * Supports both simple handlers (no params) and handlers with route context
  */
 export function withErrorHandling(
+  handler: SimpleRouteHandler,
+  options?: ErrorHandlerOptions
+): SimpleRouteHandler;
+export function withErrorHandling(
   handler: RouteHandler,
+  options?: ErrorHandlerOptions
+): RouteHandler;
+export function withErrorHandling(
+  handler: SimpleRouteHandler | RouteHandler,
   options: ErrorHandlerOptions = DEFAULT_OPTIONS
-): RouteHandler {
+): SimpleRouteHandler | RouteHandler {
   return async (
     request: NextRequest,
-    routeContext?: { params?: Record<string, string> }
+    routeContext?: RouteContext
   ): Promise<NextResponse> => {
     const context = createRequestContext(request);
 
     try {
-      const response = await handler(request, routeContext);
+      // Call handler with or without route context depending on function signature
+      const response = handler.length > 1
+        ? await (handler as RouteHandler)(request, routeContext as RouteContext)
+        : await (handler as SimpleRouteHandler)(request);
 
       // Add request ID to successful responses
       addRequestIdToResponse(response, context.requestId);
@@ -227,7 +254,7 @@ export function apiResponse<T>(
   requestId?: string
 ): NextResponse<{ success: true; data: T }> {
   const response = NextResponse.json(
-    { success: true, data },
+    { success: true as const, data },
     { status }
   );
 
@@ -235,7 +262,7 @@ export function apiResponse<T>(
     response.headers.set(REQUEST_ID_HEADER, requestId);
   }
 
-  return response;
+  return response as NextResponse<{ success: true; data: T }>;
 }
 
 /**
