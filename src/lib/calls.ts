@@ -6,6 +6,7 @@ import {
   appendCallLog,
   isAuthenticationError,
 } from '@/lib/google/sheets';
+import { getCachedAgentByVapiId, invalidateUserCache } from '@/lib/performance';
 
 /**
  * Webhook payload type definitions
@@ -69,15 +70,14 @@ export interface WebhookCallData {
 
 /**
  * Find agent and user by Vapi assistant ID
+ * Uses caching for improved performance on repeated lookups
  *
  * @param assistantId - Vapi assistant ID
  * @returns Agent with user relation, or null if not found
  */
 export async function findAgentByVapiAssistantId(assistantId: string) {
-  return prisma.agent.findUnique({
-    where: { vapiAssistantId: assistantId },
-    include: { user: true },
-  });
+  // Use cached lookup for better performance during high-volume webhook processing
+  return getCachedAgentByVapiId(assistantId);
 }
 
 /**

@@ -89,6 +89,12 @@ model Agent {
   user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   calls               Call[]
   phoneNumber         PhoneNumber?
+
+  // Performance indexes
+  @@index([userId])
+  @@index([isActive])
+  @@index([userId, isActive])
+  @@index([createdAt(sort: Desc)])
 }
 
 model Session {
@@ -100,6 +106,10 @@ model Session {
 
   // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Performance indexes
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Call {
@@ -120,6 +130,14 @@ model Call {
   // Relations
   agent           Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Performance indexes
+  @@index([userId])
+  @@index([agentId])
+  @@index([status])
+  @@index([startedAt(sort: Desc)])
+  @@index([userId, startedAt(sort: Desc)])
+  @@index([userId, status])
 }
 
 model CreditPack {
@@ -146,6 +164,12 @@ model CreditTransaction {
 
   // Relations
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Performance indexes
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([type])
 }
 
 model PhoneNumber {

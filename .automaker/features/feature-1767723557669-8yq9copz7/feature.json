@@ -1,0 +1,12 @@
+{
+  "category": "feature",
+  "description": "Create intuitive onboarding flow for new users, in-app help system, tooltips, tutorial mode, and FAQ section. Ensure users can quickly understand and use calendar and voice agent features.",
+  "title": "User Onboarding and Help System",
+  "dependencies": [
+    "feature-1767541936003-tly1lgds1",
+    "feature-1767541936004-3k7gxuxob"
+  ],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767723557669-8yq9copz7"
+}

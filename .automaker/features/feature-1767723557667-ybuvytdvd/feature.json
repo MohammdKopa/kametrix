@@ -1,0 +1,9 @@
+{
+  "category": "enhancement",
+  "description": "Create comprehensive documentation including API documentation, deployment guides, user manuals, troubleshooting guides, and architecture diagrams. Document all features, configuration options, and integration points.",
+  "title": "Production Documentation",
+  "dependencies": [],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767723557667-ybuvytdvd"
+}

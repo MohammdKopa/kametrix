@@ -1,0 +1,9 @@
+{
+  "category": "enhancement",
+  "description": "Set up automated deployment pipeline with continuous integration, automated testing, staging environment, rollback capabilities, and production deployment workflows. Include environment configuration management and secrets handling.",
+  "title": "Deployment and CI/CD Pipeline",
+  "dependencies": [],
+  "priority": 1,
+  "status": "backlog",
+  "id": "feature-1767723557668-xi3b12q2y"
+}

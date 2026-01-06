@@ -4,28 +4,29 @@ import { prisma } from '@/lib/prisma';
 import { createBusinessAssistant, deleteAssistant } from '@/lib/vapi';
 import { buildSystemPrompt } from '@/lib/prompts';
 import type { WizardState } from '@/types/wizard';
+import {
+  getCachedUserAgents,
+  invalidateUserCache,
+  metrics,
+  MetricNames,
+} from '@/lib/performance';
 
 /**
  * GET /api/agents - List all agents for authenticated user
  */
 export async function GET(request: NextRequest) {
+  const timer = metrics.startTimer(MetricNames.API_AGENTS);
+
   try {
     const user = await requireAuth(request);
 
-    const agents = await prisma.agent.findMany({
-      where: {
-        userId: user.id,
-      },
-      include: {
-        phoneNumber: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Use cached query for better performance
+    const agents = await getCachedUserAgents(user.id);
 
+    metrics.endTimer(timer);
     return NextResponse.json({ agents });
   } catch (error) {
+    metrics.endTimer(timer, true);
     console.error('Error fetching agents:', error);
 
     if (error instanceof Error && error.message === 'Authentication required') {
@@ -145,6 +146,9 @@ export async function POST(request: NextRequest) {
         // Phone numbers are assigned manually by admin via Vapi dashboard
         // After admin assigns phone to assistant in Vapi, they run sync to update our DB
 
+        // Invalidate user's agent cache
+        invalidateUserCache(user.id);
+
         return NextResponse.json(
           {
             agent,
@@ -202,6 +206,9 @@ export async function POST(request: NextRequest) {
           isActive: true,
         },
       });
+
+      // Invalidate user's agent cache
+      invalidateUserCache(user.id);
 
       return NextResponse.json({ agent }, { status: 201 });
     }
