@@ -1,0 +1,22 @@
+{
+  "category": "bug",
+  "description": "Fix Agent Creation UI Error - Undefined Object Property\n\nInvestigate and resolve the JavaScript error \"undefined is not an object (evaluating 's.id')\" that occurs in the UI when creating agents, despite successful agent creation on the backend.\n\nProblem Analysis:\n- Backend successfully creates agents (confirmed by logs showing assistantId and agentId)\n- API returns 201 status code indicating success\n- UI throws error trying to access 's.id' property on an undefined object\n- Error suggests a data mapping or state management issue in the frontend\n\nRequirements:\n- Locate where the error occurs in the UI code (search for variable 's' and '.id' access)\n- Identify the source of data being mapped (likely API response handling)\n- Verify the API response structure matches what the UI expects\n- Ensure proper null/undefined checks before accessing nested properties\n- Add defensive programming to handle missing or malformed data\n- Test the complete agent creation flow end-to-end\n- Verify UI updates correctly after successful agent creation\n\nEdge Cases to Consider:\n- API response missing expected fields\n- Race condition between state updates\n- Asynchronous data not loaded when component renders\n- Type mismatches between backend response and frontend expectations\n\nSuccess Criteria:\n- Agent creation completes without UI errors\n- Newly created agent appears in the UI immediately\n- Error handling displays user-friendly messages if creation fails\n- Console shows no JavaScript errors during the flow",
+  "title": "Fix undefined property error in agent creation UI",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "waiting_approval",
+  "id": "feature-1767798351685-ksvxwcvqz",
+  "startedAt": "2026-01-07T15:05:51.829Z",
+  "updatedAt": "2026-01-07T15:15:45.889Z",
+  "justFinishedAt": "2026-01-07T15:15:45.889Z"
+}

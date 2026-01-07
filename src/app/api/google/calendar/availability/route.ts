@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { getAvailableSlots } from '@/lib/google/calendar';
 import { isAuthenticationError } from '@/lib/google/sheets';
+import {
+  applyGoogleCalendarRateLimit,
+  recordGoogleCalendarSuccess,
+  recordGoogleCalendarError,
+} from '@/lib/quota';
 
 /**
  * POST /api/google/calendar/availability
@@ -20,9 +25,13 @@ import { isAuthenticationError } from '@/lib/google/sheets';
  * - message: Human-readable message for voice agent
  */
 export async function POST(req: NextRequest) {
+  let userId: string | null = null;
+  let agentId: string | null = null;
+
   try {
     const body = await req.json();
-    const { agentId, date, timeZone = 'America/New_York' } = body;
+    agentId = body.agentId;
+    const { date, timeZone = 'America/New_York' } = body;
 
     // Validate required fields
     if (!agentId || !date) {
@@ -45,6 +54,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    userId = agent.userId;
+
     // Check if Google is connected
     if (!agent.user.googleRefreshToken) {
       return NextResponse.json({
@@ -52,6 +63,12 @@ export async function POST(req: NextRequest) {
         message: "I'm sorry, calendar booking isn't set up yet. Please call back later.",
         slots: [],
       });
+    }
+
+    // Apply rate limiting
+    const rateLimitResult = await applyGoogleCalendarRateLimit(req, userId, agentId);
+    if (!rateLimitResult.allowed && rateLimitResult.response) {
+      return rateLimitResult.response;
     }
 
     // Get OAuth client for user
@@ -87,6 +104,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Record successful API call
+    if (userId) {
+      await recordGoogleCalendarSuccess(userId);
+    }
+
     // Create voice-friendly list of times
     const timeList = slots.slice(0, 5).map(slot => slot.displayTime).join(', ');
     const message = slots.length <= 5
@@ -101,6 +123,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error checking calendar availability:', error);
+
+    // Record API error for quota tracking
+    if (userId) {
+      const isRateLimitError = error instanceof Error &&
+        (error.message.includes('rate limit') || error.message.includes('quota'));
+      await recordGoogleCalendarError(userId, isRateLimitError);
+    }
 
     // Check if this is an authentication error requiring reconnection
     if (isAuthenticationError(error)) {

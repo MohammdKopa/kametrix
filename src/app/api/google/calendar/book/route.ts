@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { bookAppointment, parseDateTime } from '@/lib/google/calendar';
 import { isAuthenticationError } from '@/lib/google/sheets';
+import {
+  applyGoogleCalendarRateLimit,
+  recordGoogleCalendarSuccess,
+  recordGoogleCalendarError,
+} from '@/lib/quota';
 
 /**
  * POST /api/google/calendar/book
@@ -26,10 +31,12 @@ import { isAuthenticationError } from '@/lib/google/sheets';
  * - event?: Booked event details
  */
 export async function POST(req: NextRequest) {
+  let userId: string | null = null;
+  let agentId: string | null = null;
+
   try {
     const body = await req.json();
     const {
-      agentId,
       date,
       time,
       callerName,
@@ -38,6 +45,7 @@ export async function POST(req: NextRequest) {
       summary = 'Appointment',
       timeZone = 'America/New_York',
     } = body;
+    agentId = body.agentId;
 
     // Validate required fields
     if (!agentId || !date || !time) {
@@ -60,12 +68,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    userId = agent.userId;
+
     // Check if Google is connected
     if (!agent.user.googleRefreshToken) {
       return NextResponse.json({
         success: false,
         message: "I'm sorry, calendar booking isn't set up yet. Please call back later.",
       });
+    }
+
+    // Apply rate limiting
+    const rateLimitResult = await applyGoogleCalendarRateLimit(req, userId, agentId);
+    if (!rateLimitResult.allowed && rateLimitResult.response) {
+      return rateLimitResult.response;
     }
 
     // Get OAuth client for user
@@ -127,6 +143,11 @@ export async function POST(req: NextRequest) {
         timeZone,
       }).format(new Date(startDateTime));
 
+      // Record successful API call
+      if (userId) {
+        await recordGoogleCalendarSuccess(userId);
+      }
+
       const message = callerEmail
         ? `Perfect! I've booked your appointment for ${confirmationDate} at ${confirmationTime}. You'll receive a confirmation email at ${callerEmail}.`
         : `Perfect! I've booked your appointment for ${confirmationDate} at ${confirmationTime}.`;
@@ -144,6 +165,13 @@ export async function POST(req: NextRequest) {
       });
     } catch (error) {
       console.error('Error booking appointment:', error);
+
+      // Record API error for quota tracking
+      if (userId) {
+        const isRateLimitError = error instanceof Error &&
+          (error.message.includes('rate limit') || error.message.includes('quota'));
+        await recordGoogleCalendarError(userId, isRateLimitError);
+      }
 
       // Check if this is an authentication error requiring reconnection
       if (isAuthenticationError(error)) {
@@ -173,6 +201,13 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('Error in booking endpoint:', error);
+
+    // Record API error for quota tracking
+    if (userId) {
+      const isRateLimitError = error instanceof Error &&
+        (error.message.includes('rate limit') || error.message.includes('quota'));
+      await recordGoogleCalendarError(userId, isRateLimitError);
+    }
 
     // Check if this is an authentication error requiring reconnection
     if (isAuthenticationError(error)) {

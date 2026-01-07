@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { listEvents, searchEvents, findEventsByAttendee, getEvent, findNextAvailableSlot } from '@/lib/google/calendar';
 import { isAuthenticationError } from '@/lib/google/sheets';
+import {
+  applyGoogleCalendarRateLimit,
+  recordGoogleCalendarSuccess,
+  recordGoogleCalendarError,
+} from '@/lib/quota';
 
 /**
  * POST /api/google/calendar/events
@@ -29,10 +34,12 @@ import { isAuthenticationError } from '@/lib/google/sheets';
  * - nextSlot?: Next available slot (for 'nextAvailable' action)
  */
 export async function POST(req: NextRequest) {
+  let userId: string | null = null;
+  let agentId: string | null = null;
+
   try {
     const body = await req.json();
     const {
-      agentId,
       action,
       startDate,
       endDate,
@@ -42,6 +49,7 @@ export async function POST(req: NextRequest) {
       maxResults = 10,
       timeZone = 'America/New_York',
     } = body;
+    agentId = body.agentId;
 
     // Validate required fields
     if (!agentId || !action) {
@@ -64,6 +72,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    userId = agent.userId;
+
     // Check if Google is connected
     if (!agent.user.googleRefreshToken) {
       return NextResponse.json({
@@ -71,6 +81,12 @@ export async function POST(req: NextRequest) {
         message: "I'm sorry, calendar access isn't set up yet. Please try again later.",
         events: [],
       });
+    }
+
+    // Apply rate limiting
+    const rateLimitResult = await applyGoogleCalendarRateLimit(req, userId, agentId);
+    if (!rateLimitResult.allowed && rateLimitResult.response) {
+      return rateLimitResult.response;
     }
 
     // Get OAuth client for user
@@ -98,6 +114,11 @@ export async function POST(req: NextRequest) {
           const events = await listEvents(oauth2Client, startDate, endDate, {
             maxResults,
           });
+
+          // Record successful API call
+          if (userId) {
+            await recordGoogleCalendarSuccess(userId);
+          }
 
           if (events.length === 0) {
             return NextResponse.json({
@@ -149,6 +170,11 @@ export async function POST(req: NextRequest) {
             maxResults,
           });
 
+          // Record successful API call
+          if (userId) {
+            await recordGoogleCalendarSuccess(userId);
+          }
+
           if (events.length === 0) {
             return NextResponse.json({
               success: true,
@@ -194,6 +220,11 @@ export async function POST(req: NextRequest) {
 
           const event = await getEvent(oauth2Client, eventId);
 
+          // Record successful API call
+          if (userId) {
+            await recordGoogleCalendarSuccess(userId);
+          }
+
           if (!event) {
             return NextResponse.json({
               success: false,
@@ -237,6 +268,11 @@ export async function POST(req: NextRequest) {
           const events = await findEventsByAttendee(oauth2Client, attendeeEmail, {
             maxResults,
           });
+
+          // Record successful API call
+          if (userId) {
+            await recordGoogleCalendarSuccess(userId);
+          }
 
           if (events.length === 0) {
             return NextResponse.json({
@@ -282,6 +318,11 @@ export async function POST(req: NextRequest) {
             appointmentDuration
           );
 
+          // Record successful API call
+          if (userId) {
+            await recordGoogleCalendarSuccess(userId);
+          }
+
           if (!nextSlot) {
             return NextResponse.json({
               success: false,
@@ -318,6 +359,13 @@ export async function POST(req: NextRequest) {
     } catch (error) {
       console.error('Error querying events:', error);
 
+      // Record API error for quota tracking
+      if (userId) {
+        const isRateLimitError = error instanceof Error &&
+          (error.message.includes('rate limit') || error.message.includes('quota'));
+        await recordGoogleCalendarError(userId, isRateLimitError);
+      }
+
       // Check if this is an authentication error requiring reconnection
       if (isAuthenticationError(error)) {
         return NextResponse.json({
@@ -336,6 +384,13 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('Error in events endpoint:', error);
+
+    // Record API error for quota tracking
+    if (userId) {
+      const isRateLimitError = error instanceof Error &&
+        (error.message.includes('rate limit') || error.message.includes('quota'));
+      await recordGoogleCalendarError(userId, isRateLimitError);
+    }
 
     // Check if this is an authentication error requiring reconnection
     if (isAuthenticationError(error)) {

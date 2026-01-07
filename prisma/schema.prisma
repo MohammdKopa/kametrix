@@ -413,3 +413,119 @@ model MetricAggregate {
   @@unique([name, period, periodKey])
   @@index([name, periodKey(sort: Desc)])
 }
+
+// ============================================
+// API Rate Limiting & Quota Management Models
+// ============================================
+
+enum QuotaType {
+  GOOGLE_CALENDAR
+  API_GENERAL
+  API_WEBHOOK
+}
+
+enum QuotaPeriod {
+  MINUTE
+  HOUR
+  DAY
+  MONTH
+}
+
+// Per-user API quota configuration and tracking
+model ApiQuota {
+  id              String      @id @default(cuid())
+  userId          String
+  quotaType       QuotaType
+  period          QuotaPeriod
+  maxRequests     Int         // Maximum requests allowed per period
+  usedRequests    Int         @default(0) // Current usage count
+  periodStartAt   DateTime    @default(now()) // When current period started
+  lastRequestAt   DateTime?   // Last API request timestamp
+  isBlocked       Boolean     @default(false) // Manual block flag
+  blockReason     String?     // Reason for blocking
+  blockExpiresAt  DateTime?   // When block expires
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([userId, quotaType, period])
+  @@index([userId])
+  @@index([quotaType])
+  @@index([periodStartAt])
+}
+
+// Detailed API usage log for analytics and debugging
+model ApiUsageLog {
+  id            String    @id @default(cuid())
+  userId        String?   // Null for unauthenticated requests
+  agentId       String?   // If request is related to an agent
+  endpoint      String    // API endpoint path
+  method        String    // HTTP method
+  quotaType     QuotaType
+  statusCode    Int       // HTTP status code returned
+  responseTimeMs Int?     // Response time in milliseconds
+  ipAddress     String?   // Client IP address
+  userAgent     String?   // User agent string
+  errorMessage  String?   // Error message if request failed
+  metadata      Json?     // Additional request metadata
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([endpoint, createdAt(sort: Desc)])
+  @@index([quotaType, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+// Google Calendar API specific quota tracking (aligns with Google's quotas)
+model GoogleCalendarQuota {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+
+  // Daily quota tracking (Google Calendar API has daily limits)
+  dailyRequestsUsed   Int       @default(0)
+  dailyRequestsLimit  Int       @default(1000000) // Google's default is 1M/day per project
+  dailyResetAt        DateTime  @default(now())
+
+  // Per-user daily limits (for fair resource allocation)
+  userDailyLimit      Int       @default(10000) // Per-user limit
+  userDailyUsed       Int       @default(0)
+
+  // Rate limiting (queries per 100 seconds)
+  queriesPerMinute    Int       @default(60) // Default 60 QPM per user
+  minuteWindowUsed    Int       @default(0)
+  minuteWindowStart   DateTime  @default(now())
+
+  // Burst protection
+  lastRequestAt       DateTime?
+  consecutiveErrors   Int       @default(0) // Track API errors
+  lastErrorAt         DateTime?
+
+  // Status
+  isThrottled         Boolean   @default(false)
+  throttleExpiresAt   DateTime?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([dailyResetAt])
+  @@index([isThrottled])
+}
+
+// Quota alerts for monitoring
+model QuotaAlert {
+  id            String        @id @default(cuid())
+  userId        String?       // Null for system-wide alerts
+  quotaType     QuotaType
+  alertType     String        // "warning_80", "critical_95", "exceeded"
+  message       String
+  threshold     Int           // Percentage threshold that triggered alert
+  currentUsage  Int           // Usage when alert was triggered
+  maxAllowed    Int           // Maximum allowed when alert triggered
+  acknowledged  Boolean       @default(false)
+  acknowledgedBy String?      // Admin who acknowledged
+  acknowledgedAt DateTime?
+  createdAt     DateTime      @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([quotaType, acknowledged])
+  @@index([createdAt(sort: Desc)])
+}

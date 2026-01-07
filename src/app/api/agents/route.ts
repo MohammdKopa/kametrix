@@ -81,12 +81,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       }
 
       // Filter out empty FAQs (both question and answer must be filled)
-      const validFaqs = wizardData.knowledge.faqs.filter(
-        (faq) => faq.question.trim() && faq.answer.trim()
+      const validFaqs = (wizardData.knowledge?.faqs || []).filter(
+        (faq) => faq && typeof faq.question === 'string' && typeof faq.answer === 'string' &&
+                 faq.question.trim() && faq.answer.trim()
       );
 
       // Filter out empty services
-      const validServices = wizardData.businessInfo.services.filter((s) => s.trim());
+      const validServices = (wizardData.businessInfo?.services || []).filter(
+        (s) => typeof s === 'string' && s.trim()
+      );
 
       // Check if user has Google Calendar connected
       const userWithGoogle = await prisma.user.findUnique({
@@ -232,7 +235,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         });
       }
 
-      // Create agent (legacy format)
+      // Create agent (legacy format) - include phoneNumber for consistency with wizard format
       const agent = await prisma.agent.create({
         data: {
           userId: user.id,
@@ -243,6 +246,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           businessName,
           businessDescription: businessDescription || null,
           isActive: true,
+        },
+        include: {
+          phoneNumber: true,
         },
       });
 

@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { getOAuth2ClientForUser } from '@/lib/google/auth';
 import { deleteEvent, cancelRecurringInstance } from '@/lib/google/calendar';
 import { isAuthenticationError } from '@/lib/google/sheets';
+import {
+  applyGoogleCalendarRateLimit,
+  recordGoogleCalendarSuccess,
+  recordGoogleCalendarError,
+} from '@/lib/quota';
 
 /**
  * POST /api/google/calendar/delete
@@ -21,14 +26,17 @@ import { isAuthenticationError } from '@/lib/google/sheets';
  * - message: Human-readable message for voice agent
  */
 export async function POST(req: NextRequest) {
+  let userId: string | null = null;
+  let agentId: string | null = null;
+
   try {
     const body = await req.json();
     const {
-      agentId,
       eventId,
       instanceDate,
       sendNotifications = true,
     } = body;
+    agentId = body.agentId;
 
     // Validate required fields
     if (!agentId || !eventId) {
@@ -51,12 +59,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    userId = agent.userId;
+
     // Check if Google is connected
     if (!agent.user.googleRefreshToken) {
       return NextResponse.json({
         success: false,
         message: "I'm sorry, calendar access isn't set up yet. Please try again later.",
       });
+    }
+
+    // Apply rate limiting
+    const rateLimitResult = await applyGoogleCalendarRateLimit(req, userId, agentId);
+    if (!rateLimitResult.allowed && rateLimitResult.response) {
+      return rateLimitResult.response;
     }
 
     // Get OAuth client for user
@@ -73,6 +89,12 @@ export async function POST(req: NextRequest) {
       if (instanceDate) {
         // Cancel a specific instance of a recurring event
         await cancelRecurringInstance(oauth2Client, eventId, instanceDate);
+
+        // Record successful API call
+        if (userId) {
+          await recordGoogleCalendarSuccess(userId);
+        }
+
         return NextResponse.json({
           success: true,
           message: "I've cancelled that occurrence of the recurring appointment.",
@@ -80,6 +102,12 @@ export async function POST(req: NextRequest) {
       } else {
         // Delete the entire event
         await deleteEvent(oauth2Client, eventId, sendNotifications);
+
+        // Record successful API call
+        if (userId) {
+          await recordGoogleCalendarSuccess(userId);
+        }
+
         return NextResponse.json({
           success: true,
           message: "I've cancelled the appointment. All attendees will be notified.",
@@ -87,6 +115,13 @@ export async function POST(req: NextRequest) {
       }
     } catch (error) {
       console.error('Error deleting event:', error);
+
+      // Record API error for quota tracking
+      if (userId) {
+        const isRateLimitError = error instanceof Error &&
+          (error.message.includes('rate limit') || error.message.includes('quota'));
+        await recordGoogleCalendarError(userId, isRateLimitError);
+      }
 
       // Check if this is an authentication error requiring reconnection
       if (isAuthenticationError(error)) {
@@ -115,6 +150,13 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('Error in delete endpoint:', error);
+
+    // Record API error for quota tracking
+    if (userId) {
+      const isRateLimitError = error instanceof Error &&
+        (error.message.includes('rate limit') || error.message.includes('quota'));
+      await recordGoogleCalendarError(userId, isRateLimitError);
+    }
 
     // Check if this is an authentication error requiring reconnection
     if (isAuthenticationError(error)) {

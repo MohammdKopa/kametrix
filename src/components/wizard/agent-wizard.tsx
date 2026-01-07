@@ -150,13 +150,19 @@ export function AgentWizard() {
         throw new Error(data.error || 'Failed to create agent');
       }
 
-      const { agent } = await response.json();
+      const responseData = await response.json();
+      const agent = responseData?.agent;
+
+      // Validate agent response before accessing properties
+      if (!agent || typeof agent.id !== 'string' || typeof agent.name !== 'string') {
+        throw new Error('Invalid response from server: missing agent data');
+      }
 
       // Show success dialog with test option
       setCreatedAgent({
         id: agent.id,
         name: agent.name,
-        phoneNumber: agent.phoneNumber,
+        phoneNumber: agent.phoneNumber || null,
       });
       setShowSuccessDialog(true);
       setIsSubmitting(false);
