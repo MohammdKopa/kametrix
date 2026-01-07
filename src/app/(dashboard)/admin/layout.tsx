@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { AdminNavTabs } from '@/components/admin/admin-nav-tabs';
 import { UserMenu } from '@/components/dashboard/user-menu';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
-import { Activity } from 'lucide-react';
+import { Activity, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function AdminLayout({
   children,
@@ -30,15 +31,30 @@ export default async function AdminLayout({
       <header className="glass glass-header-glow sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
-            {/* Logo/Brand */}
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md">
-                <Activity className="w-5 h-5 text-primary-foreground" />
+            {/* Back to Dashboard & Logo/Brand */}
+            <div className="flex items-center gap-4">
+              {/* Back to Dashboard Button */}
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:bg-muted/50 hover:text-foreground hover:border-border/80 transition-all duration-150"
+                title="Back to Dashboard"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+
+              <div className="h-6 w-px bg-border/50" />
+
+              {/* Logo/Brand */}
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md">
+                  <Activity className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground">Kametrix</h1>
+                <span className="px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded">
+                  Admin
+                </span>
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Kametrix</h1>
-              <span className="px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded">
-                Admin
-              </span>
             </div>
 
             {/* Theme Toggle & User Menu */}

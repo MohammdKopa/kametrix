@@ -419,3 +419,95 @@ The build completed successfully. The feature has been implemented correctly.
 - **Styling**: Uses existing design tokens (primary colors, glass morphism, transitions) to maintain visual consistency
 - **Accessibility**: Includes title attribute for tooltip and semantic Link component for proper navigation
 </summary>
+
+---
+
+## Follow-up Session
+
+I'll review the previous work and add a way to navigate back to the dashboard from the admin page. Let me first explore the admin page structure to understand how it's currently set up.
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\admin\\layout.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\admin\\admin-nav-tabs.tsx"
+}
+
+Now I understand the admin layout structure. I'll add a "Back to Dashboard" button in the admin header. I have two good options:
+1. Add it next to the logo in the header
+2. Add it as a tab in the navigation
+
+I think the best approach is to add a visible "Dashboard" link/button in the header area, next to the brand. This makes it clear and consistent with how we added the Admin badge in the user menu for navigating to admin. Let me implement this:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\admin\\layout.tsx",
+  "old_string": "import { getCurrentUser } from '@/lib/auth-guard';\nimport { redirect } from 'next/navigation';\nimport { AdminNavTabs } from '@/components/admin/admin-nav-tabs';\nimport { UserMenu } from '@/components/dashboard/user-menu';\nimport { ThemeToggle } from '@/components/dashboard/theme-toggle';\nimport { Activity } from 'lucide-react';",
+  "new_string": "import { getCurrentUser } from '@/lib/auth-guard';\nimport { redirect } from 'next/navigation';\nimport { AdminNavTabs } from '@/components/admin/admin-nav-tabs';\nimport { UserMenu } from '@/components/dashboard/user-menu';\nimport { ThemeToggle } from '@/components/dashboard/theme-toggle';\nimport { Activity, ArrowLeft } from 'lucide-react';\nimport Link from 'next/link';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\admin\\layout.tsx",
+  "old_string": "            {/* Logo/Brand */}\n            <div className=\"flex items-center gap-2.5\">\n              <div className=\"flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md\">\n                <Activity className=\"w-5 h-5 text-primary-foreground\" />\n              </div>\n              <h1 className=\"text-xl font-bold tracking-tight text-foreground\">Kametrix</h1>\n              <span className=\"px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded\">\n                Admin\n              </span>\n            </div>",
+  "new_string": "            {/* Back to Dashboard & Logo/Brand */}\n            <div className=\"flex items-center gap-4\">\n              {/* Back to Dashboard Button */}\n              <Link\n                href=\"/dashboard\"\n                className=\"flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:bg-muted/50 hover:text-foreground hover:border-border/80 transition-all duration-150\"\n                title=\"Back to Dashboard\"\n              >\n                <ArrowLeft className=\"w-3.5 h-3.5\" />\n                <span className=\"hidden sm:inline\">Dashboard</span>\n              </Link>\n\n              <div className=\"h-6 w-px bg-border/50\" />\n\n              {/* Logo/Brand */}\n              <div className=\"flex items-center gap-2.5\">\n                <div className=\"flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md\">\n                  <Activity className=\"w-5 h-5 text-primary-foreground\" />\n                </div>\n                <h1 className=\"text-xl font-bold tracking-tight text-foreground\">Kametrix</h1>\n                <span className=\"px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded\">\n                  Admin\n                </span>\n              </div>\n            </div>"
+}
+
+Let me verify the complete file looks correct:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\admin\\layout.tsx"
+}
+
+The file looks good. Let me verify the TypeScript compiles correctly:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npx tsc --noEmit --skipLibCheck 2>&1 | head -20",
+  "description": "Check TypeScript compilation",
+  "timeout": 60000
+}
+
+TypeScript compilation passes. Let me also verify the build works:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npx next build 2>&1 | tail -30",
+  "description": "Verify Next.js build",
+  "timeout": 120000
+}
+
+The build completed successfully. The feature has been implemented.
+
+<summary>
+## Summary: Add Dashboard Navigation from Admin Panel
+
+### Changes Implemented
+- Added a "Back to Dashboard" button in the admin panel header
+- Button is positioned on the left side of the header, before the logo/brand
+- Uses ArrowLeft icon from Lucide React for clear navigation indication
+- Includes a visual separator (vertical divider) between the back button and brand
+- Button is responsive - shows only arrow icon on mobile, arrow + "Dashboard" text on larger screens
+- Styled consistently with the existing UI design system (muted colors, hover effects, transitions)
+- Added title tooltip "Back to Dashboard" for accessibility
+
+### Files Modified
+- `F:\CodeBase\Kametrix\src\app\(dashboard)\admin\layout.tsx`
+  - Added `ArrowLeft` icon import from lucide-react
+  - Added `Link` import from next/link
+  - Added "Back to Dashboard" link button in the header (lines 36-44)
+  - Added vertical divider separator between back button and logo (line 46)
+  - Restructured header layout to accommodate the new navigation element
+
+### Notes for Developer
+- **Navigation Flow**: Now admins can easily navigate between:
+  - Dashboard → Admin (via Admin badge in user menu or header)
+  - Admin → Dashboard (via new back button in admin header)
+- **Styling**: The back button uses muted/subtle styling to not compete with the admin badge visually, since it's a secondary action
+- **Responsive**: On mobile, only the arrow icon shows; on larger screens (sm+), "Dashboard" text is also displayed
+- **Accessibility**: Includes title attribute for tooltip on hover
+</summary>
