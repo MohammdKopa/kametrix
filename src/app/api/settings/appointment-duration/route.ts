@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * PUT /api/settings/appointment-duration
  *

@@ -3,6 +3,9 @@ import { requireAuth } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import { getVapiClient } from '@/lib/vapi';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/agents/[id]/refresh - Refresh agent's Vapi assistant with current date
  *

@@ -6,6 +6,9 @@ import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { Activity, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({
   children,
 }: {

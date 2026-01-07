@@ -5,6 +5,9 @@ import { cookies } from 'next/headers';
 import { quotaManager } from '@/lib/quota';
 import { QuotaType } from '@/generated/prisma/client';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/quota/usage
  *

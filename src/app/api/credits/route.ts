@@ -9,6 +9,9 @@ import {
   userNotFoundError,
 } from '@/lib/errors';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 export const GET = withErrorHandling(async (request: NextRequest) => {
   const context = createRequestContext(request);
 

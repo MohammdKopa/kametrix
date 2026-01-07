@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth-guard';
 import { DashboardOnboardingWrapper } from '@/components/onboarding';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {

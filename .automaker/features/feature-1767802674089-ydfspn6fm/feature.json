@@ -1,0 +1,22 @@
+{
+  "category": "Uncategorized",
+  "description": "Fix Next.js Dynamic Server Usage Error for Dashboard and Admin Routes\n\nResolve the \"Dynamic server usage\" error preventing static rendering of dashboard and admin pages due to cookie access in the authentication flow.\n\nRequirements:\n- Mark affected routes as dynamic by adding `export const dynamic = 'force-dynamic'` or use cookies() in server components appropriately\n- Review and refactor getCurrentUser() function in `/app/api/credits/route.js` to properly handle cookie access\n- Update the following affected page components to use proper Next.js rendering strategy:\n  - `/app/(dashboard)/dashboard/help/page.js`\n  - `/app/(dashboard)/admin/settings/page.js`\n  - `/app/(dashboard)/admin/agents/page.js` (appears in settings page trace)\n  - `/app/(dashboard)/admin/phone-numbers/page.js` (appears in settings page trace)\n- Determine if routes should be dynamic (server-side rendered) or if authentication logic can be refactored to avoid cookies\n- If routes must use cookies for auth, explicitly opt-in to dynamic rendering with route segment config\n- If routes should be static, move cookie-based auth checks to client components or middleware\n- Verify error handling for \"Error getting current user\" provides proper fallback behavior\n- Test all affected routes to ensure they render correctly and authentication works as expected\n- Consider implementing middleware-based authentication to handle protected routes consistently\n\nEdge Cases:\n- Ensure unauthenticated users are properly redirected\n- Handle cookie absence gracefully without breaking the page\n- Verify behavior in both development and production builds",
+  "title": "Fix Next.js Dynamic Server Usage Error",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "waiting_approval",
+  "id": "feature-1767802674089-ydfspn6fm",
+  "startedAt": "2026-01-07T16:17:57.801Z",
+  "updatedAt": "2026-01-07T16:26:56.321Z",
+  "justFinishedAt": "2026-01-07T16:26:56.321Z"
+}

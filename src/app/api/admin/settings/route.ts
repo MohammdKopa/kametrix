@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { getCentsPerMinute, setCentsPerMinute } from '@/lib/settings';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/settings - Get current admin settings
  */

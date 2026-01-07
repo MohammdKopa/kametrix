@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { unassignPhoneNumber } from '@/lib/vapi/phone-numbers';
 import { deleteAssistant } from '@/lib/vapi';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/agents/[id] - Get a single agent
  */

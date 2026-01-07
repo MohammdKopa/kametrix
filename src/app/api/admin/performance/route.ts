@@ -7,6 +7,9 @@ import {
   sessionCache,
 } from '@/lib/performance';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/performance - Get performance metrics (admin only)
  */

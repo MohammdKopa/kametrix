@@ -3,6 +3,9 @@ import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/checkout
  * Create a Stripe Checkout Session for purchasing credit packs

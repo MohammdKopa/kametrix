@@ -3,6 +3,9 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import { listPhoneNumbers } from '@/lib/vapi/phone-numbers';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/admin/phone-numbers/sync - Sync phone numbers from Vapi to local DB (admin only)
  */

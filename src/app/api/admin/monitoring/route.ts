@@ -8,6 +8,9 @@ import { getAggregatedMetrics, getMetricHistory } from '@/lib/monitoring/metrics
 import { metrics } from '@/lib/performance';
 import { errorMonitor } from '@/lib/errors/monitoring';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/monitoring - Get comprehensive monitoring data (admin only)
  */

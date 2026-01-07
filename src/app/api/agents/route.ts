@@ -22,6 +22,9 @@ import {
   getRequestDuration,
 } from '@/lib/errors';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/agents - List all agents for authenticated user
  */

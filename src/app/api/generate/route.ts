@@ -4,6 +4,9 @@ import { generateWizardContent, generateGreetingOnly } from '@/lib/openrouter';
 import type { WizardState } from '@/types/wizard';
 import { generateLimiter, applyRateLimit, getClientIp } from '@/lib/rate-limit';
 
+// Force dynamic rendering since we use cookies() for authentication
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (10 requests per minute)
