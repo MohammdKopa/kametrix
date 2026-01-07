@@ -1,0 +1,22 @@
+{
+  "category": "enhancement",
+  "description": "Add Admin Badge Navigation Shortcut\n\nAdd a visible admin badge/button in the application UI that allows administrators to quickly access the admin panel without manually typing the URL.\n\nRequirements:\n- Display an admin badge only to users with admin privileges\n- Badge should be easily accessible from the main navigation or header\n- Clicking the badge navigates directly to the admin panel\n- Badge should be visually distinct but not intrusive to the UI\n- Verify admin permission check before rendering the badge\n- Ensure badge appears consistently across all pages (or specify where it should appear)\n- Consider adding an icon or label that clearly indicates admin functionality\n\nEdge cases to consider:\n- Handle users who lose admin privileges while logged in\n- Ensure badge doesn't appear to non-admin users even temporarily\n- Test behavior when admin panel URL changes",
+  "title": "Add admin quick-access badge to navigation",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "waiting_approval",
+  "id": "feature-1767751933917-h8gqt1y9r",
+  "startedAt": "2026-01-07T02:12:22.659Z",
+  "updatedAt": "2026-01-07T02:16:53.353Z",
+  "justFinishedAt": "2026-01-07T02:16:53.353Z"
+}
