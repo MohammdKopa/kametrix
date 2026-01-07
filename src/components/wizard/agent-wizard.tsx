@@ -145,16 +145,21 @@ export function AgentWizard() {
         body: JSON.stringify(state),
       });
 
+      // Parse JSON response once (body stream can only be read once)
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create agent');
+        // Error responses may have error field directly or in data
+        const errorMessage = responseData.error || responseData.message || 'Failed to create agent';
+        throw new Error(errorMessage);
       }
 
-      const responseData = await response.json();
-      const agent = responseData?.agent;
+      // API wraps successful response in { success: true, data: { agent, message } }
+      const agent = responseData?.data?.agent;
 
       // Validate agent response before accessing properties
       if (!agent || typeof agent.id !== 'string' || typeof agent.name !== 'string') {
+        console.error('Invalid agent response structure:', responseData);
         throw new Error('Invalid response from server: missing agent data');
       }
 
