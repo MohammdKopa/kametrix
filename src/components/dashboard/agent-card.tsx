@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Copy, Check, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Check, Pencil, Trash2, Play } from 'lucide-react';
 import type { Agent, PhoneNumber } from '@/generated/prisma/client';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -191,6 +191,16 @@ export function AgentCard({ agent }: AgentCardProps) {
           </span>
 
           <div className="flex-1" />
+
+          {/* Test Button */}
+          <Button variant="ghost" size="icon-sm" asChild>
+            <Link
+              href={`/dashboard/agents/${agent.id}/test`}
+              title="Test agent"
+            >
+              <Play className="w-4 h-4" />
+            </Link>
+          </Button>
 
           {/* Edit Button */}
           <Button variant="ghost" size="icon-sm" asChild>

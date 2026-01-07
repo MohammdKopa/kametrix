@@ -1,0 +1,22 @@
+{
+  "category": "feature",
+  "description": "Add Testing Interface for AI Voice Agent\n\nImplement a testing interface on the website that allows users to interact with and validate the AI voice agent after it has been created.\n\nRequirements:\n- Create a dedicated testing page or modal accessible after voice agent creation\n- Implement live audio input/output functionality for voice interactions\n- Display conversation transcript in real-time during testing\n- Show agent response times and connection status\n- Include controls to start/stop/reset the test conversation\n- Add ability to test different scenarios or prompts\n- Provide visual feedback for voice activity (speaking/listening states)\n- Display any errors or connection issues clearly\n- Allow users to save or export test conversation logs\n- Ensure proper microphone permissions handling\n- Test across different browsers and devices for compatibility\n\nEdge Cases to Consider:\n- Microphone access denied by user\n- Network connectivity issues during voice streaming\n- Agent fails to respond or times out\n- Multiple rapid-fire inputs from user\n- Background noise or unclear audio input",
+  "title": "Add AI voice agent testing interface",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "waiting_approval",
+  "id": "feature-1767791174798-6jdfxn1ur",
+  "startedAt": "2026-01-07T13:06:20.712Z",
+  "updatedAt": "2026-01-07T13:18:38.036Z",
+  "justFinishedAt": "2026-01-07T13:18:38.036Z"
+}

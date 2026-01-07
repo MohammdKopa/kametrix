@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { CheckCircle2, Play, ArrowRight } from 'lucide-react';
 import { WizardProgress } from './wizard-progress';
 import { DEFAULT_WIZARD_STATE, type WizardState } from '@/types/wizard';
 import { BusinessInfoStep } from './steps/business-info-step';
@@ -9,14 +11,31 @@ import { KnowledgeStep } from './steps/knowledge-step';
 import { VoiceStep } from './steps/voice-step';
 import { GreetingStep } from './steps/greeting-step';
 import { ReviewStep } from './steps/review-step';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const TOTAL_STEPS = 5;
+
+interface CreatedAgent {
+  id: string;
+  name: string;
+  phoneNumber?: { number: string } | null;
+}
 
 export function AgentWizard() {
   const router = useRouter();
   const [state, setState] = useState<WizardState>(DEFAULT_WIZARD_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [createdAgent, setCreatedAgent] = useState<CreatedAgent | null>(null);
 
   const updateState = <K extends keyof Omit<WizardState, 'step'>>(
     section: K,
@@ -133,15 +152,14 @@ export function AgentWizard() {
 
       const { agent } = await response.json();
 
-      // Show success message - phone number will be assigned by admin later
-      if (agent.phoneNumber?.number) {
-        alert(`Assistent erfolgreich erstellt!\n\nIhr Assistent ist bereit für Anrufe unter:\n${agent.phoneNumber.number}`);
-      } else {
-        alert('Assistent erfolgreich erstellt!\n\nEine Telefonnummer wird in Kürze vom Admin zugewiesen.');
-      }
-
-      router.push('/dashboard/agents');
-      router.refresh();
+      // Show success dialog with test option
+      setCreatedAgent({
+        id: agent.id,
+        name: agent.name,
+        phoneNumber: agent.phoneNumber,
+      });
+      setShowSuccessDialog(true);
+      setIsSubmitting(false);
     } catch (err) {
       console.error('Error creating agent:', err);
       setError(err instanceof Error ? err.message : 'Failed to create agent');
@@ -222,6 +240,52 @@ export function AgentWizard() {
           </button>
         )}
       </div>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="glass sm:max-w-md" showCloseButton={false}>
+          <DialogHeader className="text-center sm:text-center">
+            <div className="mx-auto p-3 rounded-full bg-green-500/10 w-fit mb-4">
+              <CheckCircle2 className="w-10 h-10 text-green-500" />
+            </div>
+            <DialogTitle className="text-xl">Assistent erfolgreich erstellt!</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>
+                Ihr Assistent <strong>&quot;{createdAgent?.name}&quot;</strong> wurde erfolgreich erstellt.
+              </p>
+              {createdAgent?.phoneNumber?.number ? (
+                <p>
+                  Telefonnummer: <strong>{createdAgent.phoneNumber.number}</strong>
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  Eine Telefonnummer wird in Kürze vom Admin zugewiesen.
+                </p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex-col sm:flex-col gap-2">
+            <Button asChild className="w-full gap-2">
+              <Link href={`/dashboard/agents/${createdAgent?.id}/test`}>
+                <Play className="w-4 h-4" />
+                Assistent testen
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                router.push('/dashboard/agents');
+                router.refresh();
+              }}
+            >
+              <ArrowRight className="w-4 h-4" />
+              Zur Übersicht
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
