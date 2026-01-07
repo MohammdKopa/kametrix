@@ -350,6 +350,39 @@ export function parseRecurrenceInput(input: string): RecurrenceConfig | null {
 // ============================================================================
 
 /**
+ * Validate if a timezone string is a valid IANA timezone
+ * @param timezone - Timezone string to validate
+ * @returns true if valid, false otherwise
+ */
+export function isValidTimezone(timezone: string): boolean {
+  if (!timezone || typeof timezone !== 'string') {
+    return false;
+  }
+
+  try {
+    // Try to format a date with the timezone - will throw if invalid
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get a valid timezone or fallback to default
+ * @param timezone - Timezone string to validate
+ * @param defaultTimezone - Default timezone to use if invalid
+ * @returns Valid timezone string
+ */
+export function getValidTimezone(timezone: string | undefined | null, defaultTimezone: string = 'Europe/Berlin'): string {
+  if (timezone && isValidTimezone(timezone)) {
+    return timezone;
+  }
+  console.warn(`Invalid timezone "${timezone}", using default: ${defaultTimezone}`);
+  return defaultTimezone;
+}
+
+/**
  * Time range definitions for natural language time preferences
  */
 export const TIME_RANGES: Record<string, { start: number; end: number }> = {
@@ -377,8 +410,20 @@ export const TIME_RANGES: Record<string, { start: number; end: number }> = {
  * @returns Resolved date in YYYY-MM-DD format
  */
 export function parseDateInput(dateInput: string): string {
+  // Handle null/undefined/empty input
+  if (!dateInput || typeof dateInput !== 'string') {
+    console.warn(`Invalid date input: "${dateInput}", defaulting to today`);
+    return new Date().toISOString().split('T')[0];
+  }
+
   const input = dateInput.toLowerCase().trim();
   const now = new Date();
+
+  // Handle empty string after trim
+  if (!input) {
+    console.warn('Empty date input, defaulting to today');
+    return now.toISOString().split('T')[0];
+  }
 
   // German relative date terms (expanded)
   const relativeDates: Record<string, number> = {
@@ -407,6 +452,11 @@ export function parseDateInput(dateInput: string): string {
   const inDaysMatch = input.match(/in\s+(\d+)\s+tag/i);
   if (inDaysMatch) {
     const days = parseInt(inDaysMatch[1], 10);
+    // Validate days - prevent unreasonably large values
+    if (isNaN(days) || days < 0 || days > 365) {
+      console.warn(`Invalid days value in "${dateInput}": ${days}, defaulting to today`);
+      return now.toISOString().split('T')[0];
+    }
     const targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() + days);
     const result = targetDate.toISOString().split('T')[0];
@@ -417,6 +467,11 @@ export function parseDateInput(dateInput: string): string {
   const inWeeksMatch = input.match(/in\s+(\d+)\s+woche/i);
   if (inWeeksMatch) {
     const weeks = parseInt(inWeeksMatch[1], 10);
+    // Validate weeks - prevent unreasonably large values
+    if (isNaN(weeks) || weeks < 0 || weeks > 52) {
+      console.warn(`Invalid weeks value in "${dateInput}": ${weeks}, defaulting to today`);
+      return now.toISOString().split('T')[0];
+    }
     const targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() + weeks * 7);
     const result = targetDate.toISOString().split('T')[0];
@@ -439,6 +494,16 @@ export function parseDateInput(dateInput: string): string {
     targetDate.setDate(targetDate.getDate() + daysToMonday);
     const result = targetDate.toISOString().split('T')[0];
     console.log(`Next week parsed: "${dateInput}" -> ${result}`);
+    return result;
+  }
+
+  // Handle "nächsten Monat" (next month) - return first day of next month
+  if (input.includes('naechsten monat') || input.includes('nächsten monat') || input.includes('next month')) {
+    const targetDate = new Date(now);
+    targetDate.setMonth(targetDate.getMonth() + 1);
+    targetDate.setDate(1);
+    const result = targetDate.toISOString().split('T')[0];
+    console.log(`Next month parsed: "${dateInput}" -> ${result}`);
     return result;
   }
 
@@ -471,6 +536,33 @@ export function parseDateInput(dateInput: string): string {
     return validateAndCorrectDate(dateInput);
   }
 
+  // Check for partial date formats like "15.01" or "15. Januar"
+  const germanDateMatch = input.match(/(\d{1,2})\.?\s*(januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember)/i);
+  if (germanDateMatch) {
+    const day = parseInt(germanDateMatch[1], 10);
+    const monthNames: Record<string, number> = {
+      'januar': 0, 'februar': 1, 'märz': 2, 'maerz': 2, 'april': 3,
+      'mai': 4, 'juni': 5, 'juli': 6, 'august': 7,
+      'september': 8, 'oktober': 9, 'november': 10, 'dezember': 11,
+    };
+    const month = monthNames[germanDateMatch[2].toLowerCase()];
+
+    if (!isNaN(day) && day >= 1 && day <= 31 && month !== undefined) {
+      const targetDate = new Date(now);
+      targetDate.setMonth(month);
+      targetDate.setDate(day);
+
+      // If the date has passed, move to next year
+      if (targetDate < now) {
+        targetDate.setFullYear(targetDate.getFullYear() + 1);
+      }
+
+      const result = targetDate.toISOString().split('T')[0];
+      console.log(`German date parsed: "${dateInput}" -> ${result}`);
+      return result;
+    }
+  }
+
   // Fallback: return as-is and let validateAndCorrectDate handle it
   console.warn(`Could not parse date input: "${dateInput}", attempting validation`);
   return validateAndCorrectDate(dateInput);
@@ -491,11 +583,28 @@ export function parseDateInput(dateInput: string): string {
  * @returns Time string in HH:MM format
  */
 export function parseTimeInput(timeInput: string): string {
+  // Handle null/undefined/empty input
+  if (!timeInput || typeof timeInput !== 'string') {
+    console.warn(`Invalid time input: "${timeInput}"`);
+    return '09:00'; // Default to 9 AM for business hours
+  }
+
   const input = timeInput.toLowerCase().trim();
 
-  // Already in HH:MM format
+  // Handle empty string after trim
+  if (!input) {
+    console.warn('Empty time input, defaulting to 09:00');
+    return '09:00';
+  }
+
+  // Already in HH:MM format - validate and normalize
   if (/^\d{1,2}:\d{2}$/.test(input)) {
     const [hours, minutes] = input.split(':').map(Number);
+    // Validate hours and minutes range
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      console.warn(`Invalid time values in "${timeInput}": hours=${hours}, minutes=${minutes}`);
+      return '09:00'; // Default to business hours start
+    }
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
 
@@ -515,17 +624,42 @@ export function parseTimeInput(timeInput: string): string {
     'zwölf': 12, 'zwoelf': 12,
   };
 
+  /**
+   * Helper to apply AM/PM context based on German time-of-day modifiers
+   */
+  const applyTimeOfDayContext = (hours: number): number => {
+    // Check for explicit PM indicators
+    if (input.includes('nachmittag') || input.includes('abend')) {
+      if (hours >= 1 && hours < 12) return hours + 12;
+    }
+    // Check for explicit AM indicators - keep hours as-is
+    if (input.includes('morgen') || input.includes('vormittag') || input.includes('früh')) {
+      return hours;
+    }
+    // For business context, assume small hours (1-7) are afternoon unless specified
+    // This is common in German business contexts
+    if (hours >= 1 && hours <= 7) {
+      return hours + 12;
+    }
+    return hours;
+  };
+
   // "X Uhr" pattern (e.g., "14 Uhr", "zehn Uhr")
   const uhrMatch = input.match(/(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)\s*uhr/i);
   if (uhrMatch) {
     let hours = numberWords[uhrMatch[1]] || parseInt(uhrMatch[1], 10);
 
-    // Check for AM/PM indicators
-    if (input.includes('nachmittag') || input.includes('abend')) {
-      if (hours < 12) hours += 12;
-    } else if (input.includes('morgen') || input.includes('vormittag')) {
-      // Keep as-is (morning hours)
+    // Validate parsed hours
+    if (isNaN(hours) || hours > 23) {
+      console.warn(`Invalid hours in "${timeInput}": ${hours}`);
+      return '09:00';
     }
+
+    // Apply time-of-day context
+    hours = applyTimeOfDayContext(hours);
+
+    // Ensure hours stay in valid range
+    hours = hours % 24;
 
     return `${hours.toString().padStart(2, '0')}:00`;
   }
@@ -534,11 +668,17 @@ export function parseTimeInput(timeInput: string): string {
   const halbMatch = input.match(/halb\s*(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)/i);
   if (halbMatch) {
     let hours = numberWords[halbMatch[1]] || parseInt(halbMatch[1], 10);
+
+    if (isNaN(hours)) {
+      console.warn(`Invalid hours in halb pattern: "${timeInput}"`);
+      return '09:00';
+    }
+
     hours = hours - 1; // "halb drei" means 2:30 in German
     if (hours < 0) hours = 23;
 
-    // Default to afternoon for small numbers
-    if (hours > 0 && hours < 8 && !input.includes('morgen') && !input.includes('vormittag')) {
+    // Apply time-of-day context for small hours
+    if (hours >= 1 && hours <= 7 && !input.includes('morgen') && !input.includes('vormittag') && !input.includes('früh')) {
       hours += 12;
     }
 
@@ -549,6 +689,16 @@ export function parseTimeInput(timeInput: string): string {
   const viertelNachMatch = input.match(/viertel\s*nach\s*(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)/i);
   if (viertelNachMatch) {
     let hours = numberWords[viertelNachMatch[1]] || parseInt(viertelNachMatch[1], 10);
+
+    if (isNaN(hours)) {
+      console.warn(`Invalid hours in viertel nach pattern: "${timeInput}"`);
+      return '09:00';
+    }
+
+    // Apply time-of-day context
+    hours = applyTimeOfDayContext(hours);
+    hours = hours % 24;
+
     return `${hours.toString().padStart(2, '0')}:15`;
   }
 
@@ -556,8 +706,17 @@ export function parseTimeInput(timeInput: string): string {
   const viertelVorMatch = input.match(/viertel\s*vor\s*(\d{1,2}|eins?|zwei|drei|vier|fuenf|fünf|sechs|sieben|acht|neun|zehn|elf|zwoelf|zwölf)/i);
   if (viertelVorMatch) {
     let hours = numberWords[viertelVorMatch[1]] || parseInt(viertelVorMatch[1], 10);
+
+    if (isNaN(hours)) {
+      console.warn(`Invalid hours in viertel vor pattern: "${timeInput}"`);
+      return '09:00';
+    }
+
+    // Apply time-of-day context first, then subtract 1 for "vor" (before)
+    hours = applyTimeOfDayContext(hours);
     hours = hours - 1;
     if (hours < 0) hours = 23;
+
     return `${hours.toString().padStart(2, '0')}:45`;
   }
 
@@ -566,17 +725,21 @@ export function parseTimeInput(timeInput: string): string {
   if (bareNumberMatch) {
     let hours = parseInt(bareNumberMatch[1], 10);
 
-    // Apply AM/PM logic
-    if (input.includes('nachmittag') || input.includes('abend')) {
-      if (hours < 12) hours += 12;
+    if (isNaN(hours) || hours > 23) {
+      console.warn(`Invalid bare number in "${timeInput}": ${hours}`);
+      return '09:00';
     }
+
+    // Apply time-of-day context
+    hours = applyTimeOfDayContext(hours);
+    hours = hours % 24;
 
     return `${hours.toString().padStart(2, '0')}:00`;
   }
 
-  // Return original if no pattern matched
-  console.warn(`Could not parse time input: "${timeInput}"`);
-  return timeInput;
+  // Return default if no pattern matched
+  console.warn(`Could not parse time input: "${timeInput}", defaulting to 09:00`);
+  return '09:00';
 }
 
 /**
@@ -1624,6 +1787,39 @@ function formatTimeForVoice(date: Date, timeZone: string): string {
  *          Google Calendar interprets this with the timeZone parameter we pass
  */
 export function parseDateTime(dateStr: string, timeStr: string, timeZone: string): string {
+  // Validate inputs
+  if (!dateStr || typeof dateStr !== 'string') {
+    throw new Error(`Invalid date string: ${dateStr}`);
+  }
+  if (!timeStr || typeof timeStr !== 'string') {
+    throw new Error(`Invalid time string: ${timeStr}`);
+  }
+
+  // Validate date format
+  const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!dateMatch) {
+    throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD`);
+  }
+
+  const [, yearStr, monthStr, dayStr] = dateMatch;
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  // Validate date values
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid month in date: ${dateStr}. Month must be 1-12`);
+  }
+  if (day < 1 || day > 31) {
+    throw new Error(`Invalid day in date: ${dateStr}. Day must be 1-31`);
+  }
+
+  // Validate timezone
+  const validTimezone = getValidTimezone(timeZone);
+  if (validTimezone !== timeZone) {
+    console.warn(`Timezone "${timeZone}" was corrected to "${validTimezone}"`);
+  }
+
   // Parse time string to 24-hour format
   let hours: number;
   let minutes: number;
@@ -1640,10 +1836,18 @@ export function parseDateTime(dateStr: string, timeStr: string, timeZone: string
     // Assume 24-hour format (HH:MM)
     const time24hrMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
     if (!time24hrMatch) {
-      throw new Error(`Invalid time format: ${timeStr}`);
+      throw new Error(`Invalid time format: ${timeStr}. Expected HH:MM or HH:MM AM/PM`);
     }
     hours = parseInt(time24hrMatch[1], 10);
     minutes = parseInt(time24hrMatch[2], 10);
+  }
+
+  // Validate time values
+  if (hours < 0 || hours > 23) {
+    throw new Error(`Invalid hours in time: ${timeStr}. Hours must be 0-23`);
+  }
+  if (minutes < 0 || minutes > 59) {
+    throw new Error(`Invalid minutes in time: ${timeStr}. Minutes must be 0-59`);
   }
 
   // Return local datetime string (no Z suffix)

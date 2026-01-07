@@ -25,6 +25,7 @@ import {
   findNextAvailableSlot,
   checkConflicts,
   filterSlotsByTimeRange,
+  getValidTimezone,
   CalendarError,
   CalendarErrorType,
 } from '@/lib/google/calendar';
@@ -416,9 +417,16 @@ async function handleToolCalls(message: WebhookToolCalls) {
               }
 
               try {
-                const timeZone = args.timeZone || 'Europe/Berlin';
+                const timeZone = getValidTimezone(args.timeZone, 'Europe/Berlin');
                 const correctedDateStr = parseDateInput(args.date);
                 const date = new Date(correctedDateStr);
+
+                // Validate that the date is valid
+                if (isNaN(date.getTime())) {
+                  result = 'Ich konnte das Datum nicht verstehen. Könnten Sie es bitte noch einmal nennen?';
+                  break;
+                }
+
                 const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
                 let slots = await getAvailableSlots(oauth2Client, date, timeZone, appointmentDuration);
 
@@ -477,10 +485,15 @@ async function handleToolCalls(message: WebhookToolCalls) {
               }
 
               try {
-                const timeZone = args.timeZone || 'Europe/Berlin';
+                const timeZone = getValidTimezone(args.timeZone, 'Europe/Berlin');
                 const correctedDateStr = parseDateInput(args.date);
                 const parsedTime = parseTimeInput(args.time);
-                const appointmentDuration = args.durationMinutes || agentWithUser.user.appointmentDuration || 30;
+
+                // Validate duration is a reasonable number
+                let appointmentDuration = args.durationMinutes || agentWithUser.user.appointmentDuration || 30;
+                if (typeof appointmentDuration !== 'number' || appointmentDuration < 5 || appointmentDuration > 480) {
+                  appointmentDuration = 30; // Default to 30 minutes for invalid values
+                }
 
                 const conflictResult = await checkConflicts(
                   oauth2Client,
@@ -517,14 +530,25 @@ async function handleToolCalls(message: WebhookToolCalls) {
               }
 
               try {
-                const timeZone = args.timeZone || 'Europe/Berlin';
+                const timeZone = getValidTimezone(args.timeZone, 'Europe/Berlin');
                 const correctedDateStr = parseDateInput(args.date);
                 // Enhanced time parsing for natural language times
                 const parsedTime = parseTimeInput(args.time);
+
+                // Validate date and time before proceeding
+                const testDate = new Date(correctedDateStr);
+                if (isNaN(testDate.getTime())) {
+                  result = 'Ich konnte das Datum nicht verstehen. Könnten Sie es bitte noch einmal nennen?';
+                  break;
+                }
+
                 const start = parseDateTime(correctedDateStr, parsedTime, timeZone);
 
-                // Use user's configured appointment duration
-                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                // Use user's configured appointment duration with validation
+                let appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                if (appointmentDuration < 5 || appointmentDuration > 480) {
+                  appointmentDuration = 30;
+                }
 
                 // Calculate end time based on configured duration
                 const [datePart, timePart] = start.split('T');
@@ -623,8 +647,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
               }
 
               try {
-                const timeZone = args.timeZone || 'Europe/Berlin';
-                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                const timeZone = getValidTimezone(args.timeZone, 'Europe/Berlin');
+                let appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                if (appointmentDuration < 5 || appointmentDuration > 480) {
+                  appointmentDuration = 30;
+                }
 
                 // If no eventId, try to find by caller name
                 let eventId = args.eventId;
@@ -905,13 +932,20 @@ async function handleToolCalls(message: WebhookToolCalls) {
               }
 
               try {
-                const timeZone = args.timeZone || 'Europe/Berlin';
-                const appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                const timeZone = getValidTimezone(args.timeZone, 'Europe/Berlin');
+                let appointmentDuration = agentWithUser.user.appointmentDuration || 30;
+                if (appointmentDuration < 5 || appointmentDuration > 480) {
+                  appointmentDuration = 30;
+                }
 
                 let afterDate = new Date();
                 if (args.afterDate) {
                   const correctedDateStr = parseDateInput(args.afterDate);
                   afterDate = new Date(correctedDateStr);
+                  // Validate the date
+                  if (isNaN(afterDate.getTime())) {
+                    afterDate = new Date(); // Fall back to now
+                  }
                 }
 
                 const nextSlot = await findNextAvailableSlot(oauth2Client, afterDate, timeZone, appointmentDuration);
