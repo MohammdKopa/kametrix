@@ -9,21 +9,22 @@ interface Tab {
   name: string;
   href: string;
   icon: LucideIcon;
+  description: string;
 }
 
 const tabs: Tab[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Agents', href: '/dashboard/agents', icon: Bot },
-  { name: 'Calls', href: '/dashboard/calls', icon: Phone },
-  { name: 'Credits', href: '/dashboard/credits', icon: Coins },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, description: 'View dashboard overview' },
+  { name: 'Agents', href: '/dashboard/agents', icon: Bot, description: 'Manage voice agents' },
+  { name: 'Calls', href: '/dashboard/calls', icon: Phone, description: 'View call history' },
+  { name: 'Credits', href: '/dashboard/credits', icon: Coins, description: 'Manage credits and billing' },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings, description: 'Configure settings' },
 ];
 
 export function NavTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="-mb-px">
+    <div className="-mb-px" role="tablist" aria-label="Dashboard navigation">
       <div className="flex gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -36,6 +37,9 @@ export function NavTabs() {
               key={tab.href}
               variant="ghost"
               asChild
+              role="tab"
+              aria-selected={isActive}
+              aria-current={isActive ? 'page' : undefined}
               className={`
                 relative flex items-center gap-2 py-3 px-4 h-auto rounded-t-lg rounded-b-none transition-all duration-150
                 ${
@@ -45,17 +49,23 @@ export function NavTabs() {
                 }
               `}
             >
-              <Link href={tab.href}>
-                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
-                {tab.name}
+              <Link
+                href={tab.href}
+                aria-label={`${tab.name}: ${tab.description}`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} aria-hidden="true" />
+                <span>{tab.name}</span>
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full" />
+                  <span
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full"
+                    aria-hidden="true"
+                  />
                 )}
               </Link>
             </Button>
           );
         })}
       </div>
-    </nav>
+    </div>
   );
 }

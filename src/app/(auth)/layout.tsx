@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { SkipLink } from "@/components/ui/skip-link";
 
 export default function AuthLayout({
   children,
@@ -9,9 +10,15 @@ export default function AuthLayout({
 }) {
   return (
     <div className="min-h-screen bg-[#06040d] text-white relative overflow-hidden flex items-center justify-center">
+      {/* Skip Navigation Link for keyboard users - WCAG 2.4.1 */}
+      <SkipLink targetId="auth-main-content">
+        Skip to main content
+      </SkipLink>
+
       {/* Subtle grid pattern overlay */}
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        aria-hidden="true"
         style={{
           backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
@@ -20,7 +27,7 @@ export default function AuthLayout({
       />
 
       {/* Gradient background overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-[#06040d] to-[#06040d] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-[#06040d] to-[#06040d] pointer-events-none" aria-hidden="true" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           ENHANCED ATMOSPHERIC GLOW LAYERS - Animated for visual appeal
@@ -113,7 +120,14 @@ export default function AuthLayout({
       </motion.div>
 
       {/* Main content container */}
-      <div className="relative z-10 w-full max-w-md px-4">{children}</div>
+      <main
+        id="auth-main-content"
+        className="relative z-10 w-full max-w-md px-4"
+        role="main"
+        aria-label="Authentication"
+      >
+        {children}
+      </main>
     </div>
   );
 }

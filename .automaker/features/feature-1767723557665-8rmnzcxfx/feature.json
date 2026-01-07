@@ -1,9 +1,0 @@
-{
-  "category": "enhancement",
-  "description": "Implement end-to-end testing for all features including unit tests, integration tests, and automated UI testing. Cover AI prompt generation, Google Calendar operations, voice agent interactions, and error scenarios. Ensure 80%+ code coverage.",
-  "title": "Comprehensive Testing Suite",
-  "dependencies": [],
-  "priority": 1,
-  "status": "backlog",
-  "id": "feature-1767723557665-8rmnzcxfx"
-}
