@@ -1,7 +1,29 @@
-@import "tailwindcss";
+@@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS CONFIGURATION
+   Mobile-first approach with the following breakpoints:
+   - xs: 320px (minimum mobile)
+   - sm: 480px (mobile landscape/large phones)
+   - md: 768px (tablet)
+   - lg: 1024px (desktop)
+   - xl: 1280px (large desktop)
+   - 2xl: 1536px (extra large desktop)
+═══════════════════════════════════════════════════════════════════ */
+
+/* Custom breakpoint for very small screens (320px) */
+@custom-media --xs-screen (min-width: 320px);
+@custom-media --sm-screen (min-width: 480px);
+@custom-media --md-screen (min-width: 768px);
+@custom-media --lg-screen (min-width: 1024px);
+@custom-media --xl-screen (min-width: 1280px);
+
+/* Mobile-only styles (max-width queries for mobile-specific overrides) */
+@custom-media --mobile-only (max-width: 767px);
+@custom-media --tablet-only (min-width: 768px) and (max-width: 1023px);
 
 :root {
   --radius: 0.75rem;
@@ -220,6 +242,195 @@
   li a {
     min-height: auto;
     min-width: auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE-RESPONSIVE TYPOGRAPHY SCALE
+     Fluid typography that scales from mobile to desktop
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Base font size adjustments for mobile readability */
+  html {
+    font-size: 16px; /* Base size for mobile */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  /* Fluid typography for headings */
+  h1 {
+    font-size: clamp(1.75rem, 5vw, 3rem);
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    line-height: 1.25;
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    line-height: 1.3;
+  }
+
+  h4 {
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+    line-height: 1.35;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE TOUCH ENHANCEMENTS
+     Improve touch interactions on mobile devices
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Prevent text selection on buttons for cleaner touch interactions */
+  button,
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Improve tap targets with padding instead of just min-width/height */
+  @media (max-width: 767px) {
+    button,
+    [role="button"],
+    a,
+    input[type="checkbox"],
+    input[type="radio"],
+    select {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0.5rem;
+    }
+
+    /* Larger tap targets for navigation links */
+    nav a {
+      padding: 0.75rem 1rem;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE SPACING UTILITIES
+     Responsive spacing for mobile viewports
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Safe area insets for notched devices (iPhone X and similar) */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  /* Mobile-first container padding */
+  .container-responsive {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 480px) {
+    .container-responsive {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-responsive {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     RESPONSIVE IMAGES
+     Ensure images scale properly and don't cause horizontal overflow
+  ═══════════════════════════════════════════════════════════════════ */
+
+  img,
+  video,
+  iframe,
+  embed,
+  object {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Prevent horizontal scrolling on mobile */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE FORM ENHANCEMENTS
+     Better form UX on mobile devices
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Prevent zoom on input focus in iOS */
+  @media (max-width: 767px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="search"],
+    textarea,
+    select {
+      font-size: 16px !important; /* Prevents iOS zoom on focus */
+    }
+  }
+
+  /* Better touch targets for form elements */
+  input,
+  textarea,
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     ORIENTATION HANDLING
+     Handle landscape and portrait orientations
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Landscape orientation adjustments for mobile */
+  @media (max-width: 896px) and (orientation: landscape) {
+    .hide-landscape {
+      display: none;
+    }
+
+    /* Reduce vertical spacing in landscape mode */
+    .landscape-compact {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  /* Portrait-specific styles */
+  @media (orientation: portrait) {
+    .hide-portrait {
+      display: none;
+    }
   }
 }
 
@@ -525,5 +736,233 @@
 
   .card-spotlight:hover::after {
     opacity: 1;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE NAVIGATION COMPONENTS
+     Responsive navigation patterns for mobile devices
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Mobile horizontal scroll navigation */
+  .nav-scroll-mobile {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px; /* Prevent cutoff of focus rings */
+  }
+
+  .nav-scroll-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-scroll-mobile > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* Mobile menu overlay */
+  .mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: oklch(0 0 0 / 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* Mobile slide-in menu */
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(80vw, 320px);
+    z-index: 50;
+    background: var(--background);
+    box-shadow: -4px 0 16px oklch(0 0 0 / 0.2);
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+  }
+
+  .mobile-menu.open {
+    transform: translateX(0);
+  }
+
+  .dark .mobile-menu {
+    background: var(--background);
+    box-shadow: -4px 0 20px oklch(0 0 0 / 0.4);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE-RESPONSIVE CARDS
+     Card components that adapt to mobile viewports
+  ═══════════════════════════════════════════════════════════════════ */
+
+  .card-responsive {
+    padding: 1rem;
+  }
+
+  @media (min-width: 480px) {
+    .card-responsive {
+      padding: 1.25rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .card-responsive {
+      padding: 1.5rem;
+    }
+  }
+
+  /* Stack card content on mobile */
+  .card-stack-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .card-stack-mobile {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     RESPONSIVE GRID LAYOUTS
+     Adaptive grids that work across all device sizes
+  ═══════════════════════════════════════════════════════════════════ */
+
+  .grid-responsive-1-2-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .grid-responsive-1-2-3 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .grid-responsive-1-2-3 {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  /* 1 column on mobile, 2 on tablet+ */
+  .grid-responsive-1-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .grid-responsive-1-2 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE BUTTON UTILITIES
+     Touch-friendly button styles
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Full-width button on mobile, auto on larger screens */
+  .btn-mobile-full {
+    width: 100%;
+  }
+
+  @media (min-width: 480px) {
+    .btn-mobile-full {
+      width: auto;
+    }
+  }
+
+  /* Larger buttons on mobile for easier tapping */
+  .btn-touch {
+    min-height: 48px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .btn-touch {
+      min-height: 40px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     RESPONSIVE TEXT UTILITIES
+     Hide/show text based on screen size
+  ═══════════════════════════════════════════════════════════════════ */
+
+  .text-mobile-hidden {
+    display: none;
+  }
+
+  @media (min-width: 480px) {
+    .text-mobile-hidden {
+      display: inline;
+    }
+  }
+
+  .text-desktop-hidden {
+    display: inline;
+  }
+
+  @media (min-width: 768px) {
+    .text-desktop-hidden {
+      display: none;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOBILE STICKY FOOTER
+     Fixed bottom navigation for mobile
+  ═══════════════════════════════════════════════════════════════════ */
+
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--background);
+    border-top: 1px solid var(--border);
+    padding: 0.5rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  @media (min-width: 768px) {
+    .mobile-bottom-nav {
+      display: none;
+    }
+  }
+
+  /* Add bottom padding to body when mobile nav is present */
+  .has-mobile-bottom-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0));
+  }
+
+  @media (min-width: 768px) {
+    .has-mobile-bottom-nav {
+      padding-bottom: 0;
+    }
   }
 }

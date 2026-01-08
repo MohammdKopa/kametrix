@@ -33,9 +33,9 @@ export default function AuthLayout({
           ENHANCED ATMOSPHERIC GLOW LAYERS - Animated for visual appeal
       ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* Primary atmospheric glow - purple with breathing animation */}
+      {/* Primary atmospheric glow - purple with breathing animation (scaled for mobile) */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full pointer-events-none"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[250px] sm:w-[500px] sm:h-[350px] md:w-[700px] md:h-[500px] rounded-full pointer-events-none"
         style={{
           background: "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0.15) 35%, rgba(139, 92, 246, 0.05) 55%, transparent 70%)",
           filter: "blur(80px)",
@@ -47,9 +47,9 @@ export default function AuthLayout({
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Secondary atmospheric glow - magenta with drift animation */}
+      {/* Secondary atmospheric glow - magenta with drift animation (hidden on very small screens) */}
       <motion.div
-        className="absolute top-[35%] left-[65%] -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full pointer-events-none"
+        className="hidden sm:block absolute top-[35%] left-[65%] -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px] rounded-full pointer-events-none"
         style={{
           background: "radial-gradient(ellipse at center, rgba(236, 72, 153, 0.3) 0%, rgba(168, 85, 247, 0.15) 40%, rgba(168, 85, 247, 0.05) 60%, transparent 70%)",
           filter: "blur(100px)",
@@ -62,9 +62,9 @@ export default function AuthLayout({
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Tertiary glow - blue accent for depth */}
+      {/* Tertiary glow - blue accent for depth (hidden on mobile for performance) */}
       <motion.div
-        className="absolute top-[60%] left-[35%] -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full pointer-events-none"
+        className="hidden md:block absolute top-[60%] left-[35%] -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full pointer-events-none"
         style={{
           background: "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%)",
           filter: "blur(90px)",
@@ -119,10 +119,10 @@ export default function AuthLayout({
         </div>
       </motion.div>
 
-      {/* Main content container */}
+      {/* Main content container - Mobile responsive with safe area support */}
       <main
         id="auth-main-content"
-        className="relative z-10 w-full max-w-md px-4"
+        className="relative z-10 w-full max-w-md px-4 sm:px-6 py-6 sm:py-0 safe-area-inset-top safe-area-inset-bottom"
         role="main"
         aria-label="Authentication"
       >
