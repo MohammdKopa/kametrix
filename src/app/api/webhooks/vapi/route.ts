@@ -1020,9 +1020,38 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
                 const config = agentWithConfig.escalationConfig;
 
-                // Check if escalation is configured and enabled
-                if (!config || !config.enabled) {
-                  result = 'Die Weiterleitung ist momentan nicht verfügbar. Ein Mitarbeiter wird Sie baldmöglichst zurückrufen. Können Sie mir Ihren Namen und eine Rückrufnummer hinterlassen?';
+                // Log escalation request regardless of config
+                console.log('Escalation requested:', {
+                  agentId: agent.id,
+                  reason: escalateArgs.reason,
+                  summary: escalateArgs.summary,
+                  hasConfig: !!config,
+                  configEnabled: config?.enabled,
+                  hasForwardingNumber: !!config?.forwardingNumber,
+                });
+
+                // Check if escalation is configured with a forwarding number
+                if (!config || !config.enabled || !config.forwardingNumber) {
+                  // No forwarding configured - acknowledge the request and offer callback
+                  console.log('Escalation requested but no forwarding configured for agent', agent.id);
+
+                  // Log to EventLog for tracking even without full escalation setup
+                  await prisma.eventLog.create({
+                    data: {
+                      userId: agent.userId,
+                      eventType: 'escalation_requested',
+                      eventData: {
+                        agentId: agent.id,
+                        agentName: agent.name,
+                        reason: escalateArgs.reason,
+                        summary: escalateArgs.summary,
+                        callerName: escalateArgs.callerName,
+                        configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',
+                      },
+                    },
+                  }).catch(err => console.error('Failed to log escalation event:', err));
+
+                  result = `Ich verstehe, dass Sie mit einem Mitarbeiter sprechen möchten. Leider ist die direkte Weiterleitung momentan nicht verfügbar. Ich notiere mir Ihr Anliegen: "${escalateArgs.summary}". Ein Mitarbeiter wird sich schnellstmöglich bei Ihnen melden. Können Sie mir bitte Ihren Namen und Ihre Rückrufnummer nennen?`;
                   break;
                 }
 
@@ -1206,12 +1235,10 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     // Check if user has Google Calendar connected
     const hasCalendarTools = agent.user?.googleRefreshToken ? true : false;
 
-    // Check if escalation is configured for this agent
-    const escalationConfig = await prisma.escalationConfig.findUnique({
-      where: { agentId: agent.id },
-      select: { enabled: true },
-    });
-    const hasEscalationTools = escalationConfig?.enabled ?? false;
+    // Always include escalation tools - they handle gracefully when not fully configured
+    // This allows the AI to recognize escalation requests even if no forwarding number is set
+    // The escalation handler will provide appropriate fallback messages
+    const hasEscalationTools = true;
 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
