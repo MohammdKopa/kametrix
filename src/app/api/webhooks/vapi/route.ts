@@ -33,7 +33,7 @@ import { prisma } from '@/lib/prisma';
 import { deductCreditsForCall, isLowBalance } from '@/lib/credits';
 import { sendLowCreditEmail } from '@/lib/email';
 import { formatDateGerman } from '@/lib/localization';
-import { verifyVapiSignature } from '@/lib/webhook-auth';
+import { verifyVapiWebhook, extractVapiAuthHeaders } from '@/lib/webhook-auth';
 import { buildDateHeader, buildCalendarTools } from '@/lib/prompts';
 import { logInvalidWebhookSignature } from '@/lib/security';
 import {
@@ -83,20 +83,37 @@ export async function POST(req: NextRequest) {
     // Get raw body FIRST for signature verification
     const rawBody = await req.text();
 
-    // Verify signature if VAPI_WEBHOOK_SECRET is configured
+    // Verify webhook authentication if VAPI_WEBHOOK_SECRET is configured
     const secret = process.env.VAPI_WEBHOOK_SECRET;
     if (secret) {
-      const signature = req.headers.get('x-vapi-signature');
-      const isValid = verifyVapiSignature(rawBody, signature, secret);
+      // Extract all possible auth headers
+      const authHeaders = extractVapiAuthHeaders(req.headers);
 
-      if (!isValid) {
-        console.error('Vapi webhook: signature verification failed');
+      // Try verification using all supported methods
+      const authResult = verifyVapiWebhook(rawBody, authHeaders, secret);
+
+      if (!authResult.isValid) {
+        console.error('Vapi webhook: authentication failed', {
+          method: authResult.method,
+          debug: authResult.debug,
+        });
+
         // Log security audit event for invalid signature
         const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
           req.headers.get('x-real-ip') || 'unknown';
         logInvalidWebhookSignature('vapi', ip).catch(console.error);
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+
+        return NextResponse.json(
+          {
+            error: 'Invalid authentication',
+            debug: process.env.NODE_ENV === 'development' ? authResult.debug : undefined,
+          },
+          { status: 401 }
+        );
       }
+
+      // Log successful auth method for debugging
+      console.log(`Vapi webhook: authenticated via ${authResult.method}`);
     }
 
     // Parse JSON AFTER signature verification

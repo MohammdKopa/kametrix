@@ -1894,3 +1894,191 @@ Input: {
 - Form validation matches existing patterns in AgentForm
 - Responsive design works on mobile, tablet, and desktop
 </summary>
+
+---
+
+## Follow-up Session
+
+I'll investigate the Vapi webhook signature verification failure. Let me examine the webhook authentication code and understand why it's failing.
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\webhook-auth.ts"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "limit": 150
+}
+Let me check the `.env.example` to see how the Vapi webhook secret should be configured, and also search for any documentation about the Vapi signature format:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\.env.example"
+}
+
+🔧 Tool: WebSearch
+Input: {
+  "query": "Vapi AI webhook signature verification x-vapi-signature HMAC SHA256 2025 2026"
+}
+Let me get more specific details from the Vapi documentation about how their signature verification works:
+
+🔧 Tool: WebFetch
+Input: {
+  "url": "https://docs.vapi.ai/server-url/server-authentication",
+  "prompt": "Extract all details about how Vapi webhook signature verification works, specifically: 1) What header name is used, 2) How the signature is computed (HMAC-SHA256?), 3) What data is signed (raw body?), 4) How to set up the secret in Vapi dashboard, 5) Any example code for verification"
+}
+
+🔧 Tool: WebFetch
+Input: {
+  "url": "https://github.com/VapiAI/docs/blob/main/fern/server-url/server-authentication.mdx?plain=1",
+  "prompt": "Extract all details about Vapi webhook signature verification: header name, how the HMAC is computed, what is signed, example code for verification"
+}
+Let me check the Vapi community discussions for more details:
+
+🔧 Tool: WebFetch
+Input: {
+  "url": "https://vapi.ai/community/m/1388575589547642910",
+  "prompt": "Extract details about how Vapi webhook signature verification works - the header name, algorithm, and how to verify"
+}
+Based on my research, I found the issue. Looking at the Vapi community discussion, it seems that **Vapi may send the secret token directly** in the `X-Vapi-Signature` header rather than an HMAC signature, depending on the configuration method. Let me check another community post:
+
+🔧 Tool: WebFetch
+Input: {
+  "url": "https://vapi.ai/community/m/1384529154501902407",
+  "prompt": "Extract all details about how Vapi webhook authentication works - is it a direct comparison of the secret or HMAC signature verification?"
+}
+Now I have a better understanding. Let me search for more specific information about Vapi's signature verification:
+
+🔧 Tool: WebSearch
+Input: {
+  "query": "Vapi webhook \"X-Vapi-Signature\" verify secret comparison authentication how to"
+}
+Now I understand the issue better. Let me check one more community post about the missing signature header:
+
+🔧 Tool: WebFetch
+Input: {
+  "url": "https://vapi.ai/community/m/1372686906999050341",
+  "prompt": "Extract details about why X-Vapi-Signature header might be missing and how to properly configure it"
+}
+Now I have a clearer picture! The issue is that **Vapi has two different authentication methods**:
+
+1. **Simple Secret Token**: Uses `x-vapi-secret` header with the raw secret value (direct comparison)
+2. **HMAC Signature**: Uses `x-vapi-signature` header with HMAC-SHA256 signature
+
+The current implementation assumes HMAC-SHA256, but it's possible Vapi is sending a **direct secret token comparison** or the configuration in the Vapi dashboard isn't set up correctly.
+
+Let me update the webhook authentication to support both methods and add better debugging:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\webhook-auth.ts"
+}
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\webhook-auth.ts",
+  "content": "import { createHmac, timingSafeEqual } from 'crypto';\n\n/**\n * Vapi Webhook Authentication\n *\n * Vapi supports multiple authentication methods:\n * 1. HMAC-SHA256 signature in x-vapi-signature header\n * 2. Direct secret token in x-vapi-secret header\n * 3. Bearer token in Authorization header\n *\n * This module supports all three methods for maximum compatibility.\n */\n\ninterface VapiAuthHeaders {\n  signature: string | null; // x-vapi-signature (HMAC)\n  secret: string | null; // x-vapi-secret (direct token)\n  authorization: string | null; // Authorization header (Bearer token)\n}\n\n/**\n * Verify Vapi webhook using the most appropriate method\n *\n * Tries verification methods in order of security preference:\n * 1. HMAC-SHA256 signature (most secure)\n * 2. Direct secret comparison (simple but less secure)\n * 3. Bearer token (standard API auth)\n *\n * @param payload - Raw request body as string\n * @param headers - Auth headers from request\n * @param secret - VAPI_WEBHOOK_SECRET from environment\n * @returns Object with isValid boolean and method used\n */\nexport function verifyVapiWebhook(\n  payload: string,\n  headers: VapiAuthHeaders,\n  secret: string | undefined\n): { isValid: boolean; method: string; debug?: string } {\n  // Fail if secret not configured\n  if (!secret || secret.trim() === '') {\n    return { isValid: false, method: 'none', debug: 'VAPI_WEBHOOK_SECRET not configured' };\n  }\n\n  // Debug: Log what headers we received (without exposing secrets)\n  const receivedHeaders = {\n    hasSignature: !!headers.signature,\n    signatureLength: headers.signature?.length || 0,\n    hasSecret: !!headers.secret,\n    secretLength: headers.secret?.length || 0,\n    hasAuth: !!headers.authorization,\n  };\n\n  // Method 1: Try HMAC-SHA256 signature verification\n  if (headers.signature && headers.signature.trim() !== '') {\n    const isValid = verifyHmacSignature(payload, headers.signature, secret);\n    if (isValid) {\n      return { isValid: true, method: 'hmac-sha256' };\n    }\n    // HMAC failed - log debug info\n    const expectedSig = createHmac('sha256', secret).update(payload, 'utf8').digest('hex');\n    return {\n      isValid: false,\n      method: 'hmac-sha256',\n      debug: `HMAC mismatch. Received sig length: ${headers.signature.length}, Expected sig length: ${expectedSig.length}. Headers: ${JSON.stringify(receivedHeaders)}`,\n    };\n  }\n\n  // Method 2: Try direct secret token comparison (x-vapi-secret header)\n  if (headers.secret && headers.secret.trim() !== '') {\n    const isValid = verifyDirectSecret(headers.secret, secret);\n    if (isValid) {\n      return { isValid: true, method: 'direct-secret' };\n    }\n    return {\n      isValid: false,\n      method: 'direct-secret',\n      debug: `Direct secret mismatch. Headers: ${JSON.stringify(receivedHeaders)}`,\n    };\n  }\n\n  // Method 3: Try Bearer token from Authorization header\n  if (headers.authorization) {\n    const isValid = verifyBearerToken(headers.authorization, secret);\n    if (isValid) {\n      return { isValid: true, method: 'bearer-token' };\n    }\n    return {\n      isValid: false,\n      method: 'bearer-token',\n      debug: `Bearer token mismatch. Headers: ${JSON.stringify(receivedHeaders)}`,\n    };\n  }\n\n  // No auth headers provided\n  return {\n    isValid: false,\n    method: 'none',\n    debug: `No authentication headers found. Headers: ${JSON.stringify(receivedHeaders)}`,\n  };\n}\n\n/**\n * Verify HMAC-SHA256 signature\n */\nfunction verifyHmacSignature(\n  payload: string,\n  signature: string,\n  secret: string\n): boolean {\n  try {\n    // Generate expected signature\n    const expectedSignature = createHmac('sha256', secret)\n      .update(payload, 'utf8')\n      .digest('hex');\n\n    // Use timing-safe comparison to prevent timing attacks\n    const sigBuffer = Buffer.from(signature.toLowerCase(), 'utf8');\n    const expectedBuffer = Buffer.from(expectedSignature.toLowerCase(), 'utf8');\n\n    // Buffers must be same length for timingSafeEqual\n    if (sigBuffer.length !== expectedBuffer.length) {\n      return false;\n    }\n\n    return timingSafeEqual(sigBuffer, expectedBuffer);\n  } catch (error) {\n    console.error('HMAC verification error:', error);\n    return false;\n  }\n}\n\n/**\n * Verify direct secret token (timing-safe)\n */\nfunction verifyDirectSecret(providedSecret: string, expectedSecret: string): boolean {\n  try {\n    const providedBuffer = Buffer.from(providedSecret, 'utf8');\n    const expectedBuffer = Buffer.from(expectedSecret, 'utf8');\n\n    if (providedBuffer.length !== expectedBuffer.length) {\n      return false;\n    }\n\n    return timingSafeEqual(providedBuffer, expectedBuffer);\n  } catch (error) {\n    console.error('Direct secret verification error:', error);\n    return false;\n  }\n}\n\n/**\n * Verify Bearer token from Authorization header\n */\nfunction verifyBearerToken(authHeader: string, expectedSecret: string): boolean {\n  try {\n    // Extract token from \"Bearer <token>\" format\n    const match = authHeader.match(/^Bearer\\s+(.+)$/i);\n    if (!match) {\n      return false;\n    }\n\n    const token = match[1];\n    const tokenBuffer = Buffer.from(token, 'utf8');\n    const expectedBuffer = Buffer.from(expectedSecret, 'utf8');\n\n    if (tokenBuffer.length !== expectedBuffer.length) {\n      return false;\n    }\n\n    return timingSafeEqual(tokenBuffer, expectedBuffer);\n  } catch (error) {\n    console.error('Bearer token verification error:', error);\n    return false;\n  }\n}\n\n/**\n * Legacy function for backward compatibility\n * @deprecated Use verifyVapiWebhook instead\n */\nexport function verifyVapiSignature(\n  payload: string,\n  signature: string | null,\n  secret: string | undefined\n): boolean {\n  const result = verifyVapiWebhook(\n    payload,\n    { signature, secret: null, authorization: null },\n    secret\n  );\n  return result.isValid;\n}\n\n/**\n * Extract all relevant auth headers from a request\n */\nexport function extractVapiAuthHeaders(headers: Headers): VapiAuthHeaders {\n  return {\n    signature: headers.get('x-vapi-signature'),\n    secret: headers.get('x-vapi-secret'),\n    authorization: headers.get('authorization'),\n  };\n}\n"
+}
+Now let me update the webhook route to use the new authentication function with better debugging:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "limit": 100
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "import { verifyVapiSignature } from '@/lib/webhook-auth';",
+  "new_string": "import { verifyVapiWebhook, extractVapiAuthHeaders } from '@/lib/webhook-auth';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "export async function POST(req: NextRequest) {\n  try {\n    // Get raw body FIRST for signature verification\n    const rawBody = await req.text();\n\n    // Verify signature if VAPI_WEBHOOK_SECRET is configured\n    const secret = process.env.VAPI_WEBHOOK_SECRET;\n    if (secret) {\n      const signature = req.headers.get('x-vapi-signature');\n      const isValid = verifyVapiSignature(rawBody, signature, secret);\n\n      if (!isValid) {\n        console.error('Vapi webhook: signature verification failed');\n        // Log security audit event for invalid signature\n        const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||\n          req.headers.get('x-real-ip') || 'unknown';\n        logInvalidWebhookSignature('vapi', ip).catch(console.error);\n        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });\n      }\n    }",
+  "new_string": "export async function POST(req: NextRequest) {\n  try {\n    // Get raw body FIRST for signature verification\n    const rawBody = await req.text();\n\n    // Verify webhook authentication if VAPI_WEBHOOK_SECRET is configured\n    const secret = process.env.VAPI_WEBHOOK_SECRET;\n    if (secret) {\n      // Extract all possible auth headers\n      const authHeaders = extractVapiAuthHeaders(req.headers);\n\n      // Try verification using all supported methods\n      const authResult = verifyVapiWebhook(rawBody, authHeaders, secret);\n\n      if (!authResult.isValid) {\n        console.error('Vapi webhook: authentication failed', {\n          method: authResult.method,\n          debug: authResult.debug,\n        });\n\n        // Log security audit event for invalid signature\n        const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||\n          req.headers.get('x-real-ip') || 'unknown';\n        logInvalidWebhookSignature('vapi', ip).catch(console.error);\n\n        return NextResponse.json(\n          {\n            error: 'Invalid authentication',\n            debug: process.env.NODE_ENV === 'development' ? authResult.debug : undefined,\n          },\n          { status: 401 }\n        );\n      }\n\n      // Log successful auth method for debugging\n      console.log(`Vapi webhook: authenticated via ${authResult.method}`);\n    }"
+}
+Now let me run TypeScript check to make sure everything compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+No TypeScript errors. Now let me provide you with a summary and explanation of what's happening:
+
+## Analysis of the Webhook Signature Verification Issue
+
+Based on my research, here's what's happening:
+
+### The Problem
+
+The error message `Vapi webhook: signature verification failed` indicates that Vapi is sending requests to your webhook, but the signature verification is failing. This is likely due to **one of these issues**:
+
+1. **Vapi isn't sending the signature header at all** - The signature header might not be configured in the Vapi dashboard
+2. **Wrong header name** - Vapi uses different headers depending on configuration:
+   - `x-vapi-signature` for HMAC-SHA256 signatures
+   - `x-vapi-secret` for direct secret token
+   - `Authorization: Bearer <token>` for bearer token auth
+3. **Secret mismatch** - The secret in your `.env` doesn't match what's configured in Vapi
+
+### The Fix
+
+I've updated the webhook authentication to:
+
+1. **Support all three Vapi authentication methods**:
+   - HMAC-SHA256 signature (most secure)
+   - Direct secret token comparison
+   - Bearer token authentication
+
+2. **Add better debugging** - Now logs which method was attempted and why it failed
+
+3. **Be more flexible** - Will try all available methods to find one that works
+
+### What You Need to Do
+
+**Check your Vapi Dashboard configuration:**
+
+1. Go to [Vapi Dashboard](https://dashboard.vapi.ai)
+2. Navigate to **Organization Settings** → **Server URL** or **Webhooks**
+3. Verify the **secret/token** is set correctly
+4. Check which authentication method is configured:
+   - If you see "Secret" or "Token" field → Use the same value in `VAPI_WEBHOOK_SECRET`
+   - If using Custom Credentials with HMAC → Use the HMAC secret key
+
+**Verify your environment variable:**
+
+Make sure `VAPI_WEBHOOK_SECRET` in your `.env` file **exactly matches** what's configured in Vapi (no extra spaces, quotes, or newlines).
+
+**Temporary debugging option:**
+
+If you want to see what headers Vapi is actually sending, you can temporarily remove the `VAPI_WEBHOOK_SECRET` from your environment or set it to empty. This will skip verification and let the webhook work while you debug. **Only do this in development!**
+
+```bash
+# Comment out or empty the secret temporarily
+VAPI_WEBHOOK_SECRET=
+```
+
+Then check your server logs to see what message types come through.
+
+### Files Modified
+
+- `src/lib/webhook-auth.ts` - Updated to support all three Vapi auth methods
+- `src/app/api/webhooks/vapi/route.ts` - Updated to use new auth function with better logging
+
+### Sources
+- [Vapi Server Authentication Docs](https://docs.vapi.ai/server-url/server-authentication)
+- [Vapi Community: Webhook Event Verification](https://vapi.ai/community/m/1388575589547642910)
+- [Vapi Community: X-Vapi-Signature Header Missing](https://vapi.ai/community/m/1372686906999050341)
