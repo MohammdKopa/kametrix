@@ -70,9 +70,6 @@ services:
       # Third-party APIs
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
-
-      # Build verification - set at deploy time
-      - EXPECTED_BUILD_ID=${BUILD_ID:-}
     ports:
       - "3000:3000"
     depends_on:

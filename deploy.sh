@@ -492,16 +492,21 @@ verify_build() {
         return 1
     fi
 
-    # Check if build is valid
+    # Check if build is valid (has both BUILD_ID and gitSha from our metadata)
     local build_valid=$(echo "$response" | grep -o '"valid":[^,}]*' | cut -d: -f2 | tr -d ' ')
     local build_id=$(echo "$response" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+    local git_sha=$(echo "$response" | grep -o '"gitSha":"[^"]*"' | cut -d'"' -f4)
 
     if [ "$build_valid" = "true" ]; then
-        log_success "Build verified! ID: ${build_id}"
+        log_success "Build verified!"
+        log_info "  Build ID: ${build_id}"
+        log_info "  Git SHA: ${git_sha}"
         return 0
     else
-        log_error "Build mismatch detected! Server build ID: ${build_id}"
-        log_warn "Expected build ID: ${EXPECTED_BUILD_ID:-not set}"
+        log_error "Build validation failed!"
+        log_warn "Build ID: ${build_id:-missing}"
+        log_warn "Git SHA: ${git_sha:-missing}"
+        log_warn "This may indicate incomplete build metadata."
         return 1
     fi
 }
