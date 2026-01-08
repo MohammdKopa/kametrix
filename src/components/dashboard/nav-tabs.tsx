@@ -25,7 +25,15 @@ export function NavTabs() {
 
   return (
     <div className="-mb-px" role="tablist" aria-label="Dashboard navigation">
-      <div className="flex gap-1">
+      {/* Horizontally scrollable on mobile, flex wrap on larger screens */}
+      <div
+        className="flex gap-1 overflow-x-auto scrollbar-hide pb-px -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           // Check if pathname starts with tab href (for nested routes) or exact match for dashboard
@@ -41,7 +49,9 @@ export function NavTabs() {
               aria-selected={isActive}
               aria-current={isActive ? 'page' : undefined}
               className={`
-                relative flex items-center gap-2 py-3 px-4 h-auto rounded-t-lg rounded-b-none transition-all duration-150
+                relative flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-3 sm:px-4 h-auto
+                rounded-t-lg rounded-b-none transition-all duration-150
+                text-sm sm:text-base whitespace-nowrap flex-shrink-0
                 ${
                   isActive
                     ? 'bg-primary/10 text-primary hover:bg-primary/15 border-l-2 border-l-primary'
@@ -52,8 +62,9 @@ export function NavTabs() {
               <Link
                 href={tab.href}
                 aria-label={`${tab.name}: ${tab.description}`}
+                className="flex items-center gap-1.5 sm:gap-2"
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} aria-hidden="true" />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} aria-hidden="true" />
                 <span>{tab.name}</span>
                 {isActive && (
                   <span

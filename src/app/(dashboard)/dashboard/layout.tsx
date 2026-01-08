@@ -32,18 +32,18 @@ export default async function DashboardNestedLayout({
 
       {/* Header with glassmorphism */}
       <header className="glass glass-header-glow sticky top-0 z-50" role="banner">
-        <div className="max-w-7xl mx-auto px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md" aria-hidden="true">
                 <Activity className="w-5 h-5 text-primary-foreground" aria-hidden="true" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Kametrix</h1>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">Kametrix</h1>
             </div>
 
             {/* Theme Toggle & User Menu */}
-            <div className="flex items-center gap-3" role="group" aria-label="User controls">
+            <div className="flex items-center gap-2 sm:gap-3" role="group" aria-label="User controls">
               <ThemeToggle />
               <UserMenu user={user} />
             </div>
@@ -53,7 +53,7 @@ export default async function DashboardNestedLayout({
 
       {/* Navigation Tabs with glass effect */}
       <nav className="glass border-b border-border/50" aria-label="Main navigation">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <NavTabs />
         </div>
       </nav>
@@ -61,7 +61,7 @@ export default async function DashboardNestedLayout({
       {/* Main Content */}
       <main
         id="main-content"
-        className="relative max-w-7xl mx-auto px-8 py-8"
+        className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8"
         role="main"
         aria-label="Main content"
       >
