@@ -38,17 +38,39 @@ services:
       # Use --no-cache flag during deployment for clean builds
     container_name: kametrix-app
     environment:
+      # Application
       - NODE_ENV=production
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+
+      # Database
       - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}
+
+      # Vapi Configuration
       - VAPI_API_KEY=${VAPI_API_KEY}
+      - VAPI_PUBLIC_KEY=${VAPI_PUBLIC_KEY}
+      - VAPI_WEBHOOK_SECRET=${VAPI_WEBHOOK_SECRET:-}
+
+      # Google OAuth
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_ENCRYPTION_KEY=${GOOGLE_ENCRYPTION_KEY}
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+
+      # Stripe
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-eur}
+
+      # SMTP (Email)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+
+      # Third-party APIs
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+
       # Build verification - set at deploy time
       - EXPECTED_BUILD_ID=${BUILD_ID:-}
     ports:
