@@ -208,7 +208,7 @@ export function verifyVapiSignature(
 ): boolean {
   const result = verifyVapiWebhook(
     payload,
-    { signature, secret: null, authorization: null },
+    { signature, secret: null, authorization: null, timestamp: null },
     secret
   );
   return result.isValid;
