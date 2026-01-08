@@ -882,3 +882,241 @@ Good - the config is valid (the warning about `VAPI_PUBLIC_KEY` is expected sinc
 - SMTP variables are optional - email features will be disabled if not configured
 - The `VAPI_PUBLIC_KEY` is needed for the voice testing feature in the UI
 </summary>
+
+---
+
+## Follow-up Session
+
+I'll help investigate why the health check is failing after the clean build. Let me check the container status and logs.
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && docker ps -a 2>&1 | head -20",
+  "description": "Check Docker container status"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && docker logs kametrix-app --tail 100 2>&1",
+  "description": "Check app container logs for errors"
+}
+I see the issue. The logs show the app started successfully locally, but the container is not currently running on the VPS. Looking at the container status:
+- `kametrix-db` is `Exited (255)` 
+- `kametrix-app` is showing an old container from 6 days ago with `Exited (0)`
+
+The clean build created a new image but the containers are not running. This is happening on your VPS, not locally. Let me check the deploy script to see if there's an issue with how containers are started:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh"
+}
+Now I see the issue. Looking at the VPS output more carefully, the build completed successfully but the health check is failing. The key issues are:
+
+1. The `docker compose -f $COMPOSE_FILE up -d` starts the services but the app container seems to exit quickly
+2. The `verify_build` function is checking for health but the app isn't running
+
+Let me check the docker-compose.prod.yml to see if there are any issues with the container names:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\docker-compose.prod.yml"
+}
+I see the issue now. Looking at the VPS output more carefully:
+
+1. The build **succeeded** (image was built)
+2. The services were started: `✔ Container kametrix-db Healthy` and `✔ Container kametrix-app Started`
+3. But then the health check fails: `Health check failed - application not responding`
+
+The problem is the app container starts but then **exits** or crashes before the health check can reach it. This is likely because:
+
+1. The app container name from the build output is `kametrixcom-app` (based on directory name) not `kametrix-app`
+2. The health check timeout might be too short (only 5 seconds wait)
+
+Let me check the Dockerfile and look for issues:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\Dockerfile"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate why app container is not responding to health check",
+      "status": "in_progress",
+      "activeForm": "Investigating health check failure"
+    },
+    {
+      "content": "Fix verify_build function to wait longer for app startup",
+      "status": "pending",
+      "activeForm": "Fixing verify_build timeout"
+    },
+    {
+      "content": "Add better error logging to diagnose startup issues",
+      "status": "pending",
+      "activeForm": "Adding startup diagnostics"
+    }
+  ]
+}
+Looking at the VPS output, I can see the issue:
+
+1. The build completed successfully
+2. The container started: `✔ Container kametrix-app Started`
+3. But the health check failed after only **5 seconds** (`sleep 5`)
+
+The problem is that the `verify_build` function is called immediately after `sleep 5`, but:
+- The app needs more time to start up (Next.js standalone server)
+- The health check in Docker has `start_period: 30s` but our script doesn't wait for it
+
+Let me update the `deploy.sh` to:
+1. Wait longer for the app to start
+2. Add better diagnostics when health check fails
+3. Show container logs if health check fails
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "# =============================================================================\n# Verify Build - Check for Server Action consistency\n# =============================================================================\nverify_build() {\n    log_info \"Verifying build consistency...\"\n\n    # Check health endpoint with build info\n    local response=$(curl -sf \"${HEALTH_CHECK_URL}?build=true\" 2>/dev/null || echo \"\")\n\n    if [ -z \"$response\" ]; then\n        log_error \"Health check failed - application not responding\"\n        return 1\n    fi\n\n    # Check if build is valid\n    local build_valid=$(echo \"$response\" | grep -o '\"valid\":[^,}]*' | cut -d: -f2 | tr -d ' ')\n    local build_id=$(echo \"$response\" | grep -o '\"id\":\"[^\"]*\"' | cut -d'\"' -f4)\n\n    if [ \"$build_valid\" = \"true\" ]; then\n        log_success \"Build verified! ID: ${build_id}\"\n        return 0\n    else\n        log_error \"Build mismatch detected! Server build ID: ${build_id}\"\n        log_warn \"Expected build ID: ${EXPECTED_BUILD_ID:-not set}\"\n        return 1\n    fi\n}",
+  "new_string": "# =============================================================================\n# Wait for App - Wait for the application to be ready\n# =============================================================================\nwait_for_app() {\n    log_info \"Waiting for application to start (this may take up to 60 seconds)...\"\n    local max_attempts=30\n    local attempt=1\n\n    while [ $attempt -le $max_attempts ]; do\n        # Check if container is running\n        if ! docker ps -q -f name=$APP_CONTAINER 2>/dev/null | grep -q .; then\n            log_error \"App container is not running!\"\n            log_info \"Checking container status...\"\n            docker ps -a -f name=$APP_CONTAINER\n            log_info \"Container logs:\"\n            docker logs $APP_CONTAINER --tail 50 2>&1 || true\n            return 1\n        fi\n\n        # Try to reach health endpoint\n        if curl -sf \"${HEALTH_CHECK_URL}?quick=true\" &>/dev/null; then\n            log_success \"Application is responding!\"\n            return 0\n        fi\n\n        echo -n \".\"\n        sleep 2\n        attempt=$((attempt + 1))\n    done\n\n    log_error \"Application failed to respond within 60 seconds\"\n    log_info \"Container status:\"\n    docker ps -a -f name=$APP_CONTAINER\n    log_info \"Recent container logs:\"\n    docker logs $APP_CONTAINER --tail 100 2>&1 || true\n    return 1\n}\n\n# =============================================================================\n# Verify Build - Check for Server Action consistency\n# =============================================================================\nverify_build() {\n    log_info \"Verifying build consistency...\"\n\n    # First, wait for the app to be ready\n    if ! wait_for_app; then\n        return 1\n    fi\n\n    # Check health endpoint with build info\n    local response=$(curl -sf \"${HEALTH_CHECK_URL}?build=true\" 2>/dev/null || echo \"\")\n\n    if [ -z \"$response\" ]; then\n        log_error \"Health check failed - application not responding\"\n        return 1\n    fi\n\n    # Check if build is valid\n    local build_valid=$(echo \"$response\" | grep -o '\"valid\":[^,}]*' | cut -d: -f2 | tr -d ' ')\n    local build_id=$(echo \"$response\" | grep -o '\"id\":\"[^\"]*\"' | cut -d'\"' -f4)\n\n    if [ \"$build_valid\" = \"true\" ]; then\n        log_success \"Build verified! ID: ${build_id}\"\n        return 0\n    else\n        log_error \"Build mismatch detected! Server build ID: ${build_id}\"\n        log_warn \"Expected build ID: ${EXPECTED_BUILD_ID:-not set}\"\n        return 1\n    fi\n}"
+}
+Now let me also update the `cmd_clean_build` function to remove the `sleep 5` since we now have proper waiting logic:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "    log_info \"Starting services...\"\n    docker compose -f $COMPOSE_FILE up -d\n\n    wait_for_db\n\n    log_info \"Running migrations...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate\n\n    sleep 5\n\n    # Verify build consistency\n    if verify_build; then\n        log_success \"Clean build complete! Build ID: ${BUILD_ID}\"\n        cmd_status\n    else\n        log_error \"Build verification failed. Consider rollback: ./deploy.sh rollback\"\n    fi\n}",
+  "new_string": "    log_info \"Starting services...\"\n    docker compose -f $COMPOSE_FILE up -d\n\n    wait_for_db\n\n    log_info \"Running migrations...\"\n    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate\n\n    # Verify build consistency (includes waiting for app to start)\n    if verify_build; then\n        log_success \"Clean build complete! Build ID: ${BUILD_ID}\"\n        cmd_status\n    else\n        log_error \"Build verification failed. Consider rollback: ./deploy.sh rollback\"\n        log_info \"\"\n        log_info \"Troubleshooting tips:\"\n        log_info \"1. Check logs: ./deploy.sh logs\"\n        log_info \"2. Check status: ./deploy.sh status\"\n        log_info \"3. Check if all env vars are set in .env file\"\n        log_info \"4. Rollback if needed: ./deploy.sh rollback\"\n    fi\n}"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate why app container is not responding to health check",
+      "status": "completed",
+      "activeForm": "Investigating health check failure"
+    },
+    {
+      "content": "Fix verify_build function to wait longer for app startup",
+      "status": "completed",
+      "activeForm": "Fixing verify_build timeout"
+    },
+    {
+      "content": "Add better error logging to diagnose startup issues",
+      "status": "completed",
+      "activeForm": "Adding startup diagnostics"
+    },
+    {
+      "content": "Add troubleshooting command to show all diagnostic info",
+      "status": "in_progress",
+      "activeForm": "Adding troubleshoot command"
+    }
+  ]
+}
+Now let me add a dedicated troubleshooting command that will help diagnose issues:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "cmd_verify_build() {\n    echo \"\"\n    echo \"=== Build Verification ===\"\n    echo \"\"\n\n    if verify_build; then\n        echo \"\"\n        log_success \"No Server Action issues detected\"\n    else\n        echo \"\"\n        log_error \"Build mismatch detected!\"\n        echo \"\"\n        echo \"Recommended actions:\"\n        echo \"1. Run: ./deploy.sh clean-build\"\n        echo \"2. Or rollback: ./deploy.sh rollback\"\n        echo \"\"\n        exit 1\n    fi\n}",
+  "new_string": "cmd_verify_build() {\n    echo \"\"\n    echo \"=== Build Verification ===\"\n    echo \"\"\n\n    if verify_build; then\n        echo \"\"\n        log_success \"No Server Action issues detected\"\n    else\n        echo \"\"\n        log_error \"Build mismatch detected!\"\n        echo \"\"\n        echo \"Recommended actions:\"\n        echo \"1. Run: ./deploy.sh clean-build\"\n        echo \"2. Or rollback: ./deploy.sh rollback\"\n        echo \"\"\n        exit 1\n    fi\n}\n\n# =============================================================================\n# Troubleshoot - Diagnose deployment issues\n# =============================================================================\ncmd_troubleshoot() {\n    echo \"\"\n    echo \"=== Kametrix Troubleshooting ===\"\n    echo \"\"\n\n    check_requirements\n\n    echo \"=== Docker Version ===\"\n    docker --version\n    docker compose version\n    echo \"\"\n\n    echo \"=== Container Status ===\"\n    docker compose -f $COMPOSE_FILE ps -a\n    echo \"\"\n\n    echo \"=== All Kametrix Containers (including stopped) ===\"\n    docker ps -a --filter \"name=kametrix\"\n    echo \"\"\n\n    echo \"=== Network Status ===\"\n    docker network ls | grep -E \"kametrix|NETWORK\"\n    echo \"\"\n\n    echo \"=== Volume Status ===\"\n    docker volume ls | grep -E \"kametrix|VOLUME\"\n    echo \"\"\n\n    if docker ps -q -f name=$APP_CONTAINER 2>/dev/null | grep -q .; then\n        echo \"=== App Container Health ===\"\n        docker inspect $APP_CONTAINER --format='{{.State.Status}} (Health: {{.State.Health.Status}})'\n        echo \"\"\n\n        echo \"=== App Container Logs (last 50 lines) ===\"\n        docker logs $APP_CONTAINER --tail 50 2>&1\n        echo \"\"\n\n        echo \"=== Health Check Response ===\"\n        curl -s \"${HEALTH_CHECK_URL}?build=true\" 2>&1 || echo \"Health endpoint not responding\"\n        echo \"\"\n    else\n        echo \"=== App Container Not Running ===\"\n        log_warn \"The app container is not running\"\n        echo \"\"\n\n        # Check if container exists but is stopped\n        if docker ps -a -q -f name=$APP_CONTAINER 2>/dev/null | grep -q .; then\n            echo \"=== App Container Exit Info ===\"\n            docker inspect $APP_CONTAINER --format='Exit Code: {{.State.ExitCode}}, Error: {{.State.Error}}'\n            echo \"\"\n\n            echo \"=== App Container Logs (last 100 lines) ===\"\n            docker logs $APP_CONTAINER --tail 100 2>&1\n            echo \"\"\n        else\n            log_error \"App container does not exist. Run: ./deploy.sh deploy\"\n        fi\n    fi\n\n    if docker ps -q -f name=$DB_CONTAINER 2>/dev/null | grep -q .; then\n        echo \"=== Database Container Health ===\"\n        docker inspect $DB_CONTAINER --format='{{.State.Status}} (Health: {{.State.Health.Status}})'\n        echo \"\"\n    else\n        echo \"=== Database Container Not Running ===\"\n        log_warn \"The database container is not running\"\n        if docker ps -a -q -f name=$DB_CONTAINER 2>/dev/null | grep -q .; then\n            echo \"=== Database Container Logs (last 30 lines) ===\"\n            docker logs $DB_CONTAINER --tail 30 2>&1\n        fi\n        echo \"\"\n    fi\n\n    echo \"=== Environment Check ===\"\n    if [ -f .env ]; then\n        log_success \".env file exists\"\n        echo \"Required variables status:\"\n        for var in DATABASE_URL VAPI_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_ENCRYPTION_KEY STRIPE_SECRET_KEY NEXT_PUBLIC_APP_URL; do\n            if grep -q \"^${var}=\" .env && ! grep -q \"^${var}=$\" .env; then\n                echo \"  ✓ $var is set\"\n            else\n                echo \"  ✗ $var is NOT set or empty\"\n            fi\n        done\n    else\n        log_error \".env file not found\"\n    fi\n    echo \"\"\n\n    echo \"=== Recommendations ===\"\n    echo \"1. If containers are not running: ./deploy.sh deploy\"\n    echo \"2. If app crashes on startup: Check logs above for errors\"\n    echo \"3. If health check fails: ./deploy.sh clean-build\"\n    echo \"4. If database issues: ./deploy.sh db-check\"\n    echo \"5. To rollback: ./deploy.sh rollback\"\n    echo \"\"\n}"
+}
+Now let me add the troubleshoot command to the main case statement:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "# Main\ncase \"${1:-deploy}\" in\n    setup)\n        cmd_setup\n        ;;\n    update)\n        cmd_update\n        ;;\n    deploy)\n        cmd_deploy\n        ;;\n    clean-build)\n        cmd_clean_build\n        ;;\n    verify-build)\n        cmd_verify_build\n        ;;\n    rollback)\n        cmd_rollback\n        ;;\n    status)\n        cmd_status\n        ;;\n    logs)\n        cmd_logs \"$2\"\n        ;;\n    migrate)\n        cmd_migrate\n        ;;\n    seed)\n        cmd_seed\n        ;;\n    restart)\n        cmd_restart\n        ;;\n    stop)\n        cmd_stop\n        ;;\n    clean)\n        cmd_clean\n        ;;\n    db-check)\n        cmd_db_check\n        ;;\n    *)\n        echo \"Usage: $0 {setup|update|deploy|clean-build|verify-build|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}\"\n        exit 1\n        ;;\nesac",
+  "new_string": "# Main\ncase \"${1:-deploy}\" in\n    setup)\n        cmd_setup\n        ;;\n    update)\n        cmd_update\n        ;;\n    deploy)\n        cmd_deploy\n        ;;\n    clean-build)\n        cmd_clean_build\n        ;;\n    verify-build)\n        cmd_verify_build\n        ;;\n    troubleshoot)\n        cmd_troubleshoot\n        ;;\n    rollback)\n        cmd_rollback\n        ;;\n    status)\n        cmd_status\n        ;;\n    logs)\n        cmd_logs \"$2\"\n        ;;\n    migrate)\n        cmd_migrate\n        ;;\n    seed)\n        cmd_seed\n        ;;\n    restart)\n        cmd_restart\n        ;;\n    stop)\n        cmd_stop\n        ;;\n    clean)\n        cmd_clean\n        ;;\n    db-check)\n        cmd_db_check\n        ;;\n    *)\n        echo \"Usage: $0 {setup|update|deploy|clean-build|verify-build|troubleshoot|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}\"\n        exit 1\n        ;;\nesac"
+}
+Also update the script header comments to include the new command:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\deploy.sh",
+  "old_string": "#!/bin/bash\n# =============================================================================\n# Kametrix Deployment Script\n# =============================================================================\n# Usage:\n#   ./deploy.sh              - Full deployment (pull, build, migrate, start)\n#   ./deploy.sh setup        - First-time setup (create .env, build, migrate, seed)\n#   ./deploy.sh update       - Quick update (pull, build, migrate, restart)\n#   ./deploy.sh clean-build  - Clean build without Docker cache (fixes Server Action errors)\n#   ./deploy.sh rollback     - Rollback to previous image\n#   ./deploy.sh status       - Show container status\n#   ./deploy.sh logs         - Show app logs\n#   ./deploy.sh logs -f      - Follow app logs\n#   ./deploy.sh migrate      - Run database migrations only (with status)\n#   ./deploy.sh seed         - Run database seed only\n#   ./deploy.sh restart      - Restart containers without rebuild\n#   ./deploy.sh stop         - Stop all containers\n#   ./deploy.sh clean        - Remove containers and images (keeps data)\n#   ./deploy.sh db-check     - Check database schema and applied migrations\n#   ./deploy.sh verify-build - Verify build consistency (check for Server Action issues)\n# =============================================================================",
+  "new_string": "#!/bin/bash\n# =============================================================================\n# Kametrix Deployment Script\n# =============================================================================\n# Usage:\n#   ./deploy.sh              - Full deployment (pull, build, migrate, start)\n#   ./deploy.sh setup        - First-time setup (create .env, build, migrate, seed)\n#   ./deploy.sh update       - Quick update (pull, build, migrate, restart)\n#   ./deploy.sh clean-build  - Clean build without Docker cache (fixes Server Action errors)\n#   ./deploy.sh verify-build - Verify build consistency (check for Server Action issues)\n#   ./deploy.sh troubleshoot - Diagnose deployment issues (container status, logs, env check)\n#   ./deploy.sh rollback     - Rollback to previous image\n#   ./deploy.sh status       - Show container status\n#   ./deploy.sh logs         - Show app logs\n#   ./deploy.sh logs -f      - Follow app logs\n#   ./deploy.sh migrate      - Run database migrations only (with status)\n#   ./deploy.sh seed         - Run database seed only\n#   ./deploy.sh restart      - Restart containers without rebuild\n#   ./deploy.sh stop         - Stop all containers\n#   ./deploy.sh clean        - Remove containers and images (keeps data)\n#   ./deploy.sh db-check     - Check database schema and applied migrations\n# ============================================================================="
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate why app container is not responding to health check",
+      "status": "completed",
+      "activeForm": "Investigating health check failure"
+    },
+    {
+      "content": "Fix verify_build function to wait longer for app startup",
+      "status": "completed",
+      "activeForm": "Fixing verify_build timeout"
+    },
+    {
+      "content": "Add better error logging to diagnose startup issues",
+      "status": "completed",
+      "activeForm": "Adding startup diagnostics"
+    },
+    {
+      "content": "Add troubleshooting command to show all diagnostic info",
+      "status": "completed",
+      "activeForm": "Adding troubleshoot command"
+    }
+  ]
+}
+Now let me verify the changes are syntactically correct:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && bash -n deploy.sh && echo \"Script syntax OK\"",
+  "description": "Validate deploy.sh bash syntax"
+}
+The script is valid. Now let me provide you with the next steps to diagnose and fix the issue on your VPS.
+
+<summary>
+## Summary: Fixed Health Check Timeout and Added Diagnostics
+
+### Changes Implemented
+1. **Added `wait_for_app()` function** - Properly waits up to 60 seconds for the application to start, checking both container status and health endpoint
+2. **Enhanced `verify_build()` function** - Now calls `wait_for_app()` before checking build consistency, preventing premature failures
+3. **Added `cmd_troubleshoot()` command** - New comprehensive diagnostic command that shows:
+   - Docker and docker-compose versions
+   - Container status (running/stopped)
+   - Container health status
+   - Container logs
+   - Network and volume status
+   - Environment variable check
+   - Recommendations based on issues found
+4. **Better error messages** - When health check fails, now shows container logs and troubleshooting tips
+5. **Removed premature `sleep 5`** - The old code only waited 5 seconds before checking health
+
+### Files Modified
+- `deploy.sh` - Added `wait_for_app()`, `cmd_troubleshoot()`, enhanced `verify_build()`, improved error handling
+
+### Next Steps for VPS
+
+Run this command on your VPS to diagnose the issue:
+```bash
+./deploy.sh troubleshoot
+```
+
+This will show you:
+- Whether containers are running or crashed
+- The exit code if the container crashed
+- The container logs to see what error occurred
+- Whether all required environment variables are set
+
+Based on the output, the most likely issues are:
+1. **Missing environment variable** - Check `.env` file has all required vars
+2. **Database connection** - The app might crash if it can't reach the database
+3. **Container name conflict** - aaPanel might have created a container with a different name
+
+After running troubleshoot, you can try:
+```bash
+# If containers are stopped, restart everything
+./deploy.sh deploy
+
+# Or do a fresh clean build
+./deploy.sh clean-build
+```
+</summary>

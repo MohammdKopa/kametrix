@@ -7,6 +7,8 @@
 #   ./deploy.sh setup        - First-time setup (create .env, build, migrate, seed)
 #   ./deploy.sh update       - Quick update (pull, build, migrate, restart)
 #   ./deploy.sh clean-build  - Clean build without Docker cache (fixes Server Action errors)
+#   ./deploy.sh verify-build - Verify build consistency (check for Server Action issues)
+#   ./deploy.sh troubleshoot - Diagnose deployment issues (container status, logs, env check)
 #   ./deploy.sh rollback     - Rollback to previous image
 #   ./deploy.sh status       - Show container status
 #   ./deploy.sh logs         - Show app logs
@@ -17,7 +19,6 @@
 #   ./deploy.sh stop         - Stop all containers
 #   ./deploy.sh clean        - Remove containers and images (keeps data)
 #   ./deploy.sh db-check     - Check database schema and applied migrations
-#   ./deploy.sh verify-build - Verify build consistency (check for Server Action issues)
 # =============================================================================
 
 set -e
@@ -419,15 +420,57 @@ cmd_clean_build() {
     log_info "Running migrations..."
     docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate
 
-    sleep 5
-
-    # Verify build consistency
+    # Verify build consistency (includes waiting for app to start)
     if verify_build; then
         log_success "Clean build complete! Build ID: ${BUILD_ID}"
         cmd_status
     else
         log_error "Build verification failed. Consider rollback: ./deploy.sh rollback"
+        log_info ""
+        log_info "Troubleshooting tips:"
+        log_info "1. Check logs: ./deploy.sh logs"
+        log_info "2. Check status: ./deploy.sh status"
+        log_info "3. Check if all env vars are set in .env file"
+        log_info "4. Rollback if needed: ./deploy.sh rollback"
     fi
+}
+
+# =============================================================================
+# Wait for App - Wait for the application to be ready
+# =============================================================================
+wait_for_app() {
+    log_info "Waiting for application to start (this may take up to 60 seconds)..."
+    local max_attempts=30
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        # Check if container is running
+        if ! docker ps -q -f name=$APP_CONTAINER 2>/dev/null | grep -q .; then
+            log_error "App container is not running!"
+            log_info "Checking container status..."
+            docker ps -a -f name=$APP_CONTAINER
+            log_info "Container logs:"
+            docker logs $APP_CONTAINER --tail 50 2>&1 || true
+            return 1
+        fi
+
+        # Try to reach health endpoint
+        if curl -sf "${HEALTH_CHECK_URL}?quick=true" &>/dev/null; then
+            log_success "Application is responding!"
+            return 0
+        fi
+
+        echo -n "."
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+
+    log_error "Application failed to respond within 60 seconds"
+    log_info "Container status:"
+    docker ps -a -f name=$APP_CONTAINER
+    log_info "Recent container logs:"
+    docker logs $APP_CONTAINER --tail 100 2>&1 || true
+    return 1
 }
 
 # =============================================================================
@@ -435,6 +478,11 @@ cmd_clean_build() {
 # =============================================================================
 verify_build() {
     log_info "Verifying build consistency..."
+
+    # First, wait for the app to be ready
+    if ! wait_for_app; then
+        return 1
+    fi
 
     # Check health endpoint with build info
     local response=$(curl -sf "${HEALTH_CHECK_URL}?build=true" 2>/dev/null || echo "")
@@ -478,6 +526,107 @@ cmd_verify_build() {
     fi
 }
 
+# =============================================================================
+# Troubleshoot - Diagnose deployment issues
+# =============================================================================
+cmd_troubleshoot() {
+    echo ""
+    echo "=== Kametrix Troubleshooting ==="
+    echo ""
+
+    check_requirements
+
+    echo "=== Docker Version ==="
+    docker --version
+    docker compose version
+    echo ""
+
+    echo "=== Container Status ==="
+    docker compose -f $COMPOSE_FILE ps -a
+    echo ""
+
+    echo "=== All Kametrix Containers (including stopped) ==="
+    docker ps -a --filter "name=kametrix"
+    echo ""
+
+    echo "=== Network Status ==="
+    docker network ls | grep -E "kametrix|NETWORK"
+    echo ""
+
+    echo "=== Volume Status ==="
+    docker volume ls | grep -E "kametrix|VOLUME"
+    echo ""
+
+    if docker ps -q -f name=$APP_CONTAINER 2>/dev/null | grep -q .; then
+        echo "=== App Container Health ==="
+        docker inspect $APP_CONTAINER --format='{{.State.Status}} (Health: {{.State.Health.Status}})'
+        echo ""
+
+        echo "=== App Container Logs (last 50 lines) ==="
+        docker logs $APP_CONTAINER --tail 50 2>&1
+        echo ""
+
+        echo "=== Health Check Response ==="
+        curl -s "${HEALTH_CHECK_URL}?build=true" 2>&1 || echo "Health endpoint not responding"
+        echo ""
+    else
+        echo "=== App Container Not Running ==="
+        log_warn "The app container is not running"
+        echo ""
+
+        # Check if container exists but is stopped
+        if docker ps -a -q -f name=$APP_CONTAINER 2>/dev/null | grep -q .; then
+            echo "=== App Container Exit Info ==="
+            docker inspect $APP_CONTAINER --format='Exit Code: {{.State.ExitCode}}, Error: {{.State.Error}}'
+            echo ""
+
+            echo "=== App Container Logs (last 100 lines) ==="
+            docker logs $APP_CONTAINER --tail 100 2>&1
+            echo ""
+        else
+            log_error "App container does not exist. Run: ./deploy.sh deploy"
+        fi
+    fi
+
+    if docker ps -q -f name=$DB_CONTAINER 2>/dev/null | grep -q .; then
+        echo "=== Database Container Health ==="
+        docker inspect $DB_CONTAINER --format='{{.State.Status}} (Health: {{.State.Health.Status}})'
+        echo ""
+    else
+        echo "=== Database Container Not Running ==="
+        log_warn "The database container is not running"
+        if docker ps -a -q -f name=$DB_CONTAINER 2>/dev/null | grep -q .; then
+            echo "=== Database Container Logs (last 30 lines) ==="
+            docker logs $DB_CONTAINER --tail 30 2>&1
+        fi
+        echo ""
+    fi
+
+    echo "=== Environment Check ==="
+    if [ -f .env ]; then
+        log_success ".env file exists"
+        echo "Required variables status:"
+        for var in DATABASE_URL VAPI_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_ENCRYPTION_KEY STRIPE_SECRET_KEY NEXT_PUBLIC_APP_URL; do
+            if grep -q "^${var}=" .env && ! grep -q "^${var}=$" .env; then
+                echo "  ✓ $var is set"
+            else
+                echo "  ✗ $var is NOT set or empty"
+            fi
+        done
+    else
+        log_error ".env file not found"
+    fi
+    echo ""
+
+    echo "=== Recommendations ==="
+    echo "1. If containers are not running: ./deploy.sh deploy"
+    echo "2. If app crashes on startup: Check logs above for errors"
+    echo "3. If health check fails: ./deploy.sh clean-build"
+    echo "4. If database issues: ./deploy.sh db-check"
+    echo "5. To rollback: ./deploy.sh rollback"
+    echo ""
+}
+
 # Main
 case "${1:-deploy}" in
     setup)
@@ -494,6 +643,9 @@ case "${1:-deploy}" in
         ;;
     verify-build)
         cmd_verify_build
+        ;;
+    troubleshoot)
+        cmd_troubleshoot
         ;;
     rollback)
         cmd_rollback
@@ -523,7 +675,7 @@ case "${1:-deploy}" in
         cmd_db_check
         ;;
     *)
-        echo "Usage: $0 {setup|update|deploy|clean-build|verify-build|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}"
+        echo "Usage: $0 {setup|update|deploy|clean-build|verify-build|troubleshoot|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}"
         exit 1
         ;;
 esac
