@@ -1191,3 +1191,706 @@ The migration includes:
 - Enum additions use PostgreSQL's `ALTER TYPE ADD VALUE IF NOT EXISTS` syntax
 - All changes are safe to run multiple times without errors
 </summary>
+
+---
+
+## Follow-up Session
+
+I'll add UI support for the call escalation feature. Let me first explore the existing dashboard structure to understand the patterns and components used.
+
+🔧 Tool: Task
+Input: {
+  "description": "Explore dashboard UI structure",
+  "prompt": "Explore the dashboard UI structure in this Next.js project to understand:\n\n1. The dashboard layout and navigation structure\n2. How agent settings/configuration pages are structured\n3. Existing form patterns and UI components used (likely shadcn/ui)\n4. How settings tabs or sections are organized for agents\n5. Any existing analytics or reporting pages\n\nFocus on:\n- src/app/(dashboard)/dashboard/agents/[id]/ directory\n- src/components/dashboard/ directory\n- Any settings or configuration components\n- UI component library being used\n\nReturn a comprehensive summary of the UI patterns and where escalation settings should be added.",
+  "subagent_type": "Explore"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\" -type f -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.json\" | head -50",
+  "description": "List file structure to understand project layout"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "src/app/\\(dashboard\\)/**/*.{tsx,ts}",
+  "path": "F:\\CodeBase\\Kametrix"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "src/components/dashboard/**/*.{tsx,ts}",
+  "path": "F:\\CodeBase\\Kametrix"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id]\\edit\\page.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-form.tsx"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "src/app/\\(dashboard\\)/dashboard/agents/\\[id\\)/**/*",
+  "path": "F:\\CodeBase\\Kametrix"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\layout.tsx"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "src/components/ui/**/*.{tsx,ts}",
+  "path": "F:\\CodeBase\\Kametrix"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "prisma/schema.prisma",
+  "path": "F:\\CodeBase\\Kametrix"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\" -name \"schema.prisma\" -type f",
+  "description": "Find prisma schema file"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\prisma\\schema.prisma"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\nav-tabs.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\page.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\page.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\settings\\page.tsx"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\" -type f -name \"*.tsx\" | head -20",
+  "description": "List all agent-related pages and components"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id\\]\" -type f",
+  "description": "List all files in agent detail directory"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\components\" -type f -name \"*setting*\" -o -name \"*config*\" -o -name \"*form*\"",
+  "description": "Find settings/config related components"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\card.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\input.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\button.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\textarea.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\select.tsx"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\app\\api\" -name \"*agent*\" -type f | head -10",
+  "description": "Find agent API routes"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\" -type f 2>/dev/null | head -20",
+  "description": "Find all agent API route files"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "ls -la \"F:\\CodeBase\\Kametrix\\src\\app\\api\\\" 2>/dev/null | head -30",
+  "description": "List API directory structure"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\route.ts"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\escalation\\route.ts"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\switch.tsx"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\lib\\escalation\" -type f 2>/dev/null",
+  "description": "Find escalation lib files"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\types\" -type f 2>/dev/null | head -20",
+  "description": "Find type definition files"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\types\\escalation.ts"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\config-manager.ts"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "grep -E \"(shadcn|radix|lucide|tailwind)\" \"F:\\CodeBase\\Kametrix\\package.json\" | head -20",
+  "description": "Check for UI library dependencies"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id]\\test\\page.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\.automaker\\features\\feature-1767894365405-ik2ebzwri\\feature.json"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\components\" -type f -name \"*.tsx\" | grep -i \"form\\|setting\\|config\" | head -10",
+  "description": "Find form/settings related components"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\form-field.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\label.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\stats-card.tsx"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "find \"F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\admin\" -name \"*.tsx\" -type f | head -5",
+  "description": "Check admin/analytics pages"
+}
+Now I have a comprehensive understanding of the UI structure. Let me create the escalation settings UI components. I'll create:
+
+1. **Escalation Settings Page** - `/dashboard/agents/[id]/escalation/page.tsx`
+2. **Escalation Form Component** - Client component for the form
+3. **Escalation Analytics Component** - For viewing escalation history
+4. **Updates to Agent Card** - Show escalation status
+5. **Updates to Call Detail Page** - Show escalation info
+
+Let me start implementing:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Create escalation settings page for agents",
+      "status": "in_progress",
+      "activeForm": "Creating escalation settings page for agents"
+    },
+    {
+      "content": "Create escalation form component",
+      "status": "pending",
+      "activeForm": "Creating escalation form component"
+    },
+    {
+      "content": "Add escalation status indicator to agent cards",
+      "status": "pending",
+      "activeForm": "Adding escalation status indicator to agent cards"
+    },
+    {
+      "content": "Update call detail page with escalation info",
+      "status": "pending",
+      "activeForm": "Updating call detail page with escalation info"
+    },
+    {
+      "content": "Create escalation analytics/history component",
+      "status": "pending",
+      "activeForm": "Creating escalation analytics/history component"
+    },
+    {
+      "content": "Add navigation link to escalation settings",
+      "status": "pending",
+      "activeForm": "Adding navigation link to escalation settings"
+    }
+  ]
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "mkdir -p \"F:/CodeBase/Kametrix/src/app/(dashboard)/dashboard/agents/[id]/escalation\"",
+  "description": "Create escalation page directory"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id]\\edit\\page.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-form.tsx"
+}
+Now let me read a few more UI components to understand the patterns:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\switch.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\select.tsx"
+}
+Now let me create the escalation form component first:
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\escalation-form.tsx",
+  "content": "'use client';\n\nimport { useState, useEffect } from 'react';\nimport { useRouter } from 'next/navigation';\nimport { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';\nimport { Input } from '@/components/ui/input';\nimport { Label } from '@/components/ui/label';\nimport { Textarea } from '@/components/ui/textarea';\nimport { Button } from '@/components/ui/button';\nimport { Switch } from '@/components/ui/switch';\nimport { Separator } from '@/components/ui/separator';\nimport {\n  Select,\n  SelectContent,\n  SelectItem,\n  SelectTrigger,\n  SelectValue,\n} from '@/components/ui/select';\nimport {\n  Loader2,\n  PhoneForwarded,\n  Clock,\n  AlertTriangle,\n  Share2,\n  Voicemail,\n  MessageSquare,\n  Plus,\n  X,\n  Phone,\n  Building2,\n} from 'lucide-react';\nimport type { EscalationConfigInput } from '@/types/escalation';\n\ninterface EscalationFormProps {\n  agentId: string;\n  agentName: string;\n  initialConfig?: EscalationConfigInput & { id?: string; configured?: boolean };\n}\n\nconst TIMEZONE_OPTIONS = [\n  { value: 'Europe/Berlin', label: 'Berlin (CET/CEST)' },\n  { value: 'Europe/London', label: 'London (GMT/BST)' },\n  { value: 'Europe/Paris', label: 'Paris (CET/CEST)' },\n  { value: 'Europe/Zurich', label: 'Zurich (CET/CEST)' },\n  { value: 'Europe/Vienna', label: 'Vienna (CET/CEST)' },\n  { value: 'America/New_York', label: 'New York (EST/EDT)' },\n  { value: 'America/Los_Angeles', label: 'Los Angeles (PST/PDT)' },\n  { value: 'America/Chicago', label: 'Chicago (CST/CDT)' },\n  { value: 'UTC', label: 'UTC' },\n];\n\nconst BUSINESS_DAYS = [\n  { value: 'Mon', label: 'Monday' },\n  { value: 'Tue', label: 'Tuesday' },\n  { value: 'Wed', label: 'Wednesday' },\n  { value: 'Thu', label: 'Thursday' },\n  { value: 'Fri', label: 'Friday' },\n  { value: 'Sat', label: 'Saturday' },\n  { value: 'Sun', label: 'Sunday' },\n];\n\nconst DEFAULT_TRIGGER_PHRASES = [\n  'ich moechte mit einem menschen sprechen',\n  'verbinden sie mich mit einem mitarbeiter',\n  'einen mitarbeiter bitte',\n  'speak to a human',\n  'human agent',\n];\n\nexport function EscalationForm({ agentId, agentName, initialConfig }: EscalationFormProps) {\n  const router = useRouter();\n  const [isSubmitting, setIsSubmitting] = useState(false);\n  const [errors, setErrors] = useState<Record<string, string>>({});\n  const [newPhrase, setNewPhrase] = useState('');\n\n  const [formData, setFormData] = useState<EscalationConfigInput>({\n    enabled: initialConfig?.enabled ?? true,\n    // Forwarding\n    forwardingNumber: initialConfig?.forwardingNumber || '',\n    forwardingQueue: initialConfig?.forwardingQueue || '',\n    forwardingDepartment: initialConfig?.forwardingDepartment || '',\n    fallbackNumber: initialConfig?.fallbackNumber || '',\n    // Voicemail\n    voicemailEnabled: initialConfig?.voicemailEnabled ?? true,\n    voicemailGreeting: initialConfig?.voicemailGreeting || '',\n    // Business hours\n    businessHoursStart: initialConfig?.businessHoursStart || '09:00',\n    businessHoursEnd: initialConfig?.businessHoursEnd || '18:00',\n    businessDays: initialConfig?.businessDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],\n    afterHoursNumber: initialConfig?.afterHoursNumber || '',\n    afterHoursMessage: initialConfig?.afterHoursMessage || '',\n    timezone: initialConfig?.timezone || 'Europe/Berlin',\n    // Triggers\n    maxCallDuration: initialConfig?.maxCallDuration ?? 300,\n    maxClarifications: initialConfig?.maxClarifications ?? 3,\n    sentimentThreshold: initialConfig?.sentimentThreshold ?? -0.5,\n    triggerPhrases: initialConfig?.triggerPhrases || [...DEFAULT_TRIGGER_PHRASES],\n    // Transfer\n    maxTransferWaitTime: initialConfig?.maxTransferWaitTime ?? 60,\n    announceTransfer: initialConfig?.announceTransfer ?? true,\n    transferMessage: initialConfig?.transferMessage || '',\n    holdMusicUrl: initialConfig?.holdMusicUrl || '',\n    // Context sharing\n    shareTranscript: initialConfig?.shareTranscript ?? true,\n    shareSummary: initialConfig?.shareSummary ?? true,\n    shareCallerInfo: initialConfig?.shareCallerInfo ?? true,\n  });\n\n  const handleInputChange = (\n    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>\n  ) => {\n    const { name, value, type } = e.target;\n    setFormData((prev) => ({\n      ...prev,\n      [name]: type === 'number' ? (value === '' ? '' : Number(value)) : value,\n    }));\n    if (errors[name]) {\n      setErrors((prev) => ({ ...prev, [name]: '' }));\n    }\n  };\n\n  const handleSwitchChange = (name: keyof EscalationConfigInput, checked: boolean) => {\n    setFormData((prev) => ({ ...prev, [name]: checked }));\n  };\n\n  const handleSelectChange = (name: keyof EscalationConfigInput, value: string) => {\n    setFormData((prev) => ({ ...prev, [name]: value }));\n  };\n\n  const handleDayToggle = (day: string) => {\n    setFormData((prev) => {\n      const currentDays = prev.businessDays || [];\n      if (currentDays.includes(day)) {\n        return { ...prev, businessDays: currentDays.filter((d) => d !== day) };\n      } else {\n        return { ...prev, businessDays: [...currentDays, day] };\n      }\n    });\n  };\n\n  const handleAddPhrase = () => {\n    if (newPhrase.trim() && !formData.triggerPhrases?.includes(newPhrase.trim().toLowerCase())) {\n      setFormData((prev) => ({\n        ...prev,\n        triggerPhrases: [...(prev.triggerPhrases || []), newPhrase.trim().toLowerCase()],\n      }));\n      setNewPhrase('');\n    }\n  };\n\n  const handleRemovePhrase = (phrase: string) => {\n    setFormData((prev) => ({\n      ...prev,\n      triggerPhrases: (prev.triggerPhrases || []).filter((p) => p !== phrase),\n    }));\n  };\n\n  const validate = () => {\n    const newErrors: Record<string, string> = {};\n\n    // If enabled, require at least one forwarding destination\n    if (formData.enabled && !formData.forwardingNumber && !formData.forwardingQueue) {\n      newErrors.forwardingNumber = 'At least a forwarding number or queue is required when escalation is enabled';\n    }\n\n    // Validate phone number format if provided\n    if (formData.forwardingNumber && !/^\\+?[0-9\\s-]{6,}$/.test(formData.forwardingNumber)) {\n      newErrors.forwardingNumber = 'Please enter a valid phone number';\n    }\n\n    if (formData.fallbackNumber && !/^\\+?[0-9\\s-]{6,}$/.test(formData.fallbackNumber)) {\n      newErrors.fallbackNumber = 'Please enter a valid phone number';\n    }\n\n    if (formData.afterHoursNumber && !/^\\+?[0-9\\s-]{6,}$/.test(formData.afterHoursNumber)) {\n      newErrors.afterHoursNumber = 'Please enter a valid phone number';\n    }\n\n    // Validate time format\n    if (formData.businessHoursStart && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(formData.businessHoursStart)) {\n      newErrors.businessHoursStart = 'Please enter a valid time (HH:MM)';\n    }\n\n    if (formData.businessHoursEnd && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(formData.businessHoursEnd)) {\n      newErrors.businessHoursEnd = 'Please enter a valid time (HH:MM)';\n    }\n\n    // Validate numeric ranges\n    if (formData.maxCallDuration !== undefined && (formData.maxCallDuration < 0 || formData.maxCallDuration > 3600)) {\n      newErrors.maxCallDuration = 'Must be between 0 and 3600 seconds';\n    }\n\n    if (formData.maxClarifications !== undefined && (formData.maxClarifications < 1 || formData.maxClarifications > 10)) {\n      newErrors.maxClarifications = 'Must be between 1 and 10';\n    }\n\n    if (formData.maxTransferWaitTime !== undefined && (formData.maxTransferWaitTime < 10 || formData.maxTransferWaitTime > 300)) {\n      newErrors.maxTransferWaitTime = 'Must be between 10 and 300 seconds';\n    }\n\n    setErrors(newErrors);\n    return Object.keys(newErrors).length === 0;\n  };\n\n  const handleSubmit = async (e: React.FormEvent) => {\n    e.preventDefault();\n\n    if (!validate()) {\n      return;\n    }\n\n    setIsSubmitting(true);\n\n    try {\n      const response = await fetch(`/api/agents/${agentId}/escalation`, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(formData),\n      });\n\n      if (!response.ok) {\n        const data = await response.json();\n        throw new Error(data.error || 'Failed to save escalation configuration');\n      }\n\n      router.refresh();\n      // Show success message\n      alert('Escalation settings saved successfully!');\n    } catch (error) {\n      console.error('Error saving escalation config:', error);\n      alert(error instanceof Error ? error.message : 'Failed to save escalation configuration');\n    } finally {\n      setIsSubmitting(false);\n    }\n  };\n\n  return (\n    <form onSubmit={handleSubmit}>\n      <Card className=\"glass-card border-0\">\n        <CardHeader className=\"pb-4\">\n          <CardTitle className=\"flex items-center gap-2 text-foreground\">\n            <PhoneForwarded className=\"h-5 w-5 text-primary\" />\n            Call Escalation Settings\n          </CardTitle>\n          <p className=\"text-sm text-muted-foreground\">\n            Configure when and how calls should be transferred to human operators for {agentName}\n          </p>\n        </CardHeader>\n\n        <CardContent className=\"space-y-8\">\n          {/* Enable/Disable Section */}\n          <div className=\"flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4\">\n            <div className=\"space-y-0.5\">\n              <Label htmlFor=\"enabled\" className=\"text-sm font-medium\">\n                Enable Call Escalation\n              </Label>\n              <p className=\"text-sm text-muted-foreground\">\n                {formData.enabled\n                  ? 'Calls can be transferred to human operators'\n                  : 'Call transfers are disabled'}\n              </p>\n            </div>\n            <Switch\n              id=\"enabled\"\n              checked={formData.enabled}\n              onCheckedChange={(checked) => handleSwitchChange('enabled', checked)}\n            />\n          </div>\n\n          {formData.enabled && (\n            <>\n              <Separator />\n\n              {/* Forwarding Destinations Section */}\n              <div className=\"space-y-4\">\n                <div className=\"flex items-center gap-2 text-sm font-medium text-muted-foreground\">\n                  <Phone className=\"h-4 w-4\" />\n                  Forwarding Destinations\n                </div>\n\n                <div className=\"space-y-4 pl-6\">\n                  <div className=\"grid gap-4 sm:grid-cols-2\">\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"forwardingNumber\">\n                        Primary Forwarding Number <span className=\"text-destructive\">*</span>\n                      </Label>\n                      <Input\n                        id=\"forwardingNumber\"\n                        name=\"forwardingNumber\"\n                        value={formData.forwardingNumber}\n                        onChange={handleInputChange}\n                        placeholder=\"+49 30 12345678\"\n                        className={errors.forwardingNumber ? 'border-destructive' : ''}\n                      />\n                      {errors.forwardingNumber && (\n                        <p className=\"text-sm text-destructive\">{errors.forwardingNumber}</p>\n                      )}\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"fallbackNumber\">Fallback Number</Label>\n                      <Input\n                        id=\"fallbackNumber\"\n                        name=\"fallbackNumber\"\n                        value={formData.fallbackNumber}\n                        onChange={handleInputChange}\n                        placeholder=\"+49 30 87654321\"\n                        className={errors.fallbackNumber ? 'border-destructive' : ''}\n                      />\n                      {errors.fallbackNumber && (\n                        <p className=\"text-sm text-destructive\">{errors.fallbackNumber}</p>\n                      )}\n                      <p className=\"text-xs text-muted-foreground\">\n                        Used if primary number is unavailable\n                      </p>\n                    </div>\n                  </div>\n\n                  <div className=\"grid gap-4 sm:grid-cols-2\">\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"forwardingQueue\">Queue Name</Label>\n                      <Input\n                        id=\"forwardingQueue\"\n                        name=\"forwardingQueue\"\n                        value={formData.forwardingQueue}\n                        onChange={handleInputChange}\n                        placeholder=\"e.g., support, sales\"\n                      />\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"forwardingDepartment\">Department</Label>\n                      <Input\n                        id=\"forwardingDepartment\"\n                        name=\"forwardingDepartment\"\n                        value={formData.forwardingDepartment}\n                        onChange={handleInputChange}\n                        placeholder=\"e.g., Customer Service\"\n                      />\n                    </div>\n                  </div>\n                </div>\n              </div>\n\n              <Separator />\n\n              {/* Business Hours Section */}\n              <div className=\"space-y-4\">\n                <div className=\"flex items-center gap-2 text-sm font-medium text-muted-foreground\">\n                  <Clock className=\"h-4 w-4\" />\n                  Business Hours\n                </div>\n\n                <div className=\"space-y-4 pl-6\">\n                  <div className=\"grid gap-4 sm:grid-cols-3\">\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"businessHoursStart\">Opening Time</Label>\n                      <Input\n                        id=\"businessHoursStart\"\n                        name=\"businessHoursStart\"\n                        type=\"time\"\n                        value={formData.businessHoursStart}\n                        onChange={handleInputChange}\n                        className={errors.businessHoursStart ? 'border-destructive' : ''}\n                      />\n                      {errors.businessHoursStart && (\n                        <p className=\"text-sm text-destructive\">{errors.businessHoursStart}</p>\n                      )}\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"businessHoursEnd\">Closing Time</Label>\n                      <Input\n                        id=\"businessHoursEnd\"\n                        name=\"businessHoursEnd\"\n                        type=\"time\"\n                        value={formData.businessHoursEnd}\n                        onChange={handleInputChange}\n                        className={errors.businessHoursEnd ? 'border-destructive' : ''}\n                      />\n                      {errors.businessHoursEnd && (\n                        <p className=\"text-sm text-destructive\">{errors.businessHoursEnd}</p>\n                      )}\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"timezone\">Timezone</Label>\n                      <Select\n                        value={formData.timezone}\n                        onValueChange={(value) => handleSelectChange('timezone', value)}\n                      >\n                        <SelectTrigger className=\"w-full\">\n                          <SelectValue placeholder=\"Select timezone\" />\n                        </SelectTrigger>\n                        <SelectContent>\n                          {TIMEZONE_OPTIONS.map((tz) => (\n                            <SelectItem key={tz.value} value={tz.value}>\n                              {tz.label}\n                            </SelectItem>\n                          ))}\n                        </SelectContent>\n                      </Select>\n                    </div>\n                  </div>\n\n                  <div className=\"space-y-2\">\n                    <Label>Business Days</Label>\n                    <div className=\"flex flex-wrap gap-2\">\n                      {BUSINESS_DAYS.map((day) => (\n                        <Button\n                          key={day.value}\n                          type=\"button\"\n                          variant={formData.businessDays?.includes(day.value) ? 'default' : 'outline'}\n                          size=\"sm\"\n                          onClick={() => handleDayToggle(day.value)}\n                        >\n                          {day.label.slice(0, 3)}\n                        </Button>\n                      ))}\n                    </div>\n                  </div>\n\n                  <div className=\"grid gap-4 sm:grid-cols-2\">\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"afterHoursNumber\">After Hours Number</Label>\n                      <Input\n                        id=\"afterHoursNumber\"\n                        name=\"afterHoursNumber\"\n                        value={formData.afterHoursNumber}\n                        onChange={handleInputChange}\n                        placeholder=\"+49 30 99999999\"\n                        className={errors.afterHoursNumber ? 'border-destructive' : ''}\n                      />\n                      {errors.afterHoursNumber && (\n                        <p className=\"text-sm text-destructive\">{errors.afterHoursNumber}</p>\n                      )}\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"afterHoursMessage\">After Hours Message</Label>\n                      <Textarea\n                        id=\"afterHoursMessage\"\n                        name=\"afterHoursMessage\"\n                        value={formData.afterHoursMessage}\n                        onChange={handleInputChange}\n                        rows={2}\n                        placeholder=\"We are currently closed. Please call back during business hours...\"\n                      />\n                    </div>\n                  </div>\n                </div>\n              </div>\n\n              <Separator />\n\n              {/* Escalation Triggers Section */}\n              <div className=\"space-y-4\">\n                <div className=\"flex items-center gap-2 text-sm font-medium text-muted-foreground\">\n                  <AlertTriangle className=\"h-4 w-4\" />\n                  Escalation Triggers\n                </div>\n\n                <div className=\"space-y-4 pl-6\">\n                  <div className=\"grid gap-4 sm:grid-cols-3\">\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"maxCallDuration\">\n                        Max Call Duration (seconds)\n                      </Label>\n                      <Input\n                        id=\"maxCallDuration\"\n                        name=\"maxCallDuration\"\n                        type=\"number\"\n                        min={0}\n                        max={3600}\n                        value={formData.maxCallDuration}\n                        onChange={handleInputChange}\n                        className={errors.maxCallDuration ? 'border-destructive' : ''}\n                      />\n                      {errors.maxCallDuration && (\n                        <p className=\"text-sm text-destructive\">{errors.maxCallDuration}</p>\n                      )}\n                      <p className=\"text-xs text-muted-foreground\">\n                        0 = disabled. Auto-escalate after this duration.\n                      </p>\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"maxClarifications\">\n                        Max Clarification Attempts\n                      </Label>\n                      <Input\n                        id=\"maxClarifications\"\n                        name=\"maxClarifications\"\n                        type=\"number\"\n                        min={1}\n                        max={10}\n                        value={formData.maxClarifications}\n                        onChange={handleInputChange}\n                        className={errors.maxClarifications ? 'border-destructive' : ''}\n                      />\n                      {errors.maxClarifications && (\n                        <p className=\"text-sm text-destructive\">{errors.maxClarifications}</p>\n                      )}\n                      <p className=\"text-xs text-muted-foreground\">\n                        Escalate after this many clarification requests\n                      </p>\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"sentimentThreshold\">\n                        Sentiment Threshold\n                      </Label>\n                      <Input\n                        id=\"sentimentThreshold\"\n                        name=\"sentimentThreshold\"\n                        type=\"number\"\n                        min={-1}\n                        max={0}\n                        step={0.1}\n                        value={formData.sentimentThreshold}\n                        onChange={handleInputChange}\n                      />\n                      <p className=\"text-xs text-muted-foreground\">\n                        Escalate when sentiment drops below this (-1 to 0)\n                      </p>\n                    </div>\n                  </div>\n\n                  <div className=\"space-y-2\">\n                    <Label>Trigger Phrases</Label>\n                    <p className=\"text-xs text-muted-foreground mb-2\">\n                      Phrases that will immediately trigger escalation to a human operator\n                    </p>\n                    <div className=\"flex gap-2\">\n                      <Input\n                        value={newPhrase}\n                        onChange={(e) => setNewPhrase(e.target.value)}\n                        placeholder=\"Add a trigger phrase...\"\n                        onKeyDown={(e) => {\n                          if (e.key === 'Enter') {\n                            e.preventDefault();\n                            handleAddPhrase();\n                          }\n                        }}\n                      />\n                      <Button type=\"button\" variant=\"outline\" onClick={handleAddPhrase}>\n                        <Plus className=\"h-4 w-4\" />\n                      </Button>\n                    </div>\n                    <div className=\"flex flex-wrap gap-2 mt-2\">\n                      {formData.triggerPhrases?.map((phrase) => (\n                        <span\n                          key={phrase}\n                          className=\"inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary\"\n                        >\n                          {phrase}\n                          <button\n                            type=\"button\"\n                            onClick={() => handleRemovePhrase(phrase)}\n                            className=\"ml-1 hover:text-destructive\"\n                          >\n                            <X className=\"h-3 w-3\" />\n                          </button>\n                        </span>\n                      ))}\n                    </div>\n                  </div>\n                </div>\n              </div>\n\n              <Separator />\n\n              {/* Transfer Settings Section */}\n              <div className=\"space-y-4\">\n                <div className=\"flex items-center gap-2 text-sm font-medium text-muted-foreground\">\n                  <MessageSquare className=\"h-4 w-4\" />\n                  Transfer Settings\n                </div>\n\n                <div className=\"space-y-4 pl-6\">\n                  <div className=\"flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4\">\n                    <div className=\"space-y-0.5\">\n                      <Label htmlFor=\"announceTransfer\" className=\"text-sm font-medium\">\n                        Announce Transfer\n                      </Label>\n                      <p className=\"text-sm text-muted-foreground\">\n                        Play a message to the caller before transfer\n                      </p>\n                    </div>\n                    <Switch\n                      id=\"announceTransfer\"\n                      checked={formData.announceTransfer}\n                      onCheckedChange={(checked) => handleSwitchChange('announceTransfer', checked)}\n                    />\n                  </div>\n\n                  <div className=\"grid gap-4 sm:grid-cols-2\">\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"maxTransferWaitTime\">\n                        Max Wait Time (seconds)\n                      </Label>\n                      <Input\n                        id=\"maxTransferWaitTime\"\n                        name=\"maxTransferWaitTime\"\n                        type=\"number\"\n                        min={10}\n                        max={300}\n                        value={formData.maxTransferWaitTime}\n                        onChange={handleInputChange}\n                        className={errors.maxTransferWaitTime ? 'border-destructive' : ''}\n                      />\n                      {errors.maxTransferWaitTime && (\n                        <p className=\"text-sm text-destructive\">{errors.maxTransferWaitTime}</p>\n                      )}\n                    </div>\n\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"holdMusicUrl\">Hold Music URL</Label>\n                      <Input\n                        id=\"holdMusicUrl\"\n                        name=\"holdMusicUrl\"\n                        value={formData.holdMusicUrl}\n                        onChange={handleInputChange}\n                        placeholder=\"https://example.com/hold-music.mp3\"\n                      />\n                    </div>\n                  </div>\n\n                  <div className=\"space-y-2\">\n                    <Label htmlFor=\"transferMessage\">Custom Transfer Message</Label>\n                    <Textarea\n                      id=\"transferMessage\"\n                      name=\"transferMessage\"\n                      value={formData.transferMessage}\n                      onChange={handleInputChange}\n                      rows={2}\n                      placeholder=\"Please hold while I connect you with a team member...\"\n                    />\n                    <p className=\"text-xs text-muted-foreground\">\n                      Leave empty to use default German message\n                    </p>\n                  </div>\n                </div>\n              </div>\n\n              <Separator />\n\n              {/* Voicemail Settings Section */}\n              <div className=\"space-y-4\">\n                <div className=\"flex items-center gap-2 text-sm font-medium text-muted-foreground\">\n                  <Voicemail className=\"h-4 w-4\" />\n                  Voicemail Settings\n                </div>\n\n                <div className=\"space-y-4 pl-6\">\n                  <div className=\"flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4\">\n                    <div className=\"space-y-0.5\">\n                      <Label htmlFor=\"voicemailEnabled\" className=\"text-sm font-medium\">\n                        Enable Voicemail\n                      </Label>\n                      <p className=\"text-sm text-muted-foreground\">\n                        Allow callers to leave a message if no operators are available\n                      </p>\n                    </div>\n                    <Switch\n                      id=\"voicemailEnabled\"\n                      checked={formData.voicemailEnabled}\n                      onCheckedChange={(checked) => handleSwitchChange('voicemailEnabled', checked)}\n                    />\n                  </div>\n\n                  {formData.voicemailEnabled && (\n                    <div className=\"space-y-2\">\n                      <Label htmlFor=\"voicemailGreeting\">Voicemail Greeting</Label>\n                      <Textarea\n                        id=\"voicemailGreeting\"\n                        name=\"voicemailGreeting\"\n                        value={formData.voicemailGreeting}\n                        onChange={handleInputChange}\n                        rows={2}\n                        placeholder=\"Please leave your name, number, and a brief message...\"\n                      />\n                    </div>\n                  )}\n                </div>\n              </div>\n\n              <Separator />\n\n              {/* Context Sharing Section */}\n              <div className=\"space-y-4\">\n                <div className=\"flex items-center gap-2 text-sm font-medium text-muted-foreground\">\n                  <Share2 className=\"h-4 w-4\" />\n                  Context Sharing\n                </div>\n                <p className=\"text-sm text-muted-foreground pl-6\">\n                  Choose what information to share with the human operator\n                </p>\n\n                <div className=\"space-y-3 pl-6\">\n                  <div className=\"flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3\">\n                    <div className=\"space-y-0.5\">\n                      <Label htmlFor=\"shareTranscript\" className=\"text-sm font-medium\">\n                        Share Transcript\n                      </Label>\n                      <p className=\"text-xs text-muted-foreground\">\n                        Send conversation history to operator\n                      </p>\n                    </div>\n                    <Switch\n                      id=\"shareTranscript\"\n                      checked={formData.shareTranscript}\n                      onCheckedChange={(checked) => handleSwitchChange('shareTranscript', checked)}\n                    />\n                  </div>\n\n                  <div className=\"flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3\">\n                    <div className=\"space-y-0.5\">\n                      <Label htmlFor=\"shareSummary\" className=\"text-sm font-medium\">\n                        Share AI Summary\n                      </Label>\n                      <p className=\"text-xs text-muted-foreground\">\n                        Send AI-generated conversation summary\n                      </p>\n                    </div>\n                    <Switch\n                      id=\"shareSummary\"\n                      checked={formData.shareSummary}\n                      onCheckedChange={(checked) => handleSwitchChange('shareSummary', checked)}\n                    />\n                  </div>\n\n                  <div className=\"flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3\">\n                    <div className=\"space-y-0.5\">\n                      <Label htmlFor=\"shareCallerInfo\" className=\"text-sm font-medium\">\n                        Share Caller Info\n                      </Label>\n                      <p className=\"text-xs text-muted-foreground\">\n                        Send caller&apos;s phone number and details\n                      </p>\n                    </div>\n                    <Switch\n                      id=\"shareCallerInfo\"\n                      checked={formData.shareCallerInfo}\n                      onCheckedChange={(checked) => handleSwitchChange('shareCallerInfo', checked)}\n                    />\n                  </div>\n                </div>\n              </div>\n            </>\n          )}\n        </CardContent>\n\n        <CardFooter className=\"flex gap-3 border-t border-border pt-6\">\n          <Button\n            type=\"button\"\n            variant=\"outline\"\n            onClick={() => router.back()}\n            disabled={isSubmitting}\n          >\n            Cancel\n          </Button>\n          <Button type=\"submit\" disabled={isSubmitting}>\n            {isSubmitting ? (\n              <>\n                <Loader2 className=\"mr-2 h-4 w-4 animate-spin\" />\n                Saving...\n              </>\n            ) : (\n              'Save Settings'\n            )}\n          </Button>\n        </CardFooter>\n      </Card>\n    </form>\n  );\n}\n"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Create escalation settings page for agents",
+      "status": "in_progress",
+      "activeForm": "Creating escalation settings page for agents"
+    },
+    {
+      "content": "Create escalation form component",
+      "status": "completed",
+      "activeForm": "Creating escalation form component"
+    },
+    {
+      "content": "Add escalation status indicator to agent cards",
+      "status": "pending",
+      "activeForm": "Adding escalation status indicator to agent cards"
+    },
+    {
+      "content": "Update call detail page with escalation info",
+      "status": "pending",
+      "activeForm": "Updating call detail page with escalation info"
+    },
+    {
+      "content": "Create escalation analytics/history component",
+      "status": "pending",
+      "activeForm": "Creating escalation analytics/history component"
+    },
+    {
+      "content": "Add navigation link to escalation settings",
+      "status": "pending",
+      "activeForm": "Adding navigation link to escalation settings"
+    }
+  ]
+}
+Now let me create the escalation settings page:
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id]\\escalation\\page.tsx",
+  "content": "import { getCurrentUser } from '@/lib/auth-guard';\nimport { redirect, notFound } from 'next/navigation';\nimport { prisma } from '@/lib/prisma';\nimport { EscalationForm } from '@/components/dashboard/escalation-form';\nimport { getEscalationConfig, getDefaultEscalationConfig } from '@/lib/escalation/config-manager';\nimport Link from 'next/link';\nimport { ArrowLeft, PhoneForwarded } from 'lucide-react';\n\nexport const dynamic = 'force-dynamic';\n\nexport default async function EscalationSettingsPage({\n  params,\n}: {\n  params: Promise<{ id: string }>;\n}) {\n  const user = await getCurrentUser();\n\n  if (!user) {\n    redirect('/login');\n  }\n\n  const { id } = await params;\n\n  // Fetch the agent\n  const agent = await prisma.agent.findFirst({\n    where: {\n      id,\n      userId: user.id,\n    },\n  });\n\n  if (!agent) {\n    notFound();\n  }\n\n  // Fetch existing escalation config\n  const config = await getEscalationConfig(id);\n  const defaults = getDefaultEscalationConfig();\n\n  // Merge existing config with defaults\n  const initialConfig = config\n    ? {\n        ...config,\n        triggerPhrases: config.triggerPhrases as string[],\n        configured: true,\n      }\n    : {\n        ...defaults,\n        configured: false,\n      };\n\n  return (\n    <div className=\"max-w-3xl\">\n      {/* Back navigation */}\n      <Link\n        href=\"/dashboard/agents\"\n        className=\"inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors\"\n      >\n        <ArrowLeft className=\"h-4 w-4\" />\n        Back to Agents\n      </Link>\n\n      {/* Header */}\n      <div className=\"mb-6\">\n        <div className=\"flex items-center gap-3 mb-2\">\n          <div className=\"flex h-10 w-10 items-center justify-center rounded-full bg-primary/10\">\n            <PhoneForwarded className=\"h-5 w-5 text-primary\" />\n          </div>\n          <div>\n            <h1 className=\"text-2xl font-semibold text-foreground\">Escalation Settings</h1>\n            <p className=\"text-sm text-muted-foreground\">\n              {agent.name} &bull; {agent.businessName}\n            </p>\n          </div>\n        </div>\n        <p className=\"text-muted-foreground mt-2\">\n          Configure when and how the AI voice agent should transfer calls to human operators.\n          {!config && (\n            <span className=\"text-amber-500 ml-2\">\n              (Not yet configured)\n            </span>\n          )}\n        </p>\n      </div>\n\n      <EscalationForm\n        agentId={id}\n        agentName={agent.name}\n        initialConfig={initialConfig}\n      />\n    </div>\n  );\n}\n"
+}
+Now let me read the agent card component to add escalation status indicator:
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/agent-card.tsx"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx"
+}
+Now let me update the AgentCard to include an escalation indicator and link:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx",
+  "old_string": "import { Copy, Check, Pencil, Trash2, Play } from 'lucide-react';\nimport type { Agent, PhoneNumber } from '@/generated/prisma/client';",
+  "new_string": "import { Copy, Check, Pencil, Trash2, Play, PhoneForwarded } from 'lucide-react';\nimport type { Agent, PhoneNumber, EscalationConfig } from '@/generated/prisma/client';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx",
+  "old_string": "interface AgentCardProps {\n  agent: Agent & { phoneNumber: PhoneNumber | null };\n}",
+  "new_string": "interface AgentCardProps {\n  agent: Agent & {\n    phoneNumber: PhoneNumber | null;\n    escalationConfig?: Pick<EscalationConfig, 'enabled'> | null;\n  };\n}"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx",
+  "old_string": "            {/* Status Badge */}\n            <Badge\n              variant={agent.isActive ? 'default' : 'secondary'}\n              className={\n                agent.isActive\n                  ? 'bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30'\n                  : ''\n              }\n            >\n              <span\n                className={`w-1.5 h-1.5 rounded-full ${\n                  agent.isActive\n                    ? 'bg-green-500 shadow-[0_0_6px_oklch(0.72_0.19_142)]'\n                    : 'bg-muted-foreground'\n                }`}\n              />\n              {agent.isActive ? 'Active' : 'Inactive'}\n            </Badge>\n          </div>",
+  "new_string": "            {/* Status Badges */}\n            <div className=\"flex flex-col gap-2 items-end\">\n              <Badge\n                variant={agent.isActive ? 'default' : 'secondary'}\n                className={\n                  agent.isActive\n                    ? 'bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30'\n                    : ''\n                }\n              >\n                <span\n                  className={`w-1.5 h-1.5 rounded-full ${\n                    agent.isActive\n                      ? 'bg-green-500 shadow-[0_0_6px_oklch(0.72_0.19_142)]'\n                      : 'bg-muted-foreground'\n                  }`}\n                />\n                {agent.isActive ? 'Active' : 'Inactive'}\n              </Badge>\n\n              {/* Escalation Badge */}\n              {agent.escalationConfig?.enabled && (\n                <Badge\n                  variant=\"outline\"\n                  className=\"bg-orange-500/10 text-orange-500 border-orange-500/30 hover:bg-orange-500/20\"\n                >\n                  <PhoneForwarded className=\"w-3 h-3 mr-1\" />\n                  Escalation\n                </Badge>\n              )}\n            </div>\n          </div>"
+}
+Now let me add the escalation settings button in the footer:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx",
+  "old_string": "          {/* Test Button */}\n          <Button variant=\"ghost\" size=\"icon-sm\" asChild>\n            <Link\n              href={`/dashboard/agents/${agent.id}/test`}\n              title=\"Test agent\"\n            >\n              <Play className=\"w-4 h-4\" />\n            </Link>\n          </Button>\n\n          {/* Edit Button */}\n          <Button variant=\"ghost\" size=\"icon-sm\" asChild>\n            <Link\n              href={`/dashboard/agents/${agent.id}/edit`}\n              title=\"Edit agent\"\n            >\n              <Pencil className=\"w-4 h-4\" />\n            </Link>\n          </Button>",
+  "new_string": "          {/* Test Button */}\n          <Button variant=\"ghost\" size=\"icon-sm\" asChild>\n            <Link\n              href={`/dashboard/agents/${agent.id}/test`}\n              title=\"Test agent\"\n            >\n              <Play className=\"w-4 h-4\" />\n            </Link>\n          </Button>\n\n          {/* Escalation Settings Button */}\n          <Button\n            variant=\"ghost\"\n            size=\"icon-sm\"\n            asChild\n            className={agent.escalationConfig?.enabled ? 'text-orange-500 hover:text-orange-600' : ''}\n          >\n            <Link\n              href={`/dashboard/agents/${agent.id}/escalation`}\n              title=\"Escalation settings\"\n            >\n              <PhoneForwarded className=\"w-4 h-4\" />\n            </Link>\n          </Button>\n\n          {/* Edit Button */}\n          <Button variant=\"ghost\" size=\"icon-sm\" asChild>\n            <Link\n              href={`/dashboard/agents/${agent.id}/edit`}\n              title=\"Edit agent\"\n            >\n              <Pencil className=\"w-4 h-4\" />\n            </Link>\n          </Button>"
+}
+Now let me update the agents page to include escalationConfig in the query:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\page.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\page.tsx",
+  "old_string": "  // Fetch agents for the current user\n  const agents = await prisma.agent.findMany({\n    where: {\n      userId: user.id,\n    },\n    include: {\n      phoneNumber: true,\n    },\n    orderBy: {\n      createdAt: 'desc',\n    },\n  });",
+  "new_string": "  // Fetch agents for the current user\n  const agents = await prisma.agent.findMany({\n    where: {\n      userId: user.id,\n    },\n    include: {\n      phoneNumber: true,\n      escalationConfig: {\n        select: {\n          enabled: true,\n        },\n      },\n    },\n    orderBy: {\n      createdAt: 'desc',\n    },\n  });"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Create escalation settings page for agents",
+      "status": "completed",
+      "activeForm": "Creating escalation settings page for agents"
+    },
+    {
+      "content": "Create escalation form component",
+      "status": "completed",
+      "activeForm": "Creating escalation form component"
+    },
+    {
+      "content": "Add escalation status indicator to agent cards",
+      "status": "completed",
+      "activeForm": "Adding escalation status indicator to agent cards"
+    },
+    {
+      "content": "Update call detail page with escalation info",
+      "status": "in_progress",
+      "activeForm": "Updating call detail page with escalation info"
+    },
+    {
+      "content": "Create escalation analytics/history component",
+      "status": "pending",
+      "activeForm": "Creating escalation analytics/history component"
+    },
+    {
+      "content": "Add navigation link to escalation settings",
+      "status": "completed",
+      "activeForm": "Adding navigation link to escalation settings"
+    }
+  ]
+}
+Now let me update the call detail page to show escalation information:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\calls\\[id]\\page.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\calls\\[id]\\page.tsx",
+  "old_string": "import { CallStatus } from '@/generated/prisma/client';\nimport Link from 'next/link';\nimport { ArrowLeft, Phone, Clock, User } from 'lucide-react';",
+  "new_string": "import { CallStatus, EscalationReason, EscalationStatus } from '@/generated/prisma/client';\nimport Link from 'next/link';\nimport { ArrowLeft, Phone, Clock, User, PhoneForwarded, AlertTriangle } from 'lucide-react';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\calls\\[id]\\page.tsx",
+  "old_string": "  // Fetch call with agent relation\n  const call = await prisma.call.findUnique({\n    where: { id },\n    include: {\n      agent: true,\n    },\n  });",
+  "new_string": "  // Fetch call with agent relation and escalation log\n  const call = await prisma.call.findUnique({\n    where: { id },\n    include: {\n      agent: true,\n      escalationLog: true,\n    },\n  });"
+}
+Now let me add helper functions for escalation info and the escalation section to the page:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\calls\\[id]\\page.tsx",
+  "old_string": "  // Get status badge styling with dark mode\n  const getStatusBadge = (status: CallStatus) => {\n    const badges: Record<CallStatus, string> = {\n      COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400',\n      FAILED: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400',\n      IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400',\n      RINGING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400',\n      NO_ANSWER: 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]',\n      ESCALATED: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400',\n      TRANSFERRED: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400',\n    };\n    return badges[status] || 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]';\n  };",
+  "new_string": "  // Get status badge styling with dark mode\n  const getStatusBadge = (status: CallStatus) => {\n    const badges: Record<CallStatus, string> = {\n      COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400',\n      FAILED: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400',\n      IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400',\n      RINGING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400',\n      NO_ANSWER: 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]',\n      ESCALATED: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400',\n      TRANSFERRED: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400',\n    };\n    return badges[status] || 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]';\n  };\n\n  // Get escalation reason label\n  const getEscalationReasonLabel = (reason: EscalationReason) => {\n    const labels: Record<EscalationReason, string> = {\n      USER_REQUEST: 'Customer requested human agent',\n      LOW_CONFIDENCE: 'AI had low confidence',\n      REPEATED_CLARIFICATION: 'Multiple clarification attempts',\n      UNRECOGNIZED_INTENT: 'Could not understand intent',\n      COMPLEX_ISSUE: 'Complex issue requiring human',\n      SENTIMENT_NEGATIVE: 'Negative customer sentiment',\n      MAX_DURATION: 'Maximum call duration reached',\n      EXPLICIT_TRIGGER: 'Trigger phrase detected',\n    };\n    return labels[reason] || reason;\n  };\n\n  // Get escalation status badge\n  const getEscalationStatusBadge = (status: EscalationStatus) => {\n    const badges: Record<EscalationStatus, { bg: string; text: string }> = {\n      PENDING: { bg: 'bg-yellow-500/20', text: 'text-yellow-500' },\n      IN_QUEUE: { bg: 'bg-blue-500/20', text: 'text-blue-500' },\n      CONNECTED: { bg: 'bg-green-500/20', text: 'text-green-500' },\n      FAILED: { bg: 'bg-red-500/20', text: 'text-red-500' },\n      NO_OPERATORS: { bg: 'bg-gray-500/20', text: 'text-gray-500' },\n      TIMEOUT: { bg: 'bg-orange-500/20', text: 'text-orange-500' },\n      CANCELLED: { bg: 'bg-gray-500/20', text: 'text-gray-500' },\n    };\n    return badges[status] || { bg: 'bg-gray-500/20', text: 'text-gray-500' };\n  };"
+}
+Now let me add the escalation section to the call detail page:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\calls\\[id]\\page.tsx",
+  "old_string": "      {/* Summary section */}\n      {call.summary && (\n        <div className=\"glass-card p-6\">\n          <h2 className=\"text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-4\">\n            Summary\n          </h2>\n          <p className=\"text-sm text-gray-700 dark:text-[var(--foreground)]\">{call.summary}</p>\n        </div>\n      )}\n    </div>\n  );\n}",
+  "new_string": "      {/* Summary section */}\n      {call.summary && (\n        <div className=\"glass-card p-6\">\n          <h2 className=\"text-lg font-semibold text-gray-900 dark:text-[var(--foreground)] mb-4\">\n            Summary\n          </h2>\n          <p className=\"text-sm text-gray-700 dark:text-[var(--foreground)]\">{call.summary}</p>\n        </div>\n      )}\n\n      {/* Escalation section */}\n      {(call.escalationReason || call.escalationLog) && (\n        <div className=\"glass-card p-6 border-l-4 border-orange-500\">\n          <div className=\"flex items-center gap-2 mb-4\">\n            <PhoneForwarded className=\"w-5 h-5 text-orange-500\" />\n            <h2 className=\"text-lg font-semibold text-gray-900 dark:text-[var(--foreground)]\">\n              Call Escalation\n            </h2>\n          </div>\n\n          <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6\">\n            {/* Reason */}\n            {call.escalationReason && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"flex-shrink-0\">\n                  <div className=\"p-2 rounded-lg bg-orange-500/10\">\n                    <AlertTriangle className=\"w-5 h-5 text-orange-500\" />\n                  </div>\n                </div>\n                <div>\n                  <p className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Escalation Reason\n                  </p>\n                  <p className=\"text-base text-gray-900 dark:text-[var(--foreground)] mt-1\">\n                    {getEscalationReasonLabel(call.escalationReason)}\n                  </p>\n                </div>\n              </div>\n            )}\n\n            {/* Status */}\n            {call.escalationStatus && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"flex-shrink-0\">\n                  <div className=\"p-2 rounded-lg bg-gray-100 dark:bg-[var(--accent)]/20\">\n                    <PhoneForwarded className=\"w-5 h-5 text-gray-500 dark:text-[var(--accent)]\" />\n                  </div>\n                </div>\n                <div>\n                  <p className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Transfer Status\n                  </p>\n                  <span\n                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium mt-1 ${\n                      getEscalationStatusBadge(call.escalationStatus).bg\n                    } ${getEscalationStatusBadge(call.escalationStatus).text}`}\n                  >\n                    {call.escalationStatus.replace('_', ' ')}\n                  </span>\n                </div>\n              </div>\n            )}\n\n            {/* Transferred To */}\n            {call.escalatedToNumber && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"flex-shrink-0\">\n                  <div className=\"p-2 rounded-lg bg-gray-100 dark:bg-[var(--accent)]/20\">\n                    <Phone className=\"w-5 h-5 text-gray-500 dark:text-[var(--accent)]\" />\n                  </div>\n                </div>\n                <div>\n                  <p className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Transferred To\n                  </p>\n                  <p className=\"text-base text-gray-900 dark:text-[var(--foreground)] mt-1\">\n                    {call.escalatedToNumber}\n                  </p>\n                </div>\n              </div>\n            )}\n\n            {/* Escalation Time */}\n            {call.escalatedAt && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"flex-shrink-0\">\n                  <div className=\"p-2 rounded-lg bg-gray-100 dark:bg-[var(--accent)]/20\">\n                    <Clock className=\"w-5 h-5 text-gray-500 dark:text-[var(--accent)]\" />\n                  </div>\n                </div>\n                <div>\n                  <p className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Escalated At\n                  </p>\n                  <p className=\"text-base text-gray-900 dark:text-[var(--foreground)] mt-1\">\n                    {new Date(call.escalatedAt).toLocaleTimeString('en-US', {\n                      hour: '2-digit',\n                      minute: '2-digit',\n                      second: '2-digit',\n                    })}\n                  </p>\n                </div>\n              </div>\n            )}\n\n            {/* Human Connected */}\n            {call.humanConnectedAt && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"flex-shrink-0\">\n                  <div className=\"p-2 rounded-lg bg-green-500/10\">\n                    <User className=\"w-5 h-5 text-green-500\" />\n                  </div>\n                </div>\n                <div>\n                  <p className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Human Connected At\n                  </p>\n                  <p className=\"text-base text-gray-900 dark:text-[var(--foreground)] mt-1\">\n                    {new Date(call.humanConnectedAt).toLocaleTimeString('en-US', {\n                      hour: '2-digit',\n                      minute: '2-digit',\n                      second: '2-digit',\n                    })}\n                  </p>\n                </div>\n              </div>\n            )}\n\n            {/* Transfer Attempts */}\n            {call.transferAttempts > 0 && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"flex-shrink-0\">\n                  <div className=\"p-2 rounded-lg bg-gray-100 dark:bg-[var(--accent)]/20\">\n                    <PhoneForwarded className=\"w-5 h-5 text-gray-500 dark:text-[var(--accent)]\" />\n                  </div>\n                </div>\n                <div>\n                  <p className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Transfer Attempts\n                  </p>\n                  <p className=\"text-base text-gray-900 dark:text-[var(--foreground)] mt-1\">\n                    {call.transferAttempts}\n                  </p>\n                </div>\n              </div>\n            )}\n          </div>\n\n          {/* Escalation Notes */}\n          {call.escalationNotes && (\n            <div className=\"mt-6\">\n              <h3 className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)] mb-2\">\n                Escalation Notes\n              </h3>\n              <div className=\"bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-[var(--border)]\">\n                <p className=\"text-sm text-gray-700 dark:text-[var(--foreground)] whitespace-pre-wrap\">\n                  {call.escalationNotes}\n                </p>\n              </div>\n            </div>\n          )}\n\n          {/* Detailed Escalation Log */}\n          {call.escalationLog && (\n            <div className=\"mt-6 pt-6 border-t border-gray-200 dark:border-[var(--border)]\">\n              <h3 className=\"text-sm font-medium text-gray-500 dark:text-[var(--muted-foreground)] mb-4\">\n                Detailed Escalation Log\n              </h3>\n              <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4 text-sm\">\n                {call.escalationLog.waitTimeSeconds !== null && (\n                  <div>\n                    <span className=\"text-gray-500 dark:text-[var(--muted-foreground)]\">Wait Time: </span>\n                    <span className=\"text-gray-900 dark:text-[var(--foreground)]\">\n                      {call.escalationLog.waitTimeSeconds} seconds\n                    </span>\n                  </div>\n                )}\n                {call.escalationLog.clarificationCount > 0 && (\n                  <div>\n                    <span className=\"text-gray-500 dark:text-[var(--muted-foreground)]\">Clarifications: </span>\n                    <span className=\"text-gray-900 dark:text-[var(--foreground)]\">\n                      {call.escalationLog.clarificationCount}\n                    </span>\n                  </div>\n                )}\n                {call.escalationLog.callerSentiment && (\n                  <div>\n                    <span className=\"text-gray-500 dark:text-[var(--muted-foreground)]\">Caller Sentiment: </span>\n                    <span className=\"text-gray-900 dark:text-[var(--foreground)]\">\n                      {call.escalationLog.callerSentiment}\n                      {call.escalationLog.sentimentScore !== null && ` (${call.escalationLog.sentimentScore.toFixed(2)})`}\n                    </span>\n                  </div>\n                )}\n                {call.escalationLog.wasResolved !== null && (\n                  <div>\n                    <span className=\"text-gray-500 dark:text-[var(--muted-foreground)]\">Resolved: </span>\n                    <span className={call.escalationLog.wasResolved ? 'text-green-500' : 'text-red-500'}>\n                      {call.escalationLog.wasResolved ? 'Yes' : 'No'}\n                    </span>\n                  </div>\n                )}\n                {call.escalationLog.customerSatisfied !== null && (\n                  <div>\n                    <span className=\"text-gray-500 dark:text-[var(--muted-foreground)]\">Customer Satisfied: </span>\n                    <span className={call.escalationLog.customerSatisfied ? 'text-green-500' : 'text-red-500'}>\n                      {call.escalationLog.customerSatisfied ? 'Yes' : 'No'}\n                    </span>\n                  </div>\n                )}\n                {call.escalationLog.failureReason && (\n                  <div className=\"col-span-2\">\n                    <span className=\"text-gray-500 dark:text-[var(--muted-foreground)]\">Failure Reason: </span>\n                    <span className=\"text-red-500\">{call.escalationLog.failureReason}</span>\n                  </div>\n                )}\n              </div>\n\n              {/* Resolution Notes */}\n              {call.escalationLog.resolutionNotes && (\n                <div className=\"mt-4\">\n                  <span className=\"text-sm text-gray-500 dark:text-[var(--muted-foreground)]\">Resolution Notes:</span>\n                  <p className=\"text-sm text-gray-700 dark:text-[var(--foreground)] mt-1\">\n                    {call.escalationLog.resolutionNotes}\n                  </p>\n                </div>\n              )}\n\n              {/* Last User Message */}\n              {call.escalationLog.lastUserMessage && (\n                <div className=\"mt-4\">\n                  <span className=\"text-sm text-gray-500 dark:text-[var(--muted-foreground)]\">\n                    Last User Message Before Escalation:\n                  </span>\n                  <p className=\"text-sm text-gray-700 dark:text-[var(--foreground)] mt-1 italic\">\n                    &ldquo;{call.escalationLog.lastUserMessage}&rdquo;\n                  </p>\n                </div>\n              )}\n            </div>\n          )}\n        </div>\n      )}\n    </div>\n  );\n}"
+}
+Now let me create the escalation analytics component:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Create escalation settings page for agents",
+      "status": "completed",
+      "activeForm": "Creating escalation settings page for agents"
+    },
+    {
+      "content": "Create escalation form component",
+      "status": "completed",
+      "activeForm": "Creating escalation form component"
+    },
+    {
+      "content": "Add escalation status indicator to agent cards",
+      "status": "completed",
+      "activeForm": "Adding escalation status indicator to agent cards"
+    },
+    {
+      "content": "Update call detail page with escalation info",
+      "status": "completed",
+      "activeForm": "Updating call detail page with escalation info"
+    },
+    {
+      "content": "Create escalation analytics/history component",
+      "status": "in_progress",
+      "activeForm": "Creating escalation analytics/history component"
+    },
+    {
+      "content": "Add navigation link to escalation settings",
+      "status": "completed",
+      "activeForm": "Adding navigation link to escalation settings"
+    }
+  ]
+}
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\escalation-stats.tsx",
+  "content": "'use client';\n\nimport { useState, useEffect } from 'react';\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';\nimport {\n  PhoneForwarded,\n  TrendingUp,\n  Clock,\n  CheckCircle,\n  XCircle,\n  Users,\n  AlertTriangle,\n  BarChart3,\n} from 'lucide-react';\nimport type { EscalationAnalytics } from '@/types/escalation';\n\ninterface EscalationStatsProps {\n  agentId?: string;\n  dateRange?: {\n    startDate: Date;\n    endDate: Date;\n  };\n}\n\nconst REASON_LABELS: Record<string, string> = {\n  USER_REQUEST: 'Customer Request',\n  LOW_CONFIDENCE: 'Low Confidence',\n  REPEATED_CLARIFICATION: 'Repeated Clarification',\n  UNRECOGNIZED_INTENT: 'Unrecognized Intent',\n  COMPLEX_ISSUE: 'Complex Issue',\n  SENTIMENT_NEGATIVE: 'Negative Sentiment',\n  MAX_DURATION: 'Max Duration',\n  EXPLICIT_TRIGGER: 'Trigger Phrase',\n};\n\nconst STATUS_LABELS: Record<string, string> = {\n  PENDING: 'Pending',\n  IN_QUEUE: 'In Queue',\n  CONNECTED: 'Connected',\n  FAILED: 'Failed',\n  NO_OPERATORS: 'No Operators',\n  TIMEOUT: 'Timeout',\n  CANCELLED: 'Cancelled',\n};\n\nexport function EscalationStats({ agentId, dateRange }: EscalationStatsProps) {\n  const [analytics, setAnalytics] = useState<EscalationAnalytics | null>(null);\n  const [isLoading, setIsLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n\n  useEffect(() => {\n    async function fetchAnalytics() {\n      setIsLoading(true);\n      setError(null);\n\n      try {\n        const params = new URLSearchParams({\n          analytics: 'true',\n          startDate: dateRange?.startDate.toISOString() || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),\n          endDate: dateRange?.endDate.toISOString() || new Date().toISOString(),\n        });\n\n        if (agentId) {\n          params.set('agentId', agentId);\n        }\n\n        const response = await fetch(`/api/escalation?${params}`);\n\n        if (!response.ok) {\n          throw new Error('Failed to fetch analytics');\n        }\n\n        const data = await response.json();\n        setAnalytics(data.analytics);\n      } catch (err) {\n        setError(err instanceof Error ? err.message : 'An error occurred');\n      } finally {\n        setIsLoading(false);\n      }\n    }\n\n    fetchAnalytics();\n  }, [agentId, dateRange]);\n\n  if (isLoading) {\n    return (\n      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4\">\n        {[...Array(4)].map((_, i) => (\n          <Card key={i} className=\"glass-card animate-pulse\">\n            <CardContent className=\"p-6\">\n              <div className=\"h-20 bg-muted rounded\" />\n            </CardContent>\n          </Card>\n        ))}\n      </div>\n    );\n  }\n\n  if (error) {\n    return (\n      <Card className=\"glass-card border-red-500/30\">\n        <CardContent className=\"p-6 text-center\">\n          <XCircle className=\"w-8 h-8 mx-auto text-red-500 mb-2\" />\n          <p className=\"text-red-500\">{error}</p>\n        </CardContent>\n      </Card>\n    );\n  }\n\n  if (!analytics) {\n    return (\n      <Card className=\"glass-card\">\n        <CardContent className=\"p-6 text-center\">\n          <BarChart3 className=\"w-8 h-8 mx-auto text-muted-foreground mb-2\" />\n          <p className=\"text-muted-foreground\">No escalation data available</p>\n        </CardContent>\n      </Card>\n    );\n  }\n\n  const formatDuration = (seconds: number) => {\n    if (seconds < 60) return `${Math.round(seconds)}s`;\n    return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;\n  };\n\n  const formatPercentage = (value: number) => `${(value * 100).toFixed(1)}%`;\n\n  // Get top reasons\n  const topReasons = Object.entries(analytics.byReason)\n    .filter(([, count]) => count > 0)\n    .sort(([, a], [, b]) => b - a)\n    .slice(0, 5);\n\n  return (\n    <div className=\"space-y-6\">\n      {/* Key Metrics */}\n      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4\">\n        <Card className=\"glass-card border-0\">\n          <CardContent className=\"p-6\">\n            <div className=\"flex items-center gap-4\">\n              <div className=\"p-3 rounded-xl bg-orange-500/10\">\n                <PhoneForwarded className=\"w-6 h-6 text-orange-500\" />\n              </div>\n              <div>\n                <p className=\"text-2xl font-bold text-foreground\">{analytics.totalEscalations}</p>\n                <p className=\"text-sm text-muted-foreground\">Total Escalations</p>\n              </div>\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card className=\"glass-card border-0\">\n          <CardContent className=\"p-6\">\n            <div className=\"flex items-center gap-4\">\n              <div className=\"p-3 rounded-xl bg-green-500/10\">\n                <TrendingUp className=\"w-6 h-6 text-green-500\" />\n              </div>\n              <div>\n                <p className=\"text-2xl font-bold text-foreground\">{formatPercentage(analytics.successRate)}</p>\n                <p className=\"text-sm text-muted-foreground\">Success Rate</p>\n              </div>\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card className=\"glass-card border-0\">\n          <CardContent className=\"p-6\">\n            <div className=\"flex items-center gap-4\">\n              <div className=\"p-3 rounded-xl bg-blue-500/10\">\n                <Clock className=\"w-6 h-6 text-blue-500\" />\n              </div>\n              <div>\n                <p className=\"text-2xl font-bold text-foreground\">{formatDuration(analytics.averageWaitTime)}</p>\n                <p className=\"text-sm text-muted-foreground\">Avg Wait Time</p>\n              </div>\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card className=\"glass-card border-0\">\n          <CardContent className=\"p-6\">\n            <div className=\"flex items-center gap-4\">\n              <div className=\"p-3 rounded-xl bg-purple-500/10\">\n                <CheckCircle className=\"w-6 h-6 text-purple-500\" />\n              </div>\n              <div>\n                <p className=\"text-2xl font-bold text-foreground\">{formatPercentage(analytics.resolutionRate)}</p>\n                <p className=\"text-sm text-muted-foreground\">Resolution Rate</p>\n              </div>\n            </div>\n          </CardContent>\n        </Card>\n      </div>\n\n      {/* Detailed Breakdown */}\n      <div className=\"grid grid-cols-1 lg:grid-cols-2 gap-6\">\n        {/* By Reason */}\n        <Card className=\"glass-card border-0\">\n          <CardHeader>\n            <CardTitle className=\"flex items-center gap-2 text-base\">\n              <AlertTriangle className=\"w-4 h-4 text-orange-500\" />\n              Escalation Reasons\n            </CardTitle>\n          </CardHeader>\n          <CardContent>\n            {topReasons.length > 0 ? (\n              <div className=\"space-y-3\">\n                {topReasons.map(([reason, count]) => (\n                  <div key={reason} className=\"flex items-center justify-between\">\n                    <span className=\"text-sm text-foreground\">\n                      {REASON_LABELS[reason] || reason}\n                    </span>\n                    <div className=\"flex items-center gap-2\">\n                      <div className=\"w-24 h-2 bg-muted rounded-full overflow-hidden\">\n                        <div\n                          className=\"h-full bg-orange-500 rounded-full\"\n                          style={{\n                            width: `${(count / analytics.totalEscalations) * 100}%`,\n                          }}\n                        />\n                      </div>\n                      <span className=\"text-sm text-muted-foreground w-10 text-right\">{count}</span>\n                    </div>\n                  </div>\n                ))}\n              </div>\n            ) : (\n              <p className=\"text-sm text-muted-foreground text-center py-4\">No data available</p>\n            )}\n          </CardContent>\n        </Card>\n\n        {/* By Status */}\n        <Card className=\"glass-card border-0\">\n          <CardHeader>\n            <CardTitle className=\"flex items-center gap-2 text-base\">\n              <Users className=\"w-4 h-4 text-blue-500\" />\n              Transfer Outcomes\n            </CardTitle>\n          </CardHeader>\n          <CardContent>\n            <div className=\"space-y-3\">\n              {Object.entries(analytics.byStatus)\n                .filter(([, count]) => count > 0)\n                .sort(([, a], [, b]) => b - a)\n                .map(([status, count]) => {\n                  const isSuccess = status === 'CONNECTED';\n                  const isFailure = ['FAILED', 'TIMEOUT', 'NO_OPERATORS'].includes(status);\n                  return (\n                    <div key={status} className=\"flex items-center justify-between\">\n                      <span className={`text-sm ${isSuccess ? 'text-green-500' : isFailure ? 'text-red-500' : 'text-foreground'}`}>\n                        {STATUS_LABELS[status] || status}\n                      </span>\n                      <div className=\"flex items-center gap-2\">\n                        <div className=\"w-24 h-2 bg-muted rounded-full overflow-hidden\">\n                          <div\n                            className={`h-full rounded-full ${\n                              isSuccess ? 'bg-green-500' : isFailure ? 'bg-red-500' : 'bg-blue-500'\n                            }`}\n                            style={{\n                              width: `${(count / analytics.totalEscalations) * 100}%`,\n                            }}\n                          />\n                        </div>\n                        <span className=\"text-sm text-muted-foreground w-10 text-right\">{count}</span>\n                      </div>\n                    </div>\n                  );\n                })}\n            </div>\n          </CardContent>\n        </Card>\n      </div>\n\n      {/* Additional Info */}\n      <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4\">\n        <Card className=\"glass-card border-0\">\n          <CardContent className=\"p-6\">\n            <p className=\"text-sm text-muted-foreground mb-1\">Avg Call Duration Before Escalation</p>\n            <p className=\"text-xl font-semibold text-foreground\">\n              {formatDuration(analytics.averageCallDurationBeforeEscalation)}\n            </p>\n          </CardContent>\n        </Card>\n\n        <Card className=\"glass-card border-0\">\n          <CardContent className=\"p-6\">\n            <p className=\"text-sm text-muted-foreground mb-1\">Peak Escalation Hours</p>\n            <p className=\"text-xl font-semibold text-foreground\">\n              {analytics.peakEscalationHours.length > 0\n                ? analytics.peakEscalationHours.map((h) => `${h}:00`).join(', ')\n                : 'N/A'}\n            </p>\n          </CardContent>\n        </Card>\n      </div>\n\n      {/* Common Trigger Phrases */}\n      {analytics.commonTriggerPhrases.length > 0 && (\n        <Card className=\"glass-card border-0\">\n          <CardHeader>\n            <CardTitle className=\"text-base\">Common Trigger Phrases</CardTitle>\n          </CardHeader>\n          <CardContent>\n            <div className=\"flex flex-wrap gap-2\">\n              {analytics.commonTriggerPhrases.map(({ phrase, count }) => (\n                <span\n                  key={phrase}\n                  className=\"inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-sm text-primary\"\n                >\n                  &ldquo;{phrase}&rdquo;\n                  <span className=\"text-xs text-primary/70\">({count})</span>\n                </span>\n              ))}\n            </div>\n          </CardContent>\n        </Card>\n      )}\n    </div>\n  );\n}\n"
+}
+Now let me create an escalation history component:
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\escalation-history.tsx",
+  "content": "'use client';\n\nimport { useState, useEffect } from 'react';\nimport Link from 'next/link';\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';\nimport { Button } from '@/components/ui/button';\nimport {\n  PhoneForwarded,\n  Clock,\n  CheckCircle,\n  XCircle,\n  ChevronRight,\n  Loader2,\n  AlertTriangle,\n  User,\n  Phone,\n} from 'lucide-react';\nimport type { EscalationLog, EscalationReason, EscalationStatus } from '@/generated/prisma/client';\n\ninterface EscalationHistoryProps {\n  agentId?: string;\n  limit?: number;\n  showViewAll?: boolean;\n}\n\nconst REASON_LABELS: Record<EscalationReason, string> = {\n  USER_REQUEST: 'Customer Request',\n  LOW_CONFIDENCE: 'Low Confidence',\n  REPEATED_CLARIFICATION: 'Repeated Clarification',\n  UNRECOGNIZED_INTENT: 'Unrecognized Intent',\n  COMPLEX_ISSUE: 'Complex Issue',\n  SENTIMENT_NEGATIVE: 'Negative Sentiment',\n  MAX_DURATION: 'Max Duration',\n  EXPLICIT_TRIGGER: 'Trigger Phrase',\n};\n\nconst STATUS_CONFIG: Record<EscalationStatus, { icon: typeof CheckCircle; color: string; label: string }> = {\n  PENDING: { icon: Clock, color: 'text-yellow-500', label: 'Pending' },\n  IN_QUEUE: { icon: Clock, color: 'text-blue-500', label: 'In Queue' },\n  CONNECTED: { icon: CheckCircle, color: 'text-green-500', label: 'Connected' },\n  FAILED: { icon: XCircle, color: 'text-red-500', label: 'Failed' },\n  NO_OPERATORS: { icon: User, color: 'text-gray-500', label: 'No Operators' },\n  TIMEOUT: { icon: Clock, color: 'text-orange-500', label: 'Timeout' },\n  CANCELLED: { icon: XCircle, color: 'text-gray-500', label: 'Cancelled' },\n};\n\nexport function EscalationHistory({ agentId, limit = 10, showViewAll = true }: EscalationHistoryProps) {\n  const [escalations, setEscalations] = useState<EscalationLog[]>([]);\n  const [isLoading, setIsLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n  const [total, setTotal] = useState(0);\n\n  useEffect(() => {\n    async function fetchEscalations() {\n      setIsLoading(true);\n      setError(null);\n\n      try {\n        const params = new URLSearchParams({ limit: String(limit) });\n        if (agentId) {\n          params.set('agentId', agentId);\n        }\n\n        const response = await fetch(`/api/escalation?${params}`);\n\n        if (!response.ok) {\n          throw new Error('Failed to fetch escalations');\n        }\n\n        const data = await response.json();\n        setEscalations(data.escalations);\n        setTotal(data.total);\n      } catch (err) {\n        setError(err instanceof Error ? err.message : 'An error occurred');\n      } finally {\n        setIsLoading(false);\n      }\n    }\n\n    fetchEscalations();\n  }, [agentId, limit]);\n\n  const formatDate = (date: string | Date) => {\n    return new Date(date).toLocaleDateString('en-US', {\n      month: 'short',\n      day: 'numeric',\n      hour: '2-digit',\n      minute: '2-digit',\n    });\n  };\n\n  if (isLoading) {\n    return (\n      <Card className=\"glass-card border-0\">\n        <CardContent className=\"p-6\">\n          <div className=\"flex items-center justify-center py-8\">\n            <Loader2 className=\"w-6 h-6 animate-spin text-muted-foreground\" />\n          </div>\n        </CardContent>\n      </Card>\n    );\n  }\n\n  if (error) {\n    return (\n      <Card className=\"glass-card border-red-500/30\">\n        <CardContent className=\"p-6 text-center\">\n          <XCircle className=\"w-8 h-8 mx-auto text-red-500 mb-2\" />\n          <p className=\"text-red-500\">{error}</p>\n        </CardContent>\n      </Card>\n    );\n  }\n\n  if (escalations.length === 0) {\n    return (\n      <Card className=\"glass-card border-0\">\n        <CardContent className=\"p-6 text-center py-12\">\n          <PhoneForwarded className=\"w-12 h-12 mx-auto text-muted-foreground mb-4\" />\n          <h3 className=\"text-lg font-medium text-foreground mb-2\">No Escalations Yet</h3>\n          <p className=\"text-muted-foreground max-w-md mx-auto\">\n            When calls are escalated to human operators, they will appear here.\n          </p>\n        </CardContent>\n      </Card>\n    );\n  }\n\n  return (\n    <Card className=\"glass-card border-0\">\n      <CardHeader className=\"flex flex-row items-center justify-between\">\n        <CardTitle className=\"flex items-center gap-2\">\n          <PhoneForwarded className=\"w-5 h-5 text-orange-500\" />\n          Recent Escalations\n        </CardTitle>\n        {showViewAll && total > limit && (\n          <Button variant=\"ghost\" size=\"sm\" asChild>\n            <Link href=\"/dashboard/escalations\">\n              View All ({total})\n              <ChevronRight className=\"w-4 h-4 ml-1\" />\n            </Link>\n          </Button>\n        )}\n      </CardHeader>\n      <CardContent>\n        <div className=\"space-y-4\">\n          {escalations.map((escalation) => {\n            const statusConfig = STATUS_CONFIG[escalation.status];\n            const StatusIcon = statusConfig.icon;\n\n            return (\n              <Link\n                key={escalation.id}\n                href={`/dashboard/calls/${escalation.callId}`}\n                className=\"block\"\n              >\n                <div className=\"flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors\">\n                  {/* Status Icon */}\n                  <div className={`p-2 rounded-full bg-opacity-20 ${statusConfig.color.replace('text-', 'bg-')}/10`}>\n                    <StatusIcon className={`w-5 h-5 ${statusConfig.color}`} />\n                  </div>\n\n                  {/* Main Info */}\n                  <div className=\"flex-1 min-w-0\">\n                    <div className=\"flex items-center gap-2\">\n                      <span className=\"text-sm font-medium text-foreground\">\n                        {REASON_LABELS[escalation.reason]}\n                      </span>\n                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig.color.replace('text-', 'bg-')}/20 ${statusConfig.color}`}>\n                        {statusConfig.label}\n                      </span>\n                    </div>\n                    <p className=\"text-sm text-muted-foreground mt-1 truncate\">\n                      {escalation.conversationSummary || escalation.lastUserMessage || 'No summary available'}\n                    </p>\n                    <div className=\"flex items-center gap-4 mt-2 text-xs text-muted-foreground\">\n                      <span className=\"flex items-center gap-1\">\n                        <Clock className=\"w-3 h-3\" />\n                        {formatDate(escalation.triggeredAt)}\n                      </span>\n                      {escalation.transferNumber && (\n                        <span className=\"flex items-center gap-1\">\n                          <Phone className=\"w-3 h-3\" />\n                          {escalation.transferNumber}\n                        </span>\n                      )}\n                      {escalation.waitTimeSeconds !== null && (\n                        <span className=\"flex items-center gap-1\">\n                          <AlertTriangle className=\"w-3 h-3\" />\n                          {escalation.waitTimeSeconds}s wait\n                        </span>\n                      )}\n                    </div>\n                  </div>\n\n                  {/* Arrow */}\n                  <ChevronRight className=\"w-5 h-5 text-muted-foreground\" />\n                </div>\n              </Link>\n            );\n          })}\n        </div>\n      </CardContent>\n    </Card>\n  );\n}\n"
+}
+Now let me run a type check to ensure everything compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -50",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+Let me fix the type issue:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id]\\escalation\\page.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\agents\\[id]\\escalation\\page.tsx",
+  "old_string": "  // Merge existing config with defaults\n  const initialConfig = config\n    ? {\n        ...config,\n        triggerPhrases: config.triggerPhrases as string[],\n        configured: true,\n      }\n    : {\n        ...defaults,\n        configured: false,\n      };",
+  "new_string": "  // Merge existing config with defaults, converting nulls to undefined\n  const initialConfig = config\n    ? {\n        enabled: config.enabled,\n        forwardingNumber: config.forwardingNumber ?? undefined,\n        forwardingQueue: config.forwardingQueue ?? undefined,\n        forwardingDepartment: config.forwardingDepartment ?? undefined,\n        fallbackNumber: config.fallbackNumber ?? undefined,\n        voicemailEnabled: config.voicemailEnabled,\n        voicemailGreeting: config.voicemailGreeting ?? undefined,\n        businessHoursStart: config.businessHoursStart ?? undefined,\n        businessHoursEnd: config.businessHoursEnd ?? undefined,\n        businessDays: config.businessDays,\n        afterHoursNumber: config.afterHoursNumber ?? undefined,\n        afterHoursMessage: config.afterHoursMessage ?? undefined,\n        timezone: config.timezone,\n        maxCallDuration: config.maxCallDuration,\n        maxClarifications: config.maxClarifications,\n        sentimentThreshold: config.sentimentThreshold,\n        triggerPhrases: config.triggerPhrases as string[],\n        maxTransferWaitTime: config.maxTransferWaitTime,\n        announceTransfer: config.announceTransfer,\n        transferMessage: config.transferMessage ?? undefined,\n        holdMusicUrl: config.holdMusicUrl ?? undefined,\n        shareTranscript: config.shareTranscript,\n        shareSummary: config.shareSummary,\n        shareCallerInfo: config.shareCallerInfo,\n        id: config.id,\n        configured: true,\n      }\n    : {\n        ...defaults,\n        configured: false,\n      };"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files again",
+  "timeout": 120000
+}
+No TypeScript errors. Now let me run the build to ensure everything compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npm run build 2>&1 | tail -40",
+  "description": "Build the Next.js application",
+  "timeout": 180000
+}
+The build succeeded. Let me update the todo list and provide a summary:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Create escalation settings page for agents",
+      "status": "completed",
+      "activeForm": "Creating escalation settings page for agents"
+    },
+    {
+      "content": "Create escalation form component",
+      "status": "completed",
+      "activeForm": "Creating escalation form component"
+    },
+    {
+      "content": "Add escalation status indicator to agent cards",
+      "status": "completed",
+      "activeForm": "Adding escalation status indicator to agent cards"
+    },
+    {
+      "content": "Update call detail page with escalation info",
+      "status": "completed",
+      "activeForm": "Updating call detail page with escalation info"
+    },
+    {
+      "content": "Create escalation analytics/history component",
+      "status": "completed",
+      "activeForm": "Creating escalation analytics/history component"
+    },
+    {
+      "content": "Add navigation link to escalation settings",
+      "status": "completed",
+      "activeForm": "Adding navigation link to escalation settings"
+    }
+  ]
+}
+<summary>
+## Summary: Added UI Support for Call Escalation Feature
+
+### Changes Implemented
+
+**1. Escalation Settings Page** (`/dashboard/agents/[id]/escalation`)
+- New dedicated page for configuring escalation settings per agent
+- Header with back navigation and agent info
+- Shows "Not yet configured" indicator when no config exists
+
+**2. Escalation Form Component** (`escalation-form.tsx`)
+- Comprehensive form with multiple sections:
+  - **Enable/Disable Toggle**: Quick toggle to enable/disable escalation
+  - **Forwarding Destinations**: Primary number, fallback number, queue, department
+  - **Business Hours**: Opening/closing time, timezone selection, business days selector
+  - **Escalation Triggers**: Max call duration, max clarifications, sentiment threshold, custom trigger phrases
+  - **Transfer Settings**: Max wait time, transfer announcement, custom message, hold music URL
+  - **Voicemail Settings**: Enable voicemail, custom greeting
+  - **Context Sharing**: Toggle sharing transcript, summary, and caller info with operators
+- Form validation with error messages
+- Trigger phrase management with add/remove functionality
+- Business day selector with visual button toggles
+
+**3. Agent Card Updates** (`agent-card.tsx`)
+- Added orange "Escalation" badge when escalation is enabled for an agent
+- Added new escalation settings button (phone forwarding icon) in the card footer
+- Button highlighted in orange when escalation is enabled
+- Agents page query updated to include escalation config status
+
+**4. Call Detail Page Updates** (`/dashboard/calls/[id]`)
+- New "Call Escalation" section appears when a call was escalated
+- Shows escalation reason with descriptive labels
+- Shows transfer status with color-coded badges
+- Displays transferred-to number, escalation time, human connection time
+- Shows transfer attempts count
+- Escalation notes section
+- Detailed escalation log with:
+  - Wait time, clarification count, caller sentiment
+  - Resolution status, customer satisfaction
+  - Failure reason (if applicable)
+  - Resolution notes and last user message before escalation
+
+**5. Escalation Stats Component** (`escalation-stats.tsx`)
+- Dashboard-style analytics component showing:
+  - Total escalations, success rate, avg wait time, resolution rate
+  - Breakdown by escalation reason with visual bars
+  - Breakdown by transfer outcome (connected, failed, etc.)
+  - Average call duration before escalation
+  - Peak escalation hours
+  - Common trigger phrases that led to escalations
+
+**6. Escalation History Component** (`escalation-history.tsx`)
+- List view of recent escalations
+- Each item shows:
+  - Status icon with color coding
+  - Escalation reason and status badge
+  - Conversation summary or last message
+  - Timestamp, transfer number, wait time
+- Links to call detail page for full information
+- Pagination support with "View All" link
+
+### Files Created
+- `src/app/(dashboard)/dashboard/agents/[id]/escalation/page.tsx`
+- `src/components/dashboard/escalation-form.tsx`
+- `src/components/dashboard/escalation-stats.tsx`
+- `src/components/dashboard/escalation-history.tsx`
+
+### Files Modified
+- `src/components/dashboard/agent-card.tsx` - Added escalation badge and settings button
+- `src/app/(dashboard)/dashboard/agents/page.tsx` - Include escalation config in query
+- `src/app/(dashboard)/dashboard/calls/[id]/page.tsx` - Added escalation section
+
+### How to Use
+1. Navigate to **Agents** in the dashboard
+2. Click the **phone forwarding icon** on any agent card (or look for agents with the orange "Escalation" badge)
+3. Configure the escalation settings:
+   - Set a primary forwarding number
+   - Configure business hours
+   - Customize trigger phrases
+   - Enable context sharing options
+4. Save settings
+5. When calls are escalated, view details in the **Calls** section by clicking on any call with ESCALATED or TRANSFERRED status
+
+### Notes for Developer
+- The escalation stats and history components can be added to any dashboard page
+- To use the stats component: `<EscalationStats agentId="optional" dateRange={{ startDate, endDate }} />`
+- To use the history component: `<EscalationHistory agentId="optional" limit={10} showViewAll={true} />`
+- All UI follows existing glassmorphism design patterns
+- Form validation matches existing patterns in AgentForm
+- Responsive design works on mobile, tablet, and desktop
+</summary>

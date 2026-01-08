@@ -21,6 +21,11 @@ export default async function AgentsPage() {
     },
     include: {
       phoneNumber: true,
+      escalationConfig: {
+        select: {
+          enabled: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',

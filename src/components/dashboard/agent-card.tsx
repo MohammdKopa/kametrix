@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Copy, Check, Pencil, Trash2, Play } from 'lucide-react';
-import type { Agent, PhoneNumber } from '@/generated/prisma/client';
+import { Copy, Check, Pencil, Trash2, Play, PhoneForwarded } from 'lucide-react';
+import type { Agent, PhoneNumber, EscalationConfig } from '@/generated/prisma/client';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,10 @@ import {
 } from '@/components/ui/dialog';
 
 interface AgentCardProps {
-  agent: Agent & { phoneNumber: PhoneNumber | null };
+  agent: Agent & {
+    phoneNumber: PhoneNumber | null;
+    escalationConfig?: Pick<EscalationConfig, 'enabled'> | null;
+  };
 }
 
 /**
@@ -134,24 +137,37 @@ export function AgentCard({ agent }: AgentCardProps) {
               )}
             </div>
 
-            {/* Status Badge */}
-            <Badge
-              variant={agent.isActive ? 'default' : 'secondary'}
-              className={
-                agent.isActive
-                  ? 'bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30'
-                  : ''
-              }
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
+            {/* Status Badges */}
+            <div className="flex flex-col gap-2 items-end">
+              <Badge
+                variant={agent.isActive ? 'default' : 'secondary'}
+                className={
                   agent.isActive
-                    ? 'bg-green-500 shadow-[0_0_6px_oklch(0.72_0.19_142)]'
-                    : 'bg-muted-foreground'
-                }`}
-              />
-              {agent.isActive ? 'Active' : 'Inactive'}
-            </Badge>
+                    ? 'bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30'
+                    : ''
+                }
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    agent.isActive
+                      ? 'bg-green-500 shadow-[0_0_6px_oklch(0.72_0.19_142)]'
+                      : 'bg-muted-foreground'
+                  }`}
+                />
+                {agent.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+
+              {/* Escalation Badge */}
+              {agent.escalationConfig?.enabled && (
+                <Badge
+                  variant="outline"
+                  className="bg-orange-500/10 text-orange-500 border-orange-500/30 hover:bg-orange-500/20"
+                >
+                  <PhoneForwarded className="w-3 h-3 mr-1" />
+                  Escalation
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Business Info */}
@@ -199,6 +215,21 @@ export function AgentCard({ agent }: AgentCardProps) {
               title="Test agent"
             >
               <Play className="w-4 h-4" />
+            </Link>
+          </Button>
+
+          {/* Escalation Settings Button */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            asChild
+            className={agent.escalationConfig?.enabled ? 'text-orange-500 hover:text-orange-600' : ''}
+          >
+            <Link
+              href={`/dashboard/agents/${agent.id}/escalation`}
+              title="Escalation settings"
+            >
+              <PhoneForwarded className="w-4 h-4" />
             </Link>
           </Button>
 
