@@ -1243,12 +1243,17 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Build tools using consolidated modules
-    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
+    // IMPORTANT: Escalation tools MUST come FIRST so the AI prioritizes them
+    // over calendar tools when user asks for a human
     const escalationTools = hasEscalationTools ? buildEscalationTools(serverUrl) : [];
+    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
 
-    // Combine all tools
-    const tools = [...calendarTools, ...escalationTools];
+    // Combine all tools - escalation FIRST for priority
+    const tools = [...escalationTools, ...calendarTools];
     const hasTools = tools.length > 0;
+
+    // Log tools being sent for debugging
+    console.log('Assistant request: tools being sent:', tools.map(t => t.function.name));
 
     // Return assistant config
     const assistantConfig = {

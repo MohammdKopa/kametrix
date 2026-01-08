@@ -2467,3 +2467,144 @@ The escalation tools are now **always included** for every agent (changed in pre
 - Log the escalation request to EventLog
 - Offer to take a callback with name and phone number
 </summary>
+
+---
+
+## Follow-up Session
+
+Looking at the logs, I can see the issue is **still happening** - the AI is calling `Check Availability` (the calendar tool) instead of `escalate_to_human`. This means either:
+
+1. The changes haven't been deployed yet, OR
+2. There's something in how Vapi caches the assistant configuration
+
+Let me investigate by checking if there might be a caching issue or if we need to look at how the tools are ordered:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "offset": 1200,
+  "limit": 100
+}
+I see the issue - the tools are being combined with `calendarTools` FIRST, then `escalationTools`. This means when the AI sees similar tool names, it might prefer the first one it encounters. Let me check what tools are actually being sent:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\tool-definitions.ts"
+}
+Now let me check the escalation tool definitions:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\tool-definitions.ts"
+}
+I see the issue now! The tools look correct, but **the order matters** - escalation tools are being added AFTER calendar tools. I need to:
+
+1. **Put escalation tools FIRST** in the array so they appear before calendar tools
+2. **Add explicit negative examples** to the calendar tool to tell the AI NOT to use it for human requests
+
+Let me make these critical changes:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "    // Build tools using consolidated modules\n    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];\n    const escalationTools = hasEscalationTools ? buildEscalationTools(serverUrl) : [];\n\n    // Combine all tools\n    const tools = [...calendarTools, ...escalationTools];\n    const hasTools = tools.length > 0;",
+  "new_string": "    // Build tools using consolidated modules\n    // IMPORTANT: Escalation tools MUST come FIRST so the AI prioritizes them\n    // over calendar tools when user asks for a human\n    const escalationTools = hasEscalationTools ? buildEscalationTools(serverUrl) : [];\n    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];\n\n    // Combine all tools - escalation FIRST for priority\n    const tools = [...escalationTools, ...calendarTools];\n    const hasTools = tools.length > 0;\n\n    // Log tools being sent for debugging\n    console.log('Assistant request: tools being sent:', tools.map(t => t.function.name));"
+}
+Now let me also add more explicit negative examples to the calendar tool. This is critical - the AI needs to be told explicitly NOT to use `check_availability` for human requests:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\tool-definitions.ts",
+  "old_string": "        name: 'check_availability',\n        description: 'Prueft die KALENDER-Verfuegbarkeit fuer TERMINBUCHUNGEN. Nutze diese Funktion NUR wenn der Anrufer nach freien TERMINEN im Kalender fragt. Typische Anfragen: \"Wann haben Sie Zeit fuer einen Termin?\", \"Haben Sie morgen einen Termin frei?\", \"Welche Zeiten gehen am Montag fuer eine Buchung?\" WICHTIG: Nutze diese Funktion NICHT wenn jemand mit einem Menschen sprechen will - dafuer nutze escalate_to_human!',",
+  "new_string": "        name: 'check_availability',\n        description: 'Prueft KALENDER-Termine fuer BUCHUNGEN. NUR verwenden fuer: \"Wann haben Sie einen Termin frei?\", \"Welche Zeiten gehen?\", \"Haben Sie morgen Zeit fuer einen Termin?\" NIEMALS verwenden wenn jemand sagt: \"Mitarbeiter\", \"Mensch\", \"Person sprechen\", \"verbinden\" - dafuer IMMER escalate_to_human nutzen!',"
+}
+Now let me also add the same negative examples to the `check_conflicts` tool since that's also being called:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\tool-definitions.ts",
+  "old_string": "        name: 'check_conflicts',\n        description: 'Prueft ob ein gewuenschter Termin mit bestehenden Terminen kollidiert. Nutze diese Funktion VOR dem Buchen wenn du sicherstellen moechtest, dass der gewaehlte Zeitraum wirklich frei ist. Gibt Konflikte zurueck falls vorhanden und schlaegt Alternativen vor.',",
+  "new_string": "        name: 'check_conflicts',\n        description: 'Prueft KALENDER-Konflikte vor einer TERMINBUCHUNG. NUR verwenden wenn ein konkreter Termin gebucht werden soll. NIEMALS verwenden wenn jemand \"Mitarbeiter\", \"Mensch\", \"Person\" sagt - dafuer escalate_to_human!',"
+}
+Now let me also make the escalation tool description even more prominent by adding a special prefix:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\tool-definitions.ts",
+  "old_string": "        name: 'escalate_to_human',\n        description: `WEITERLEITUNG ZU MENSCHLICHEM MITARBEITER - Nutze diese Funktion um den Anrufer mit einem echten Menschen zu verbinden.\n\nNUTZE DIESE FUNKTION SOFORT UND OHNE NACHFRAGEN wenn der Anrufer sagt:\n- \"Kann ich mit einem Menschen sprechen\"\n- \"Ich moechte mit einem Mitarbeiter reden\"\n- \"Verbinden Sie mich mit jemandem\"\n- \"Einen echten Menschen bitte\"\n- \"Ich will nicht mit einer KI sprechen\"\n- \"Weiterleiten bitte\"\n- \"Kann ich mit einer Person sprechen\"\n- \"Human agent\" / \"Real person\" / \"Representative\"\n\nNUTZE DIESE FUNKTION AUCH wenn:\n- Du das Anliegen des Anrufers nicht verstehst\n- Du dir unsicher bist wie du helfen kannst\n- Der Anrufer frustriert oder veraergert klingt\n- Das Problem zu komplex fuer KI ist\n- Du mehrfach um Klaerung bitten musstest\n\nWICHTIG:\n- Frage NIEMALS zurueck wenn jemand nach einem Menschen verlangt\n- Nutze NICHT check_availability - das ist fuer Kalendertermine\n- Fasse das bisherige Gespraech im summary-Parameter zusammen`,",
+  "new_string": "        name: 'escalate_to_human',\n        description: `[PRIORITAET 1] WEITERLEITUNG ZU MENSCHLICHEM MITARBEITER. Bei diesen Woertern SOFORT diese Funktion aufrufen: \"Mitarbeiter\", \"Mensch\", \"Person sprechen\", \"verbinden\", \"weiterleiten\", \"echter Mensch\", \"human agent\". NICHT nachfragen - SOFORT weiterleiten! Parameter: reason=\"user_request\", summary=Zusammenfassung des Gespraechs.`,"
+}
+Now let me verify TypeScript compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npm run build 2>&1 | tail -30",
+  "description": "Build the Next.js application",
+  "timeout": 180000
+}
+Build successful. Now let me provide a summary:
+
+<summary>
+## Summary: Fixed Escalation Tool Priority Over Calendar Tools
+
+### Root Cause
+The AI was calling `check_availability` and `check_conflicts` (calendar tools) instead of `escalate_to_human` because:
+1. Calendar tools appeared **before** escalation tools in the tools array
+2. The AI interpreted "Mitarbeiter reden" (speak to staff) as needing to "check availability"
+3. Tool descriptions weren't explicit enough about when NOT to use them
+
+### Changes Made
+
+**1. Reordered Tools - Escalation FIRST** (`src/app/api/webhooks/vapi/route.ts`)
+```typescript
+// Before: [...calendarTools, ...escalationTools]
+// After:  [...escalationTools, ...calendarTools]
+```
+- Escalation tools now appear FIRST in the tools array
+- Added logging to show which tools are being sent
+
+**2. Shortened and Prioritized Escalation Tool** (`src/lib/escalation/tool-definitions.ts`)
+- Added `[PRIORITAET 1]` prefix to make it stand out
+- Condensed description to focus on trigger keywords
+- Made it crystal clear: when user says "Mitarbeiter", "Mensch", "Person sprechen", "verbinden" → use this tool
+
+**3. Added Negative Examples to Calendar Tools** (`src/lib/prompts/tool-definitions.ts`)
+- `check_availability`: Added "NIEMALS verwenden wenn jemand sagt: 'Mitarbeiter', 'Mensch', 'Person sprechen', 'verbinden'"
+- `check_conflicts`: Added similar warning
+
+### Files Modified
+- `src/app/api/webhooks/vapi/route.ts` - Tool order changed
+- `src/lib/escalation/tool-definitions.ts` - Prioritized description
+- `src/lib/prompts/tool-definitions.ts` - Negative examples added
+
+### What Will Happen After Deployment
+
+When you test with "Ich muss mit einem Mitarbeiter reden":
+1. Console will log: `Assistant request: tools being sent: ['escalate_to_human', 'check_operator_availability', 'check_availability', ...]`
+2. AI will see `escalate_to_human` first with `[PRIORITAET 1]` prefix
+3. AI will recognize "Mitarbeiter" keyword and call `escalate_to_human`
+4. Response will acknowledge the request and either transfer or offer callback
+
+### Testing After Deployment
+Test phrases that should trigger `escalate_to_human`:
+- "Ich muss mit einem Mitarbeiter reden"
+- "Kann ich mit einem Menschen sprechen?"
+- "Verbinden Sie mich bitte"
+- "Einen echten Menschen bitte"
+
+Check the server logs for:
+```
+Assistant request: tools being sent: ['escalate_to_human', 'check_operator_availability', 'check_availability', ...]
+```
+and
+```
+Escalate to human tool called
+```
+</summary>

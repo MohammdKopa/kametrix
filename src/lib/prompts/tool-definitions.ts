@@ -128,7 +128,7 @@ export function buildCalendarTools(serverUrl: string): CalendarTool[] {
       server: { url: webhookUrl },
       function: {
         name: 'check_availability',
-        description: 'Prueft die KALENDER-Verfuegbarkeit fuer TERMINBUCHUNGEN. Nutze diese Funktion NUR wenn der Anrufer nach freien TERMINEN im Kalender fragt. Typische Anfragen: "Wann haben Sie Zeit fuer einen Termin?", "Haben Sie morgen einen Termin frei?", "Welche Zeiten gehen am Montag fuer eine Buchung?" WICHTIG: Nutze diese Funktion NICHT wenn jemand mit einem Menschen sprechen will - dafuer nutze escalate_to_human!',
+        description: 'Prueft KALENDER-Termine fuer BUCHUNGEN. NUR verwenden fuer: "Wann haben Sie einen Termin frei?", "Welche Zeiten gehen?", "Haben Sie morgen Zeit fuer einen Termin?" NIEMALS verwenden wenn jemand sagt: "Mitarbeiter", "Mensch", "Person sprechen", "verbinden" - dafuer IMMER escalate_to_human nutzen!',
         parameters: {
           type: 'object',
           properties: {
@@ -156,7 +156,7 @@ export function buildCalendarTools(serverUrl: string): CalendarTool[] {
       server: { url: webhookUrl },
       function: {
         name: 'check_conflicts',
-        description: 'Prueft ob ein gewuenschter Termin mit bestehenden Terminen kollidiert. Nutze diese Funktion VOR dem Buchen wenn du sicherstellen moechtest, dass der gewaehlte Zeitraum wirklich frei ist. Gibt Konflikte zurueck falls vorhanden und schlaegt Alternativen vor.',
+        description: 'Prueft KALENDER-Konflikte vor einer TERMINBUCHUNG. NUR verwenden wenn ein konkreter Termin gebucht werden soll. NIEMALS verwenden wenn jemand "Mitarbeiter", "Mensch", "Person" sagt - dafuer escalate_to_human!',
         parameters: {
           type: 'object',
           properties: {
