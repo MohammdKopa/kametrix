@@ -33,6 +33,14 @@ const getStatusStyles = (status: CallStatus) => {
       dot: 'bg-muted-foreground',
       glow: '',
     },
+    ESCALATED: {
+      dot: 'bg-orange-500',
+      glow: 'shadow-[0_0_8px_oklch(0.7_0.2_50/0.5)]',
+    },
+    TRANSFERRED: {
+      dot: 'bg-purple-500',
+      glow: 'shadow-[0_0_8px_oklch(0.6_0.2_300/0.5)]',
+    },
   };
   return styles[status] || { dot: 'bg-muted-foreground', glow: '' };
 };

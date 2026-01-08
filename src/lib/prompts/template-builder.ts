@@ -26,6 +26,7 @@ export const SECTION_IDS = {
   FAQ: 'faq',
   POLICIES: 'policies',
   CALENDAR: 'calendar',
+  ESCALATION: 'escalation',
   RESPONSIBILITIES: 'responsibilities',
   BOUNDARIES: 'boundaries',
   STYLE: 'style',
@@ -208,6 +209,63 @@ function buildPoliciesSection(config: PromptConfig): PromptSection {
     content: config.policies || '',
     priority: 65,
     enabled: !!config.policies,
+  };
+}
+
+/**
+ * Build escalation section with transfer instructions
+ */
+function buildEscalationSection(): PromptSection {
+  return {
+    id: SECTION_IDS.ESCALATION,
+    title: 'Weiterleitung an Mitarbeiter',
+    content: `VERFUEGBARE ESKALATIONS-TOOLS:
+- escalate_to_human: Leitet den Anruf an einen menschlichen Mitarbeiter weiter
+- check_operator_availability: Prueft ob Mitarbeiter verfuegbar sind und gibt Wartezeit an
+
+WANN WEITERLEITEN:
+Du MUSST das escalate_to_human Tool verwenden wenn:
+1. Der Anrufer EXPLIZIT nach einem Menschen fragt:
+   - "Ich moechte mit einem Menschen sprechen"
+   - "Verbinden Sie mich mit einem Mitarbeiter"
+   - "Kann ich mit jemandem sprechen"
+   - "Einen echten Menschen bitte"
+   - "Weiterleiten bitte"
+   - "Representative" oder "Agent"
+
+2. Du das Anliegen NICHT verstehst:
+   - Nach 2-3 Klaerungsversuchen ohne Erfolg
+   - Bei unklaren oder komplexen Anfragen
+   - Wenn du dir unsicher bist
+
+3. Der Anrufer FRUSTRIERT oder VERAERGERT klingt:
+   - Unzufriedene Aeusserungen
+   - Wiederholte Beschwerden
+   - Aggressive Sprache
+
+4. Das Problem ZU KOMPLEX ist:
+   - Rechtliche Fragen
+   - Technische Details ausserhalb deines Wissens
+   - Individuelle Vertragsfragen
+
+WICHTIGE REGELN:
+- Frage NIEMALS zurueck wenn jemand einen Menschen verlangt - leite SOFORT weiter
+- Versuche NICHT den Anrufer zu ueberzeugen bei dir zu bleiben
+- Bei Weiterleitung: IMMER eine Zusammenfassung (summary) des Gespraechs mitgeben
+- Informiere den Anrufer hoeflich ueber die Weiterleitung
+- Teile geschaetzte Wartezeit mit wenn verfuegbar
+
+BEISPIEL-FORMULIERUNGEN:
+- "Selbstverstaendlich, ich verbinde Sie gerne mit einem Mitarbeiter. Einen Moment bitte."
+- "Ich verstehe, dass Sie mit einem Menschen sprechen moechten. Ich leite Sie jetzt weiter."
+- "Bei diesem komplexen Anliegen verbinde ich Sie am besten mit einem Kollegen, der Ihnen besser helfen kann."
+
+NACH DER WEITERLEITUNG:
+- Das Gespraech wird automatisch an den Mitarbeiter uebergeben
+- Der Mitarbeiter erhaelt deine Zusammenfassung des Gespraechs
+- Du brauchst nichts weiter zu tun`,
+    priority: 58,
+    enabled: true,
   };
 }
 
@@ -405,6 +463,11 @@ export function buildPromptSections(config: PromptConfig): PromptSection[] {
   // Calendar section
   if (config.hasGoogleCalendar) {
     sections.push(buildCalendarSection());
+  }
+
+  // Escalation section (always included for call forwarding capability)
+  if (config.hasEscalation !== false) {
+    sections.push(buildEscalationSection());
   }
 
   // Behavioral sections

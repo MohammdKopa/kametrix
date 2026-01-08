@@ -36,6 +36,14 @@ import { formatDateGerman } from '@/lib/localization';
 import { verifyVapiSignature } from '@/lib/webhook-auth';
 import { buildDateHeader, buildCalendarTools } from '@/lib/prompts';
 import { logInvalidWebhookSignature } from '@/lib/security';
+import {
+  EscalationService,
+  EscalationDetector,
+  logEscalationEvent,
+  buildEscalationTools,
+  isEscalationTool,
+} from '@/lib/escalation';
+import type { EscalateCallArgs, CheckOperatorAvailabilityArgs } from '@/types/escalation';
 
 /**
  * Tool call payload from Vapi
@@ -964,6 +972,138 @@ async function handleToolCalls(message: WebhookToolCalls) {
               break;
             }
 
+            // ============================================
+            // Escalation Tool Handlers
+            // ============================================
+
+            case 'escalate_to_human': {
+              console.log('Escalate to human tool called', args);
+
+              try {
+                const escalateArgs = args as EscalateCallArgs;
+
+                // Get agent with escalation config
+                const agentWithConfig = await prisma.agent.findUnique({
+                  where: { id: agent.id },
+                  include: {
+                    escalationConfig: true,
+                    user: true,
+                  },
+                });
+
+                if (!agentWithConfig) {
+                  result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
+                  break;
+                }
+
+                const config = agentWithConfig.escalationConfig;
+
+                // Check if escalation is configured and enabled
+                if (!config || !config.enabled) {
+                  result = 'Die Weiterleitung ist momentan nicht verfügbar. Ein Mitarbeiter wird Sie baldmöglichst zurückrufen. Können Sie mir Ihren Namen und eine Rückrufnummer hinterlassen?';
+                  break;
+                }
+
+                // Find or create the call record
+                let callRecord = await prisma.call.findFirst({
+                  where: {
+                    agentId: agent.id,
+                    status: { in: ['RINGING', 'IN_PROGRESS'] },
+                  },
+                  orderBy: { startedAt: 'desc' },
+                });
+
+                if (!callRecord) {
+                  // Create a placeholder call record if not found
+                  callRecord = await prisma.call.create({
+                    data: {
+                      agentId: agent.id,
+                      userId: agent.userId,
+                      phoneNumber: 'Unknown',
+                      status: 'IN_PROGRESS',
+                      startedAt: new Date(),
+                    },
+                  });
+                }
+
+                // Map reason string to enum
+                const reason = EscalationDetector.mapReasonString(escalateArgs.reason);
+
+                // Initialize escalation service
+                const escalationService = new EscalationService();
+                await escalationService.initializeForAgent(agent.id);
+
+                // Initiate escalation
+                const escalationResult = await escalationService.initiateEscalation({
+                  callId: callRecord.id,
+                  reason,
+                  callerName: escalateArgs.callerName,
+                  conversationSummary: escalateArgs.summary,
+                  lastUserMessage: escalateArgs.lastUserMessage,
+                  urgency: escalateArgs.urgency as 'low' | 'normal' | 'high' | 'critical' | undefined,
+                });
+
+                // Return appropriate message to caller
+                result = escalationResult.callerMessage;
+
+                console.log('Escalation initiated', {
+                  escalationId: escalationResult.escalationId,
+                  status: escalationResult.status,
+                  transferNumber: escalationResult.transferNumber,
+                });
+              } catch (error) {
+                console.error('Escalation error:', error);
+                result = 'Es tut mir leid, die Weiterleitung ist momentan nicht möglich. Kann ich Ihnen anders helfen oder möchten Sie Ihre Kontaktdaten hinterlassen?';
+              }
+              break;
+            }
+
+            case 'check_operator_availability': {
+              console.log('Check operator availability tool called', args);
+
+              try {
+                const availabilityArgs = args as CheckOperatorAvailabilityArgs;
+
+                // Get agent with escalation config
+                const agentWithConfig = await prisma.agent.findUnique({
+                  where: { id: agent.id },
+                  include: { escalationConfig: true },
+                });
+
+                if (!agentWithConfig?.escalationConfig) {
+                  result = 'Die Verfügbarkeitsprüfung ist momentan nicht verfügbar.';
+                  break;
+                }
+
+                const config = agentWithConfig.escalationConfig;
+                const escalationService = new EscalationService();
+                const availability = await escalationService.checkOperatorAvailability(config);
+
+                if (availability.available) {
+                  const waitMinutes = availability.estimatedWaitTime
+                    ? Math.ceil(availability.estimatedWaitTime / 60)
+                    : 1;
+                  result = `Ja, Mitarbeiter sind verfügbar. Die geschätzte Wartezeit beträgt etwa ${waitMinutes} Minute${waitMinutes > 1 ? 'n' : ''}.`;
+                } else if (!availability.isWithinBusinessHours) {
+                  result = `Momentan sind wir außerhalb unserer Geschäftszeiten. ${
+                    availability.alternativeOptions?.voicemail
+                      ? 'Sie können uns aber gerne eine Nachricht hinterlassen.'
+                      : 'Bitte rufen Sie während unserer Geschäftszeiten erneut an.'
+                  }`;
+                } else {
+                  result = `Momentan sind leider alle Mitarbeiter im Gespräch. ${
+                    availability.alternativeOptions?.voicemail
+                      ? 'Möchten Sie eine Nachricht hinterlassen?'
+                      : 'Bitte versuchen Sie es in einigen Minuten erneut.'
+                  }`;
+                }
+              } catch (error) {
+                console.error('Availability check error:', error);
+                result = 'Ich konnte die Verfügbarkeit leider nicht prüfen. Möchten Sie es trotzdem versuchen?';
+              }
+              break;
+            }
+
             default:
               result = `Unknown function: ${functionName}`;
               console.warn(`Unknown tool function: ${functionName}`);
@@ -1044,10 +1184,22 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     // Check if user has Google Calendar connected
     const hasCalendarTools = agent.user?.googleRefreshToken ? true : false;
 
+    // Check if escalation is configured for this agent
+    const escalationConfig = await prisma.escalationConfig.findUnique({
+      where: { agentId: agent.id },
+      select: { enabled: true },
+    });
+    const hasEscalationTools = escalationConfig?.enabled ?? false;
+
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    // Build tools using consolidated module
-    const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;
+    // Build tools using consolidated modules
+    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
+    const escalationTools = hasEscalationTools ? buildEscalationTools(serverUrl) : [];
+
+    // Combine all tools
+    const tools = [...calendarTools, ...escalationTools];
+    const hasTools = tools.length > 0;
 
     // Return assistant config
     const assistantConfig = {
@@ -1057,7 +1209,7 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
         provider: 'anthropic',
         model: 'claude-3-5-sonnet-20241022',
         messages: [{ role: 'system', content: systemPrompt }],
-        ...(tools && { tools }),
+        ...(hasTools && { tools }),
       },
       voice: {
         provider: 'azure',

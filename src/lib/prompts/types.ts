@@ -63,6 +63,7 @@ export interface PromptConfig {
 
   // Integration flags
   hasGoogleCalendar: boolean;
+  hasEscalation?: boolean; // Enable escalation/call forwarding features
 
   // Style and tone customization
   tone?: 'formal' | 'friendly' | 'professional';

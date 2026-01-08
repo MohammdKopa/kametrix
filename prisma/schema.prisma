@@ -25,6 +25,29 @@ enum CallStatus {
   COMPLETED
   FAILED
   NO_ANSWER
+  ESCALATED
+  TRANSFERRED
+}
+
+enum EscalationReason {
+  USER_REQUEST           // User explicitly asked for human agent
+  LOW_CONFIDENCE         // AI detected low confidence in responses
+  REPEATED_CLARIFICATION // Multiple clarification attempts
+  UNRECOGNIZED_INTENT    // Could not understand user intent
+  COMPLEX_ISSUE          // Issue too complex for AI
+  SENTIMENT_NEGATIVE     // Detected frustrated/angry customer
+  MAX_DURATION           // Call exceeded maximum AI duration
+  EXPLICIT_TRIGGER       // Specific keyword/phrase triggered escalation
+}
+
+enum EscalationStatus {
+  PENDING        // Escalation initiated, waiting for transfer
+  IN_QUEUE       // Call in operator queue
+  CONNECTED      // Successfully connected to human
+  FAILED         // Transfer failed
+  NO_OPERATORS   // No operators available
+  TIMEOUT        // Transfer timed out
+  CANCELLED      // User cancelled before transfer
 }
 
 enum TransactionType {
@@ -104,6 +127,7 @@ model Agent {
   calls               Call[]
   phoneNumber         PhoneNumber?
   calendarEvents      CalendarEvent[]
+  escalationConfig    EscalationConfig?
 
   // Performance indexes
   @@index([userId])
@@ -152,11 +176,22 @@ model Call {
   followUpRequired Boolean     @default(false)
   analysisJson     Json?       // Full analysis data
 
+  // Escalation fields
+  escalatedAt         DateTime?         // When escalation was triggered
+  escalationReason    EscalationReason? // Why the call was escalated
+  escalationStatus    EscalationStatus? // Current status of escalation
+  escalatedToNumber   String?           // Phone number/queue transferred to
+  escalationNotes     String?           @db.Text // Context passed to human operator
+  transferAttempts    Int               @default(0) // Number of transfer attempts
+  humanConnectedAt    DateTime?         // When human operator connected
+  escalationMetadata  Json?             // Additional escalation data
+
   createdAt       DateTime    @default(now())
 
   // Relations
   agent           Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  escalationLog   EscalationLog?
 
   // Performance indexes
   @@index([userId])
@@ -528,4 +563,121 @@ model QuotaAlert {
   @@index([userId, createdAt(sort: Desc)])
   @@index([quotaType, acknowledged])
   @@index([createdAt(sort: Desc)])
+}
+
+// ============================================
+// Call Escalation & Forwarding Models
+// ============================================
+
+// Configuration for call escalation per agent
+model EscalationConfig {
+  id                    String    @id @default(cuid())
+  agentId               String    @unique
+
+  // Enable/disable escalation
+  enabled               Boolean   @default(true)
+
+  // Primary forwarding destination
+  forwardingNumber      String?   // Phone number to forward to
+  forwardingQueue       String?   // Queue identifier (e.g., "sales", "support")
+  forwardingDepartment  String?   // Department name
+
+  // Fallback options
+  fallbackNumber        String?   // Backup number if primary fails
+  voicemailEnabled      Boolean   @default(true) // Allow voicemail if no operators
+  voicemailGreeting     String?   @db.Text // Custom voicemail message
+
+  // Business hours routing
+  businessHoursStart    String?   // e.g., "09:00"
+  businessHoursEnd      String?   // e.g., "18:00"
+  businessDays          String[]  @default(["Mon", "Tue", "Wed", "Thu", "Fri"])
+  afterHoursNumber      String?   // Number for after-hours calls
+  afterHoursMessage     String?   @db.Text // Message to play after hours
+  timezone              String    @default("Europe/Berlin")
+
+  // Escalation triggers
+  maxCallDuration       Int       @default(300) // Max seconds before auto-escalate (0 = disabled)
+  maxClarifications     Int       @default(3) // Max clarification attempts
+  sentimentThreshold    Float     @default(-0.5) // Sentiment score threshold for escalation
+
+  // Custom trigger phrases (JSON array of strings)
+  triggerPhrases        Json      @default("[]") // e.g., ["I want to speak to a human", "representative"]
+
+  // Transfer settings
+  maxTransferWaitTime   Int       @default(60) // Max seconds to wait for transfer
+  announceTransfer      Boolean   @default(true) // Announce transfer to caller
+  transferMessage       String?   @db.Text // Custom message during transfer
+  holdMusicUrl          String?   // URL to hold music
+
+  // Context sharing
+  shareTranscript       Boolean   @default(true) // Share conversation with human
+  shareSummary          Boolean   @default(true) // Share AI-generated summary
+  shareCallerInfo       Boolean   @default(true) // Share caller phone number
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  agent                 Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+}
+
+// Detailed log of all escalation events for analytics
+model EscalationLog {
+  id                  String            @id @default(cuid())
+  callId              String            @unique
+  agentId             String
+  userId              String
+
+  // Escalation details
+  reason              EscalationReason
+  status              EscalationStatus
+  triggeredAt         DateTime          @default(now())
+
+  // Transfer details
+  transferNumber      String?           // Number transferred to
+  transferQueue       String?           // Queue name
+  transferAttempts    Int               @default(1)
+  transferStartedAt   DateTime?         // When transfer was initiated
+  transferCompletedAt DateTime?         // When transfer succeeded/failed
+  waitTimeSeconds     Int?              // How long caller waited
+
+  // Context captured
+  conversationSummary String?           @db.Text // AI summary at escalation time
+  lastAiMessage       String?           @db.Text // Last AI message before escalation
+  lastUserMessage     String?           @db.Text // User message that triggered escalation
+  callerSentiment     String?           // Sentiment at escalation time
+  sentimentScore      Float?            // Sentiment score at escalation
+  clarificationCount  Int               @default(0) // Number of clarifications attempted
+  callDurationAtEscalation Int?         // Call duration in seconds when escalated
+
+  // Outcome tracking
+  humanConnectedAt    DateTime?         // When human connected
+  humanAgentId        String?           // ID of human who handled the call
+  resolutionNotes     String?           @db.Text // Notes from human agent
+  wasResolved         Boolean?          // Was the issue resolved?
+  customerSatisfied   Boolean?          // Customer satisfaction indicator
+
+  // Failure details
+  failureReason       String?           // Why transfer failed
+  fallbackUsed        Boolean           @default(false) // Was fallback number used
+  voicemailLeft       Boolean           @default(false) // Did caller leave voicemail
+
+  // Additional metadata
+  metadata            Json?             // Additional data
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  // Relations
+  call                Call              @relation(fields: [callId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([reason])
+  @@index([status])
+  @@index([triggeredAt(sort: Desc)])
+  @@index([userId, triggeredAt(sort: Desc)])
+  @@index([agentId, triggeredAt(sort: Desc)])
 }

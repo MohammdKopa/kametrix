@@ -17,6 +17,8 @@ const getStatusBadgeStyle = (status: CallStatus) => {
     IN_PROGRESS: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     RINGING: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     NO_ANSWER: 'bg-muted text-muted-foreground border-border',
+    ESCALATED: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    TRANSFERRED: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   };
   return styles[status] || 'bg-muted text-muted-foreground border-border';
 };
@@ -29,6 +31,8 @@ const getStatusDotStyle = (status: CallStatus) => {
     IN_PROGRESS: 'bg-amber-500 shadow-[0_0_6px_oklch(0.75_0.18_85)]',
     RINGING: 'bg-blue-500 shadow-[0_0_6px_oklch(0.6_0.2_250)]',
     NO_ANSWER: 'bg-muted-foreground',
+    ESCALATED: 'bg-orange-500 shadow-[0_0_6px_oklch(0.7_0.2_50)]',
+    TRANSFERRED: 'bg-purple-500 shadow-[0_0_6px_oklch(0.6_0.2_300)]',
   };
   return dots[status] || 'bg-muted-foreground';
 };

@@ -67,6 +67,8 @@ export default async function CallDetailPage({ params }: CallDetailPageProps) {
       IN_PROGRESS: 'bg-yellow-500',
       RINGING: 'bg-blue-500',
       NO_ANSWER: 'bg-gray-400',
+      ESCALATED: 'bg-orange-500',
+      TRANSFERRED: 'bg-purple-500',
     };
     return dots[status] || 'bg-gray-400';
   };
@@ -79,6 +81,8 @@ export default async function CallDetailPage({ params }: CallDetailPageProps) {
       IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400',
       RINGING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400',
       NO_ANSWER: 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]',
+      ESCALATED: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400',
+      TRANSFERRED: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400',
     };
     return badges[status] || 'bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-[var(--muted-foreground)]';
   };
