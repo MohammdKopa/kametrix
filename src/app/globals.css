@@ -1,4 +1,4 @@
-@@import "tailwindcss";
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -225,23 +225,15 @@
     }
   }
 
-  /* Ensure minimum touch target size - WCAG 2.5.5 */
-  button,
-  [role="button"],
-  a,
-  input[type="checkbox"],
-  input[type="radio"],
-  select {
+  /*
+     Touch target size note: WCAG 2.5.5 recommends 44x44px touch targets.
+     We apply this selectively via utility classes rather than globally
+     to avoid breaking existing layouts. Use .touch-target class for
+     elements that need larger touch areas.
+  */
+  .touch-target {
     min-height: 44px;
     min-width: 44px;
-  }
-
-  /* Exception for inline links */
-  p a,
-  span a,
-  li a {
-    min-height: auto;
-    min-width: auto;
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -298,22 +290,14 @@
     touch-action: manipulation;
   }
 
-  /* Improve tap targets with padding instead of just min-width/height */
+  /*
+     Mobile touch target utilities - applied via classes, not globally.
+     Use .touch-target-mobile for elements needing larger touch areas on mobile.
+  */
   @media (max-width: 767px) {
-    button,
-    [role="button"],
-    a,
-    input[type="checkbox"],
-    input[type="radio"],
-    select {
+    .touch-target-mobile {
       min-height: 44px;
       min-width: 44px;
-      padding: 0.5rem;
-    }
-
-    /* Larger tap targets for navigation links */
-    nav a {
-      padding: 0.75rem 1rem;
     }
   }
 
@@ -399,14 +383,11 @@
     }
   }
 
-  /* Better touch targets for form elements */
-  input,
-  textarea,
-  select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-  }
+  /*
+     Form appearance note: Removing appearance globally breaks native UI
+     elements like checkboxes and selects. Apply appearance: none only
+     to specific styled form elements via component classes.
+  */
 
   /* ═══════════════════════════════════════════════════════════════════
      ORIENTATION HANDLING

@@ -1058,3 +1058,419 @@ Input: {
   "description": "Complete the build process",
   "timeout": 180000
 }
+
+
+---
+
+## Follow-up Session
+
+I can see from the screenshot that the UI is broken - the layout is completely messed up with elements stacking vertically without proper styling. This looks like the CSS changes I made broke the existing Tailwind classes. Let me investigate and fix the issues.
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate broken UI styles in globals.css",
+      "status": "in_progress",
+      "activeForm": "Investigating broken UI styles in globals.css"
+    },
+    {
+      "content": "Fix globals.css to restore proper styling",
+      "status": "pending",
+      "activeForm": "Fixing globals.css to restore proper styling"
+    },
+    {
+      "content": "Revert problematic changes to UI components",
+      "status": "pending",
+      "activeForm": "Reverting problematic changes to UI components"
+    },
+    {
+      "content": "Test the application after fixes",
+      "status": "pending",
+      "activeForm": "Testing the application after fixes"
+    }
+  ]
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\globals.css"
+}
+I can see the issue! On line 1, there's a typo: `@@import` instead of `@import`. This is breaking the entire CSS file. Let me fix this and also review the other problematic changes.
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\globals.css",
+  "old_string": "@@import \"tailwindcss\";",
+  "new_string": "@import \"tailwindcss\";"
+}
+Now let me check the other changes that might be causing issues. The global CSS rules that add min-height/min-width to ALL buttons and links are too aggressive and breaking the layout. Let me fix those:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\globals.css",
+  "old_string": "  /* Ensure minimum touch target size - WCAG 2.5.5 */\n  button,\n  [role=\"button\"],\n  a,\n  input[type=\"checkbox\"],\n  input[type=\"radio\"],\n  select {\n    min-height: 44px;\n    min-width: 44px;\n  }\n\n  /* Exception for inline links */\n  p a,\n  span a,\n  li a {\n    min-height: auto;\n    min-width: auto;\n  }",
+  "new_string": "  /*\n     Touch target size note: WCAG 2.5.5 recommends 44x44px touch targets.\n     We apply this selectively via utility classes rather than globally\n     to avoid breaking existing layouts. Use .touch-target class for\n     elements that need larger touch areas.\n  */\n  .touch-target {\n    min-height: 44px;\n    min-width: 44px;\n  }"
+}
+Now let me also fix the aggressive mobile touch target styles that are breaking the layout:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\globals.css",
+  "old_string": "  /* Improve tap targets with padding instead of just min-width/height */\n  @media (max-width: 767px) {\n    button,\n    [role=\"button\"],\n    a,\n    input[type=\"checkbox\"],\n    input[type=\"radio\"],\n    select {\n      min-height: 44px;\n      min-width: 44px;\n      padding: 0.5rem;\n    }\n\n    /* Larger tap targets for navigation links */\n    nav a {\n      padding: 0.75rem 1rem;\n    }\n  }",
+  "new_string": "  /*\n     Mobile touch target utilities - applied via classes, not globally.\n     Use .touch-target-mobile for elements needing larger touch areas on mobile.\n  */\n  @media (max-width: 767px) {\n    .touch-target-mobile {\n      min-height: 44px;\n      min-width: 44px;\n    }\n  }"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate broken UI styles in globals.css",
+      "status": "completed",
+      "activeForm": "Investigating broken UI styles in globals.css"
+    },
+    {
+      "content": "Fix globals.css to restore proper styling",
+      "status": "in_progress",
+      "activeForm": "Fixing globals.css to restore proper styling"
+    },
+    {
+      "content": "Revert problematic changes to UI components",
+      "status": "pending",
+      "activeForm": "Reverting problematic changes to UI components"
+    },
+    {
+      "content": "Test the application after fixes",
+      "status": "pending",
+      "activeForm": "Testing the application after fixes"
+    }
+  ]
+}
+Now let me also fix the form appearance styles that might be breaking selects and checkboxes:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\globals.css",
+  "old_string": "  /* Better touch targets for form elements */\n  input,\n  textarea,\n  select {\n    -webkit-appearance: none;\n    -moz-appearance: none;\n    appearance: none;\n  }",
+  "new_string": "  /*\n     Form appearance note: Removing appearance globally breaks native UI\n     elements like checkboxes and selects. Apply appearance: none only\n     to specific styled form elements via component classes.\n  */"
+}
+Now let me revert the problematic changes to the UI components. Let me start with the button component:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\button.tsx"
+}
+Let me revert the button to its original sizes while keeping the touch improvements minimal:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\button.tsx",
+  "old_string": "const buttonVariants = cva(\n  \"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive select-none touch-manipulation active:scale-[0.98] transition-transform\",\n  {\n    variants: {\n      variant: {\n        default: \"bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80\",\n        destructive:\n          \"bg-destructive text-white hover:bg-destructive/90 active:bg-destructive/80 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60\",\n        outline:\n          \"border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:bg-input/30 dark:border-input dark:hover:bg-input/50\",\n        secondary:\n          \"bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70\",\n        ghost:\n          \"hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:hover:bg-accent/50\",\n        link: \"text-primary underline-offset-4 hover:underline active:opacity-80\",\n      },\n      size: {\n        default: \"h-10 sm:h-9 px-4 py-2 has-[>svg]:px-3\",\n        sm: \"h-9 sm:h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5\",\n        lg: \"h-12 sm:h-10 rounded-md px-6 has-[>svg]:px-4\",\n        icon: \"size-10 sm:size-9\",\n        \"icon-sm\": \"size-9 sm:size-8\",\n        \"icon-lg\": \"size-11 sm:size-10\",\n        // Mobile-specific sizes that ensure 44px min touch targets\n        \"touch\": \"h-11 min-w-[44px] px-4 py-3\",\n        \"touch-lg\": \"h-12 min-w-[44px] px-6 py-3 text-base\",\n      },\n    },\n    defaultVariants: {\n      variant: \"default\",\n      size: \"default\",\n    },\n  }\n)",
+  "new_string": "const buttonVariants = cva(\n  \"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive\",\n  {\n    variants: {\n      variant: {\n        default: \"bg-primary text-primary-foreground hover:bg-primary/90\",\n        destructive:\n          \"bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60\",\n        outline:\n          \"border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50\",\n        secondary:\n          \"bg-secondary text-secondary-foreground hover:bg-secondary/80\",\n        ghost:\n          \"hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50\",\n        link: \"text-primary underline-offset-4 hover:underline\",\n      },\n      size: {\n        default: \"h-9 px-4 py-2 has-[>svg]:px-3\",\n        sm: \"h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5\",\n        lg: \"h-10 rounded-md px-6 has-[>svg]:px-4\",\n        icon: \"size-9\",\n        \"icon-sm\": \"size-8\",\n        \"icon-lg\": \"size-10\",\n      },\n    },\n    defaultVariants: {\n      variant: \"default\",\n      size: \"default\",\n    },\n  }\n)"
+}
+Now let me revert the Input component:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\input.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\input.tsx",
+  "old_string": "function Input({ className, type, ...props }: React.ComponentProps<\"input\">) {\n  // Map input types to appropriate mobile keyboard types\n  const inputMode = type === \"email\" ? \"email\" :\n                    type === \"tel\" ? \"tel\" :\n                    type === \"url\" ? \"url\" :\n                    type === \"number\" ? \"numeric\" :\n                    type === \"search\" ? \"search\" : undefined;\n\n  return (\n    <input\n      type={type}\n      inputMode={inputMode}\n      data-slot=\"input\"\n      className={cn(\n        // Base styles with mobile-first sizing\n        \"file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground\",\n        \"dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none\",\n        // Mobile-friendly height and padding (minimum 44px touch target)\n        \"h-11 sm:h-10 px-3 py-2.5 sm:py-2\",\n        // Font size 16px on mobile to prevent iOS zoom, smaller on desktop\n        \"text-base md:text-sm\",\n        // File input styling\n        \"file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium\",\n        // Disabled state\n        \"disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50\",\n        // Focus state\n        \"focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]\",\n        // Error/invalid state\n        \"aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive\",\n        // Touch optimization\n        \"touch-manipulation\",\n        className\n      )}\n      {...props}\n    />\n  )\n}",
+  "new_string": "function Input({ className, type, ...props }: React.ComponentProps<\"input\">) {\n  return (\n    <input\n      type={type}\n      data-slot=\"input\"\n      className={cn(\n        \"file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm\",\n        \"focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]\",\n        \"aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive\",\n        className\n      )}\n      {...props}\n    />\n  )\n}"
+}
+Now let me revert the Card component:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\card.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\card.tsx",
+  "old_string": "function Card({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card\"\n      className={cn(\n        // Base card styles\n        \"bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm\",\n        // Responsive gap and padding\n        \"gap-4 sm:gap-5 md:gap-6 py-4 sm:py-5 md:py-6\",\n        // Mobile-optimized border radius\n        \"rounded-lg sm:rounded-xl\",\n        className\n      )}\n      {...props}\n    />\n  )\n}",
+  "new_string": "function Card({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card\"\n      className={cn(\n        \"bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm\",\n        className\n      )}\n      {...props}\n    />\n  )\n}"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\card.tsx",
+  "old_string": "function CardHeader({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card-header\"\n      className={cn(\n        \"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 sm:gap-2\",\n        // Responsive horizontal padding\n        \"px-4 sm:px-5 md:px-6\",\n        // Card action grid layout\n        \"has-data-[slot=card-action]:grid-cols-[1fr_auto]\",\n        // Border bottom padding\n        \"[.border-b]:pb-4 sm:[.border-b]:pb-5 md:[.border-b]:pb-6\",\n        className\n      )}\n      {...props}\n    />\n  )\n}",
+  "new_string": "function CardHeader({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card-header\"\n      className={cn(\n        \"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6\",\n        className\n      )}\n      {...props}\n    />\n  )\n}"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\card.tsx",
+  "old_string": "function CardContent({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card-content\"\n      className={cn(\n        // Responsive horizontal padding\n        \"px-4 sm:px-5 md:px-6\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nfunction CardFooter({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card-footer\"\n      className={cn(\n        \"flex items-center\",\n        // Responsive horizontal padding\n        \"px-4 sm:px-5 md:px-6\",\n        // Border top padding\n        \"[.border-t]:pt-4 sm:[.border-t]:pt-5 md:[.border-t]:pt-6\",\n        // Stack on mobile for action buttons\n        \"flex-col sm:flex-row gap-3 sm:gap-4\",\n        className\n      )}\n      {...props}\n    />\n  )\n}",
+  "new_string": "function CardContent({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card-content\"\n      className={cn(\"px-6\", className)}\n      {...props}\n    />\n  )\n}\n\nfunction CardFooter({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      data-slot=\"card-footer\"\n      className={cn(\"flex items-center px-6 [.border-t]:pt-6\", className)}\n      {...props}\n    />\n  )\n}"
+}
+Now let me revert the Textarea component:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\textarea.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\textarea.tsx",
+  "old_string": "function Textarea({ className, ...props }: React.ComponentProps<\"textarea\">) {\n  return (\n    <textarea\n      data-slot=\"textarea\"\n      className={cn(\n        // Base styles\n        \"border-input placeholder:text-muted-foreground dark:bg-input/30\",\n        \"flex field-sizing-content w-full rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none\",\n        // Mobile-friendly sizing (minimum height for comfortable touch)\n        \"min-h-[100px] sm:min-h-16 px-3 py-3 sm:py-2\",\n        // Font size 16px on mobile to prevent iOS zoom, smaller on desktop\n        \"text-base md:text-sm\",\n        // Focus state\n        \"focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]\",\n        // Error/invalid state\n        \"aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive\",\n        // Disabled state\n        \"disabled:cursor-not-allowed disabled:opacity-50\",\n        // Touch optimization\n        \"touch-manipulation resize-y\",\n        className\n      )}\n      {...props}\n    />\n  )\n}",
+  "new_string": "function Textarea({ className, ...props }: React.ComponentProps<\"textarea\">) {\n  return (\n    <textarea\n      data-slot=\"textarea\"\n      className={cn(\n        \"border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm\",\n        className\n      )}\n      {...props}\n    />\n  )\n}"
+}
+Now let me revert the Dialog component:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\dialog.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\ui\\dialog.tsx",
+  "old_string": "function DialogContent({\n  className,\n  children,\n  showCloseButton = true,\n  ...props\n}: React.ComponentProps<typeof DialogPrimitive.Content> & {\n  showCloseButton?: boolean\n}) {\n  return (\n    <DialogPortal data-slot=\"dialog-portal\">\n      <DialogOverlay />\n      <DialogPrimitive.Content\n        data-slot=\"dialog-content\"\n        className={cn(\n          // Base styles\n          \"bg-background fixed z-50 grid border shadow-lg outline-none\",\n          // Animation\n          \"data-[state=open]:animate-in data-[state=closed]:animate-out\",\n          \"data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0\",\n          \"data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95\",\n          \"duration-200\",\n          // Mobile: Full-width bottom sheet style\n          \"inset-x-0 bottom-0 sm:bottom-auto sm:inset-x-auto\",\n          \"sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]\",\n          // Width and max height\n          \"w-full max-h-[90vh] sm:max-h-[85vh]\",\n          \"sm:max-w-[calc(100%-2rem)] md:max-w-lg\",\n          // Mobile: slide up animation\n          \"data-[state=closed]:slide-out-to-bottom sm:data-[state=closed]:slide-out-to-bottom-0\",\n          \"data-[state=open]:slide-in-from-bottom sm:data-[state=open]:slide-in-from-bottom-0\",\n          // Responsive padding and rounding\n          \"gap-4 sm:gap-4 p-4 sm:p-6\",\n          \"rounded-t-xl sm:rounded-lg\",\n          // Enable scrolling for overflow content\n          \"overflow-y-auto\",\n          // Safe area for mobile\n          \"pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6\",\n          className\n        )}\n        {...props}\n      >\n        {children}\n        {showCloseButton && (\n          <DialogPrimitive.Close\n            data-slot=\"dialog-close\"\n            className={cn(\n              \"ring-offset-background focus:ring-ring absolute rounded-xs opacity-70 transition-opacity\",\n              \"hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none\",\n              \"data-[state=open]:bg-accent data-[state=open]:text-muted-foreground\",\n              \"[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4\",\n              // Mobile: larger touch target\n              \"top-3 right-3 sm:top-4 sm:right-4 p-1.5 sm:p-0 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center\"\n            )}\n          >\n            <XIcon className=\"w-5 h-5 sm:w-4 sm:h-4\" />\n            <span className=\"sr-only\">Close</span>\n          </DialogPrimitive.Close>\n        )}\n      </DialogPrimitive.Content>\n    </DialogPortal>\n  )\n}",
+  "new_string": "function DialogContent({\n  className,\n  children,\n  showCloseButton = true,\n  ...props\n}: React.ComponentProps<typeof DialogPrimitive.Content> & {\n  showCloseButton?: boolean\n}) {\n  return (\n    <DialogPortal data-slot=\"dialog-portal\">\n      <DialogOverlay />\n      <DialogPrimitive.Content\n        data-slot=\"dialog-content\"\n        className={cn(\n          \"bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg\",\n          className\n        )}\n        {...props}\n      >\n        {children}\n        {showCloseButton && (\n          <DialogPrimitive.Close\n            data-slot=\"dialog-close\"\n            className=\"ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4\"\n          >\n            <XIcon />\n            <span className=\"sr-only\">Close</span>\n          </DialogPrimitive.Close>\n        )}\n      </DialogPrimitive.Content>\n    </DialogPortal>\n  )\n}"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate broken UI styles in globals.css",
+      "status": "completed",
+      "activeForm": "Investigating broken UI styles in globals.css"
+    },
+    {
+      "content": "Fix globals.css to restore proper styling",
+      "status": "completed",
+      "activeForm": "Fixing globals.css to restore proper styling"
+    },
+    {
+      "content": "Revert problematic changes to UI components",
+      "status": "completed",
+      "activeForm": "Reverting problematic changes to UI components"
+    },
+    {
+      "content": "Revert layout changes that broke the UI",
+      "status": "in_progress",
+      "activeForm": "Reverting layout changes that broke the UI"
+    },
+    {
+      "content": "Test the application after fixes",
+      "status": "pending",
+      "activeForm": "Testing the application after fixes"
+    }
+  ]
+}
+Now let me check and revert the layout files. Let me start with the dashboard layout:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\layout.tsx"
+}
+The dashboard layout looks reasonable with responsive classes. Let me check the NavTabs component which might be causing issues:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\nav-tabs.tsx"
+}
+The NavTabs component has `min-h-[44px]` which might be causing issues combined with the changes we made. Let me simplify it:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\nav-tabs.tsx",
+  "old_string": "export function NavTabs() {\n  const pathname = usePathname();\n\n  return (\n    <div className=\"-mb-px\" role=\"tablist\" aria-label=\"Dashboard navigation\">\n      {/* Mobile-scrollable navigation with hidden scrollbar */}\n      <div className=\"nav-scroll-mobile md:flex md:gap-1 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 md:mx-0 md:px-0\">\n        {tabs.map((tab) => {\n          const Icon = tab.icon;\n          // Check if pathname starts with tab href (for nested routes) or exact match for dashboard\n          const isActive = tab.href === '/dashboard'\n            ? pathname === tab.href\n            : pathname.startsWith(tab.href);\n          return (\n            <Button\n              key={tab.href}\n              variant=\"ghost\"\n              asChild\n              role=\"tab\"\n              aria-selected={isActive}\n              aria-current={isActive ? 'page' : undefined}\n              className={`\n                relative flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-3 sm:px-4 h-auto min-h-[44px]\n                rounded-t-lg rounded-b-none transition-all duration-150\n                text-sm sm:text-base\n                ${\n                  isActive\n                    ? 'bg-primary/10 text-primary hover:bg-primary/15 border-l-2 border-l-primary'\n                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'\n                }\n              `}\n            >\n              <Link\n                href={tab.href}\n                aria-label={`${tab.name}: ${tab.description}`}\n                className=\"flex items-center gap-1.5 sm:gap-2\"\n              >\n                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} aria-hidden=\"true\" />\n                <span className=\"whitespace-nowrap\">{tab.name}</span>\n                {isActive && (\n                  <span\n                    className=\"absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full\"\n                    aria-hidden=\"true\"\n                  />\n                )}\n              </Link>\n            </Button>\n          );\n        })}\n      </div>\n    </div>\n  );\n}",
+  "new_string": "export function NavTabs() {\n  const pathname = usePathname();\n\n  return (\n    <div className=\"-mb-px\" role=\"tablist\" aria-label=\"Dashboard navigation\">\n      <div className=\"flex gap-1\">\n        {tabs.map((tab) => {\n          const Icon = tab.icon;\n          // Check if pathname starts with tab href (for nested routes) or exact match for dashboard\n          const isActive = tab.href === '/dashboard'\n            ? pathname === tab.href\n            : pathname.startsWith(tab.href);\n          return (\n            <Button\n              key={tab.href}\n              variant=\"ghost\"\n              asChild\n              role=\"tab\"\n              aria-selected={isActive}\n              aria-current={isActive ? 'page' : undefined}\n              className={`\n                relative flex items-center gap-2 py-3 px-4 h-auto rounded-t-lg rounded-b-none transition-all duration-150\n                ${\n                  isActive\n                    ? 'bg-primary/10 text-primary hover:bg-primary/15 border-l-2 border-l-primary'\n                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'\n                }\n              `}\n            >\n              <Link\n                href={tab.href}\n                aria-label={`${tab.name}: ${tab.description}`}\n              >\n                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} aria-hidden=\"true\" />\n                <span>{tab.name}</span>\n                {isActive && (\n                  <span\n                    className=\"absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full\"\n                    aria-hidden=\"true\"\n                  />\n                )}\n              </Link>\n            </Button>\n          );\n        })}\n      </div>\n    </div>\n  );\n}"
+}
+Now let me revert the dashboard layout to the original styling:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(dashboard)\\dashboard\\layout.tsx",
+  "old_string": "      {/* Header with glassmorphism - Mobile responsive */}\n      <header className=\"glass glass-header-glow sticky top-0 z-50 safe-area-inset-top\" role=\"banner\">\n        <div className=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4\">\n          <div className=\"flex items-center justify-between gap-2\">\n            {/* Logo/Brand */}\n            <div className=\"flex items-center gap-2 sm:gap-2.5 min-w-0\">\n              <div className=\"flex items-center justify-center w-8 h-8 flex-shrink-0 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md\" aria-hidden=\"true\">\n                <Activity className=\"w-5 h-5 text-primary-foreground\" aria-hidden=\"true\" />\n              </div>\n              <h1 className=\"text-lg sm:text-xl font-bold tracking-tight text-foreground truncate\">Kametrix</h1>\n            </div>\n\n            {/* Theme Toggle & User Menu */}\n            <div className=\"flex items-center gap-2 sm:gap-3 flex-shrink-0\" role=\"group\" aria-label=\"User controls\">\n              <ThemeToggle />\n              <UserMenu user={user} />\n            </div>\n          </div>\n        </div>\n      </header>\n\n      {/* Navigation Tabs with glass effect - Mobile scrollable */}\n      <nav className=\"glass border-b border-border/50\" aria-label=\"Main navigation\">\n        <div className=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\">\n          <NavTabs />\n        </div>\n      </nav>\n\n      {/* Main Content - Mobile responsive padding */}\n      <main\n        id=\"main-content\"\n        className=\"relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8\"\n        role=\"main\"\n        aria-label=\"Main content\"\n      >\n        {children}\n      </main>",
+  "new_string": "      {/* Header with glassmorphism */}\n      <header className=\"glass glass-header-glow sticky top-0 z-50\" role=\"banner\">\n        <div className=\"max-w-7xl mx-auto px-8 py-4\">\n          <div className=\"flex items-center justify-between\">\n            {/* Logo/Brand */}\n            <div className=\"flex items-center gap-2.5\">\n              <div className=\"flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg shadow-md\" aria-hidden=\"true\">\n                <Activity className=\"w-5 h-5 text-primary-foreground\" aria-hidden=\"true\" />\n              </div>\n              <h1 className=\"text-xl font-bold tracking-tight text-foreground\">Kametrix</h1>\n            </div>\n\n            {/* Theme Toggle & User Menu */}\n            <div className=\"flex items-center gap-3\" role=\"group\" aria-label=\"User controls\">\n              <ThemeToggle />\n              <UserMenu user={user} />\n            </div>\n          </div>\n        </div>\n      </header>\n\n      {/* Navigation Tabs with glass effect */}\n      <nav className=\"glass border-b border-border/50\" aria-label=\"Main navigation\">\n        <div className=\"max-w-7xl mx-auto px-8\">\n          <NavTabs />\n        </div>\n      </nav>\n\n      {/* Main Content */}\n      <main\n        id=\"main-content\"\n        className=\"relative max-w-7xl mx-auto px-8 py-8\"\n        role=\"main\"\n        aria-label=\"Main content\"\n      >\n        {children}\n      </main>"
+}
+Now let me revert the marketing layout. Let me check it:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(marketing)\\layout.tsx"
+}
+The marketing layout has a lot of changes. Let me revert it to the original simpler version:
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(marketing)\\layout.tsx",
+  "content": "import Link from \"next/link\";\n\nexport default function MarketingLayout({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  return (\n    <div className=\"min-h-screen bg-[#06040d] text-white relative overflow-hidden\">\n      {/* Subtle grid pattern overlay */}\n      <div\n        className=\"absolute inset-0 opacity-[0.03] pointer-events-none\"\n        style={{\n          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),\n                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,\n          backgroundSize: \"60px 60px\",\n        }}\n      />\n\n      {/* Gradient background overlay */}\n      <div className=\"absolute inset-0 bg-gradient-to-b from-purple-900/20 via-[#06040d] to-[#06040d] pointer-events-none\" />\n\n      {/* Navigation header */}\n      <header className=\"relative z-50\">\n        <nav className=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6\">\n          <div className=\"flex items-center justify-between\">\n            {/* Logo */}\n            <Link\n              href=\"/\"\n              className=\"text-2xl font-bold tracking-tight hover:opacity-80 transition-opacity\"\n            >\n              <span className=\"bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent\">\n                Kametrix\n              </span>\n            </Link>\n\n            {/* Navigation links */}\n            <div className=\"hidden md:flex items-center gap-8\">\n              <Link\n                href=\"#features\"\n                className=\"text-sm text-gray-400 hover:text-white transition-colors\"\n              >\n                Funktionen\n              </Link>\n              <Link\n                href=\"#how-it-works\"\n                className=\"text-sm text-gray-400 hover:text-white transition-colors\"\n              >\n                So funktioniert&apos;s\n              </Link>\n            </div>\n\n            {/* CTA button */}\n            <Link\n              href=\"/login\"\n              className=\"px-5 py-2.5 text-sm font-medium rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all\"\n            >\n              Anmelden\n            </Link>\n          </div>\n        </nav>\n      </header>\n\n      {/* Main content */}\n      <main className=\"relative z-10\">{children}</main>\n\n      {/* Footer */}\n      <footer className=\"relative z-10 border-t border-white/10 mt-24\">\n        <div className=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12\">\n          <div className=\"flex flex-col md:flex-row items-center justify-between gap-6\">\n            <div className=\"text-sm text-gray-500\">\n              © {new Date().getFullYear()} Kametrix. Alle Rechte vorbehalten.\n            </div>\n            <div className=\"flex items-center gap-6\">\n              <Link\n                href=\"/impressum\"\n                className=\"text-sm text-gray-500 hover:text-gray-300 transition-colors\"\n              >\n                Impressum\n              </Link>\n              <Link\n                href=\"/datenschutz\"\n                className=\"text-sm text-gray-500 hover:text-gray-300 transition-colors\"\n              >\n                Datenschutz\n              </Link>\n            </div>\n          </div>\n        </div>\n      </footer>\n    </div>\n  );\n}\n"
+}
+Now let me check and revert the auth layout:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(auth)\\layout.tsx"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(auth)\\layout.tsx",
+  "old_string": "      {/* Primary atmospheric glow - purple with breathing animation (scaled for mobile) */}\n      <motion.div\n        className=\"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[250px] sm:w-[500px] sm:h-[350px] md:w-[700px] md:h-[500px] rounded-full pointer-events-none\"\n        style={{\n          background: \"radial-gradient(ellipse at center, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0.15) 35%, rgba(139, 92, 246, 0.05) 55%, transparent 70%)\",\n          filter: \"blur(80px)\",\n        }}\n        animate={{\n          scale: [1, 1.08, 1],\n          opacity: [0.8, 1, 0.8],\n        }}\n        transition={{ duration: 6, repeat: Infinity, ease: \"easeInOut\" }}\n      />\n\n      {/* Secondary atmospheric glow - magenta with drift animation (hidden on very small screens) */}\n      <motion.div\n        className=\"hidden sm:block absolute top-[35%] left-[65%] -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px] rounded-full pointer-events-none\"\n        style={{\n          background: \"radial-gradient(ellipse at center, rgba(236, 72, 153, 0.3) 0%, rgba(168, 85, 247, 0.15) 40%, rgba(168, 85, 247, 0.05) 60%, transparent 70%)\",\n          filter: \"blur(100px)\",\n        }}\n        animate={{\n          x: [0, 30, 0, -30, 0],\n          y: [0, -20, 0, 20, 0],\n          opacity: [0.6, 0.8, 0.6],\n        }}\n        transition={{ duration: 12, repeat: Infinity, ease: \"easeInOut\" }}\n      />\n\n      {/* Tertiary glow - blue accent for depth (hidden on mobile for performance) */}\n      <motion.div\n        className=\"hidden md:block absolute top-[60%] left-[35%] -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full pointer-events-none\"\n        style={{\n          background: \"radial-gradient(ellipse at center, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%)\",\n          filter: \"blur(90px)\",\n        }}\n        animate={{\n          opacity: [0.4, 0.6, 0.4],\n          scale: [1, 1.1, 1],\n        }}\n        transition={{ duration: 8, repeat: Infinity, ease: \"easeInOut\", delay: 2 }}\n      />",
+  "new_string": "      {/* Primary atmospheric glow - purple with breathing animation */}\n      <motion.div\n        className=\"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full pointer-events-none\"\n        style={{\n          background: \"radial-gradient(ellipse at center, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0.15) 35%, rgba(139, 92, 246, 0.05) 55%, transparent 70%)\",\n          filter: \"blur(80px)\",\n        }}\n        animate={{\n          scale: [1, 1.08, 1],\n          opacity: [0.8, 1, 0.8],\n        }}\n        transition={{ duration: 6, repeat: Infinity, ease: \"easeInOut\" }}\n      />\n\n      {/* Secondary atmospheric glow - magenta with drift animation */}\n      <motion.div\n        className=\"absolute top-[35%] left-[65%] -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full pointer-events-none\"\n        style={{\n          background: \"radial-gradient(ellipse at center, rgba(236, 72, 153, 0.3) 0%, rgba(168, 85, 247, 0.15) 40%, rgba(168, 85, 247, 0.05) 60%, transparent 70%)\",\n          filter: \"blur(100px)\",\n        }}\n        animate={{\n          x: [0, 30, 0, -30, 0],\n          y: [0, -20, 0, 20, 0],\n          opacity: [0.6, 0.8, 0.6],\n        }}\n        transition={{ duration: 12, repeat: Infinity, ease: \"easeInOut\" }}\n      />\n\n      {/* Tertiary glow - blue accent for depth */}\n      <motion.div\n        className=\"absolute top-[60%] left-[35%] -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full pointer-events-none\"\n        style={{\n          background: \"radial-gradient(ellipse at center, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%)\",\n          filter: \"blur(90px)\",\n        }}\n        animate={{\n          opacity: [0.4, 0.6, 0.4],\n          scale: [1, 1.1, 1],\n        }}\n        transition={{ duration: 8, repeat: Infinity, ease: \"easeInOut\", delay: 2 }}\n      />"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\(auth)\\layout.tsx",
+  "old_string": "      {/* Main content container - Mobile responsive with safe area support */}\n      <main\n        id=\"auth-main-content\"\n        className=\"relative z-10 w-full max-w-md px-4 sm:px-6 py-6 sm:py-0 safe-area-inset-top safe-area-inset-bottom\"\n        role=\"main\"\n        aria-label=\"Authentication\"\n      >\n        {children}\n      </main>",
+  "new_string": "      {/* Main content container */}\n      <main\n        id=\"auth-main-content\"\n        className=\"relative z-10 w-full max-w-md px-4\"\n        role=\"main\"\n        aria-label=\"Authentication\"\n      >\n        {children}\n      </main>"
+}
+Now let me also check and revert the root layout:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\layout.tsx"
+}
+The root layout looks fine with the viewport changes - those are good additions. Let me also delete the responsive-image.tsx component that was created unnecessarily:
+
+🔧 Tool: Bash
+Input: {
+  "command": "rm -f \"F:/CodeBase/Kametrix/src/components/ui/responsive-image.tsx\"",
+  "description": "Remove unnecessary responsive-image component"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate broken UI styles in globals.css",
+      "status": "completed",
+      "activeForm": "Investigating broken UI styles in globals.css"
+    },
+    {
+      "content": "Fix globals.css to restore proper styling",
+      "status": "completed",
+      "activeForm": "Fixing globals.css to restore proper styling"
+    },
+    {
+      "content": "Revert problematic changes to UI components",
+      "status": "completed",
+      "activeForm": "Reverting problematic changes to UI components"
+    },
+    {
+      "content": "Revert layout changes that broke the UI",
+      "status": "completed",
+      "activeForm": "Reverting layout changes that broke the UI"
+    },
+    {
+      "content": "Test the application after fixes",
+      "status": "in_progress",
+      "activeForm": "Testing the application after fixes"
+    }
+  ]
+}
+Now let me test by building the application:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd /f/CodeBase/Kametrix && npm run build 2>&1",
+  "description": "Build the Next.js application to verify fixes",
+  "timeout": 180000
+}
+The build succeeded. Now let me verify the CSS file is correct by checking the first few lines:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\globals.css",
+  "limit": 50
+}
+The CSS file looks correct now with `@import "tailwindcss";` properly formatted. Let me update the todo list and provide a summary:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Investigate broken UI styles in globals.css",
+      "status": "completed",
+      "activeForm": "Investigating broken UI styles in globals.css"
+    },
+    {
+      "content": "Fix globals.css to restore proper styling",
+      "status": "completed",
+      "activeForm": "Fixing globals.css to restore proper styling"
+    },
+    {
+      "content": "Revert problematic changes to UI components",
+      "status": "completed",
+      "activeForm": "Reverting problematic changes to UI components"
+    },
+    {
+      "content": "Revert layout changes that broke the UI",
+      "status": "completed",
+      "activeForm": "Reverting layout changes that broke the UI"
+    },
+    {
+      "content": "Test the application after fixes",
+      "status": "completed",
+      "activeForm": "Testing the application after fixes"
+    }
+  ]
+}
+<summary>
+## Summary: Fix Broken UI After Mobile-Responsive Implementation
+
+### Root Cause
+The previous implementation introduced a **critical typo** in `globals.css` - `@@import "tailwindcss"` instead of `@import "tailwindcss"`. This single character broke the entire CSS import, causing Tailwind CSS classes to not be applied, resulting in a completely broken UI.
+
+Additionally, several **overly aggressive global CSS rules** were added that broke the layout:
+- Global `min-height: 44px` and `min-width: 44px` on ALL buttons, links, inputs, checkboxes, and selects
+- Forced `padding: 0.5rem` on all interactive elements on mobile
+- Global `appearance: none` on all form elements (breaking checkboxes and selects)
+
+### Changes Made (Fixes)
+
+**Fixed `src/app/globals.css`:**
+1. Corrected `@@import` typo to `@import`
+2. Removed aggressive global touch target rules - replaced with opt-in `.touch-target` utility class
+3. Removed global `appearance: none` that was breaking native form elements
+4. Kept the useful mobile utility classes (safe area insets, responsive grids, navigation scroll) as opt-in utilities
+
+**Reverted UI Components:**
+- `src/components/ui/button.tsx` - Restored original sizing
+- `src/components/ui/input.tsx` - Restored original styling
+- `src/components/ui/card.tsx` - Restored original padding
+- `src/components/ui/textarea.tsx` - Restored original styling
+- `src/components/ui/dialog.tsx` - Restored original positioning
+
+**Reverted Layout Files:**
+- `src/app/(dashboard)/dashboard/layout.tsx` - Restored original padding and structure
+- `src/components/dashboard/nav-tabs.tsx` - Restored original navigation styling
+- `src/app/(marketing)/layout.tsx` - Reverted to simple layout without mobile menu state
+- `src/app/(auth)/layout.tsx` - Restored original glow sizing and main container
+
+**Removed:**
+- `src/components/ui/responsive-image.tsx` - Unnecessary new file
+
+### Files Modified
+- `src/app/globals.css`
+- `src/components/ui/button.tsx`
+- `src/components/ui/input.tsx`
+- `src/components/ui/card.tsx`
+- `src/components/ui/textarea.tsx`
+- `src/components/ui/dialog.tsx`
+- `src/app/(dashboard)/dashboard/layout.tsx`
+- `src/components/dashboard/nav-tabs.tsx`
+- `src/app/(marketing)/layout.tsx`
+- `src/app/(auth)/layout.tsx`
+- `src/app/layout.tsx` (viewport settings retained - these are good additions)
+
+### Notes for Developer
+- The build now completes successfully
+- The mobile-responsive utilities are still available in `globals.css` as **opt-in classes** (e.g., `.touch-target`, `.safe-area-inset-*`, `.nav-scroll-mobile`, `.grid-responsive-1-2-3`)
+- The viewport meta tag with proper mobile settings was retained in the root layout
+- To implement mobile-responsive features properly in the future:
+  1. Use Tailwind's built-in responsive prefixes (`sm:`, `md:`, `lg:`) rather than global CSS rules
+  2. Apply touch target sizing to specific components rather than globally
+  3. Test CSS changes incrementally to catch typos like `@@import`
+</summary>
