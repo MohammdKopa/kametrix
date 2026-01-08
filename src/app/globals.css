@@ -3,103 +3,81 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ═══════════════════════════════════════════════════════════════════
-   RESPONSIVE BREAKPOINTS CONFIGURATION
-   Mobile-first approach with the following breakpoints:
-   - xs: 320px (minimum mobile)
-   - sm: 480px (mobile landscape/large phones)
-   - md: 768px (tablet)
-   - lg: 1024px (desktop)
-   - xl: 1280px (large desktop)
-   - 2xl: 1536px (extra large desktop)
-═══════════════════════════════════════════════════════════════════ */
-
-/* Custom breakpoint for very small screens (320px) */
-@custom-media --xs-screen (min-width: 320px);
-@custom-media --sm-screen (min-width: 480px);
-@custom-media --md-screen (min-width: 768px);
-@custom-media --lg-screen (min-width: 1024px);
-@custom-media --xl-screen (min-width: 1280px);
-
-/* Mobile-only styles (max-width queries for mobile-specific overrides) */
-@custom-media --mobile-only (max-width: 767px);
-@custom-media --tablet-only (min-width: 768px) and (max-width: 1023px);
-
 :root {
   --radius: 0.75rem;
-  /* Light mode - WCAG 2.1 AA compliant colors */
+  /* Light mode - softer, less bright */
   --background: oklch(0.97 0.01 285);
-  --foreground: oklch(0.18 0.02 285); /* Darker for better contrast (4.5:1+) */
+  --foreground: oklch(0.2 0.02 285);
   --card: oklch(0.99 0.005 285);
-  --card-foreground: oklch(0.18 0.02 285);
+  --card-foreground: oklch(0.2 0.02 285);
   --popover: oklch(0.99 0.005 285);
-  --popover-foreground: oklch(0.18 0.02 285);
-  /* Primary - purple for light mode (WCAG AA compliant) */
-  --primary: oklch(0.4 0.2 300); /* Darker for better contrast */
+  --popover-foreground: oklch(0.2 0.02 285);
+  /* Primary - purple for light mode */
+  --primary: oklch(0.45 0.2 300);
   --primary-foreground: oklch(0.98 0.01 285);
   --secondary: oklch(0.93 0.02 285);
-  --secondary-foreground: oklch(0.22 0.02 285);
-  /* Muted - adjusted for WCAG AA 4.5:1 contrast */
+  --secondary-foreground: oklch(0.25 0.02 285);
+  /* Muted - visible gray, not almost white */
   --muted: oklch(0.9 0.02 285);
-  --muted-foreground: oklch(0.4 0.02 285); /* Darker for better readability */
+  --muted-foreground: oklch(0.45 0.02 285);
   /* Accent - purple/pink for light mode (visible!) */
-  --accent: oklch(0.45 0.22 305); /* Darker for better contrast */
+  --accent: oklch(0.5 0.22 305);
   --accent-foreground: oklch(0.98 0.01 285);
-  --destructive: oklch(0.5 0.22 25); /* Darker for better contrast */
+  --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.98 0.01 285);
-  --border: oklch(0.85 0.02 285); /* Slightly darker for visibility */
+  --border: oklch(0.88 0.02 285);
   --input: oklch(0.92 0.01 285);
-  --ring: oklch(0.4 0.2 300);
-  --chart-1: oklch(0.5 0.2 40);
-  --chart-2: oklch(0.45 0.15 185);
-  --chart-3: oklch(0.35 0.1 227);
-  --chart-4: oklch(0.65 0.18 85);
-  --chart-5: oklch(0.6 0.18 70);
+  --ring: oklch(0.45 0.2 300);
+  --chart-1: oklch(0.55 0.2 40);
+  --chart-2: oklch(0.5 0.15 185);
+  --chart-3: oklch(0.4 0.1 227);
+  --chart-4: oklch(0.7 0.18 85);
+  --chart-5: oklch(0.65 0.18 70);
   --sidebar: oklch(0.96 0.01 285);
-  --sidebar-foreground: oklch(0.18 0.02 285);
-  --sidebar-primary: oklch(0.4 0.2 300);
+  --sidebar-foreground: oklch(0.2 0.02 285);
+  --sidebar-primary: oklch(0.45 0.2 300);
   --sidebar-primary-foreground: oklch(0.98 0.01 285);
   --sidebar-accent: oklch(0.92 0.02 285);
-  --sidebar-accent-foreground: oklch(0.22 0.02 285);
-  --sidebar-border: oklch(0.85 0.02 285);
-  --sidebar-ring: oklch(0.4 0.2 300);
+  --sidebar-accent-foreground: oklch(0.25 0.02 285);
+  --sidebar-border: oklch(0.88 0.02 285);
+  --sidebar-ring: oklch(0.45 0.2 300);
 }
 
 .dark {
-  /* Dark mode - WCAG 2.1 AA compliant colors */
+  /* Proximab-inspired purple/pink dark theme */
   --radius: 0.75rem;
   --background: oklch(0.08 0.03 285);
-  --foreground: oklch(0.95 0.01 285); /* High contrast white */
+  --foreground: oklch(0.98 0.01 285);
   --card: oklch(0.12 0.04 285);
-  --card-foreground: oklch(0.95 0.01 285);
+  --card-foreground: oklch(0.98 0.01 285);
   --popover: oklch(0.1 0.04 285);
-  --popover-foreground: oklch(0.95 0.01 285);
-  --primary: oklch(0.65 0.25 300); /* Brighter for dark mode */
-  --primary-foreground: oklch(0.1 0.02 285);
+  --popover-foreground: oklch(0.98 0.01 285);
+  --primary: oklch(0.55 0.25 300);
+  --primary-foreground: oklch(0.98 0.01 285);
   --secondary: oklch(0.18 0.05 285);
-  --secondary-foreground: oklch(0.95 0.01 285);
+  --secondary-foreground: oklch(0.98 0.01 285);
   --muted: oklch(0.15 0.04 285);
-  --muted-foreground: oklch(0.7 0.02 285); /* Brighter for better contrast */
-  --accent: oklch(0.6 0.3 305); /* Brighter for visibility */
-  --accent-foreground: oklch(0.1 0.02 285);
-  --destructive: oklch(0.6 0.2 25); /* Brighter for dark mode */
+  --muted-foreground: oklch(0.65 0.02 285);
+  --accent: oklch(0.45 0.3 305);
+  --accent-foreground: oklch(0.98 0.01 285);
+  --destructive: oklch(0.55 0.2 25);
   --destructive-foreground: oklch(0.98 0.01 285);
-  --border: oklch(0.3 0.05 285); /* Slightly brighter for visibility */
+  --border: oklch(0.25 0.05 285);
   --input: oklch(0.2 0.04 285);
-  --ring: oklch(0.65 0.25 300);
+  --ring: oklch(0.55 0.25 300);
   --chart-1: oklch(0.8 0.2 320);
-  --chart-2: oklch(0.65 0.25 300);
-  --chart-3: oklch(0.55 0.3 305);
-  --chart-4: oklch(0.65 0.15 200);
-  --chart-5: oklch(0.75 0.18 150);
+  --chart-2: oklch(0.55 0.25 300);
+  --chart-3: oklch(0.45 0.3 305);
+  --chart-4: oklch(0.6 0.15 200);
+  --chart-5: oklch(0.7 0.18 150);
   --sidebar: oklch(0.1 0.04 285);
-  --sidebar-foreground: oklch(0.95 0.01 285);
-  --sidebar-primary: oklch(0.65 0.25 300);
-  --sidebar-primary-foreground: oklch(0.1 0.02 285);
+  --sidebar-foreground: oklch(0.98 0.01 285);
+  --sidebar-primary: oklch(0.55 0.25 300);
+  --sidebar-primary-foreground: oklch(0.98 0.01 285);
   --sidebar-accent: oklch(0.18 0.05 285);
-  --sidebar-accent-foreground: oklch(0.95 0.01 285);
-  --sidebar-border: oklch(0.3 0.05 285);
-  --sidebar-ring: oklch(0.65 0.25 300);
+  --sidebar-accent-foreground: oklch(0.98 0.01 285);
+  --sidebar-border: oklch(0.25 0.05 285);
+  --sidebar-ring: oklch(0.55 0.25 300);
 }
 
 @theme inline {
@@ -154,264 +132,6 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     ACCESSIBILITY UTILITIES - WCAG 2.1 AA Compliant
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Screen Reader Only - visually hidden but accessible to screen readers */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  /* Make sr-only visible on focus (for skip links) */
-  .sr-only-focusable:focus,
-  .sr-only-focusable:active {
-    position: static;
-    width: auto;
-    height: auto;
-    padding: inherit;
-    margin: inherit;
-    overflow: visible;
-    clip: auto;
-    white-space: inherit;
-  }
-
-  /* Focus visible indicator enhancement */
-  :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-
-  /* Keyboard navigation indicator on body */
-  .keyboard-navigation *:focus {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-
-  /* Reduced motion preference support */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
-
-  /* High contrast mode support */
-  @media (prefers-contrast: more) {
-    :root {
-      --foreground: oklch(0.1 0.02 285);
-      --muted-foreground: oklch(0.3 0.02 285);
-      --border: oklch(0.6 0.02 285);
-    }
-
-    .dark {
-      --foreground: oklch(1 0 0);
-      --muted-foreground: oklch(0.85 0.01 285);
-      --border: oklch(0.5 0.05 285);
-    }
-  }
-
-  /*
-     Touch target size note: WCAG 2.5.5 recommends 44x44px touch targets.
-     We apply this selectively via utility classes rather than globally
-     to avoid breaking existing layouts. Use .touch-target class for
-     elements that need larger touch areas.
-  */
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE-RESPONSIVE TYPOGRAPHY SCALE
-     Fluid typography that scales from mobile to desktop
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Base font size adjustments for mobile readability */
-  html {
-    font-size: 16px; /* Base size for mobile */
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-  }
-
-  @media (min-width: 768px) {
-    html {
-      font-size: 16px;
-    }
-  }
-
-  /* Fluid typography for headings */
-  h1 {
-    font-size: clamp(1.75rem, 5vw, 3rem);
-    line-height: 1.2;
-  }
-
-  h2 {
-    font-size: clamp(1.5rem, 4vw, 2.25rem);
-    line-height: 1.25;
-  }
-
-  h3 {
-    font-size: clamp(1.25rem, 3vw, 1.75rem);
-    line-height: 1.3;
-  }
-
-  h4 {
-    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-    line-height: 1.35;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE TOUCH ENHANCEMENTS
-     Improve touch interactions on mobile devices
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Prevent text selection on buttons for cleaner touch interactions */
-  button,
-  [role="button"] {
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-
-  /*
-     Mobile touch target utilities - applied via classes, not globally.
-     Use .touch-target-mobile for elements needing larger touch areas on mobile.
-  */
-  @media (max-width: 767px) {
-    .touch-target-mobile {
-      min-height: 44px;
-      min-width: 44px;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE SPACING UTILITIES
-     Responsive spacing for mobile viewports
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Safe area insets for notched devices (iPhone X and similar) */
-  .safe-area-inset-top {
-    padding-top: env(safe-area-inset-top, 0);
-  }
-
-  .safe-area-inset-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-
-  .safe-area-inset-left {
-    padding-left: env(safe-area-inset-left, 0);
-  }
-
-  .safe-area-inset-right {
-    padding-right: env(safe-area-inset-right, 0);
-  }
-
-  /* Mobile-first container padding */
-  .container-responsive {
-    width: 100%;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  @media (min-width: 480px) {
-    .container-responsive {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .container-responsive {
-      padding-left: 2rem;
-      padding-right: 2rem;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     RESPONSIVE IMAGES
-     Ensure images scale properly and don't cause horizontal overflow
-  ═══════════════════════════════════════════════════════════════════ */
-
-  img,
-  video,
-  iframe,
-  embed,
-  object {
-    max-width: 100%;
-    height: auto;
-  }
-
-  /* Prevent horizontal scrolling on mobile */
-  body {
-    overflow-x: hidden;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE FORM ENHANCEMENTS
-     Better form UX on mobile devices
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Prevent zoom on input focus in iOS */
-  @media (max-width: 767px) {
-    input[type="text"],
-    input[type="email"],
-    input[type="password"],
-    input[type="number"],
-    input[type="tel"],
-    input[type="url"],
-    input[type="search"],
-    textarea,
-    select {
-      font-size: 16px !important; /* Prevents iOS zoom on focus */
-    }
-  }
-
-  /*
-     Form appearance note: Removing appearance globally breaks native UI
-     elements like checkboxes and selects. Apply appearance: none only
-     to specific styled form elements via component classes.
-  */
-
-  /* ═══════════════════════════════════════════════════════════════════
-     ORIENTATION HANDLING
-     Handle landscape and portrait orientations
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Landscape orientation adjustments for mobile */
-  @media (max-width: 896px) and (orientation: landscape) {
-    .hide-landscape {
-      display: none;
-    }
-
-    /* Reduce vertical spacing in landscape mode */
-    .landscape-compact {
-      padding-top: 0.5rem;
-      padding-bottom: 0.5rem;
-    }
-  }
-
-  /* Portrait-specific styles */
-  @media (orientation: portrait) {
-    .hide-portrait {
-      display: none;
-    }
   }
 }
 
@@ -717,233 +437,5 @@
 
   .card-spotlight:hover::after {
     opacity: 1;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE NAVIGATION COMPONENTS
-     Responsive navigation patterns for mobile devices
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Mobile horizontal scroll navigation */
-  .nav-scroll-mobile {
-    display: flex;
-    gap: 0.25rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding-bottom: 2px; /* Prevent cutoff of focus rings */
-  }
-
-  .nav-scroll-mobile::-webkit-scrollbar {
-    display: none;
-  }
-
-  .nav-scroll-mobile > * {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-  }
-
-  /* Mobile menu overlay */
-  .mobile-menu-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    background: oklch(0 0 0 / 0.5);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-  }
-
-  /* Mobile slide-in menu */
-  .mobile-menu {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(80vw, 320px);
-    z-index: 50;
-    background: var(--background);
-    box-shadow: -4px 0 16px oklch(0 0 0 / 0.2);
-    transform: translateX(100%);
-    transition: transform 0.3s ease-out;
-  }
-
-  .mobile-menu.open {
-    transform: translateX(0);
-  }
-
-  .dark .mobile-menu {
-    background: var(--background);
-    box-shadow: -4px 0 20px oklch(0 0 0 / 0.4);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE-RESPONSIVE CARDS
-     Card components that adapt to mobile viewports
-  ═══════════════════════════════════════════════════════════════════ */
-
-  .card-responsive {
-    padding: 1rem;
-  }
-
-  @media (min-width: 480px) {
-    .card-responsive {
-      padding: 1.25rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .card-responsive {
-      padding: 1.5rem;
-    }
-  }
-
-  /* Stack card content on mobile */
-  .card-stack-mobile {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  @media (min-width: 768px) {
-    .card-stack-mobile {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     RESPONSIVE GRID LAYOUTS
-     Adaptive grids that work across all device sizes
-  ═══════════════════════════════════════════════════════════════════ */
-
-  .grid-responsive-1-2-3 {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  @media (min-width: 640px) {
-    .grid-responsive-1-2-3 {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.25rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .grid-responsive-1-2-3 {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-    }
-  }
-
-  /* 1 column on mobile, 2 on tablet+ */
-  .grid-responsive-1-2 {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  @media (min-width: 768px) {
-    .grid-responsive-1-2 {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.5rem;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE BUTTON UTILITIES
-     Touch-friendly button styles
-  ═══════════════════════════════════════════════════════════════════ */
-
-  /* Full-width button on mobile, auto on larger screens */
-  .btn-mobile-full {
-    width: 100%;
-  }
-
-  @media (min-width: 480px) {
-    .btn-mobile-full {
-      width: auto;
-    }
-  }
-
-  /* Larger buttons on mobile for easier tapping */
-  .btn-touch {
-    min-height: 48px;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-  }
-
-  @media (min-width: 768px) {
-    .btn-touch {
-      min-height: 40px;
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     RESPONSIVE TEXT UTILITIES
-     Hide/show text based on screen size
-  ═══════════════════════════════════════════════════════════════════ */
-
-  .text-mobile-hidden {
-    display: none;
-  }
-
-  @media (min-width: 480px) {
-    .text-mobile-hidden {
-      display: inline;
-    }
-  }
-
-  .text-desktop-hidden {
-    display: inline;
-  }
-
-  @media (min-width: 768px) {
-    .text-desktop-hidden {
-      display: none;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════
-     MOBILE STICKY FOOTER
-     Fixed bottom navigation for mobile
-  ═══════════════════════════════════════════════════════════════════ */
-
-  .mobile-bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 40;
-    background: var(--background);
-    border-top: 1px solid var(--border);
-    padding: 0.5rem;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-  }
-
-  @media (min-width: 768px) {
-    .mobile-bottom-nav {
-      display: none;
-    }
-  }
-
-  /* Add bottom padding to body when mobile nav is present */
-  .has-mobile-bottom-nav {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0));
-  }
-
-  @media (min-width: 768px) {
-    .has-mobile-bottom-nav {
-      padding-bottom: 0;
-    }
   }
 }

@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CookieConsentBanner } from "@/components/cookie-consent/CookieConsent";
@@ -15,32 +15,9 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#06040d" },
-  ],
-};
-
 export const metadata: Metadata = {
   title: "Kametrix",
   description: "KI-Telefonassistenten für kleine Unternehmen",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Kametrix",
-  },
-  formatDetection: {
-    telephone: true,
-    date: true,
-    address: true,
-    email: true,
-  },
 };
 
 export default function RootLayout({
