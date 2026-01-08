@@ -6,6 +6,7 @@
 #   ./deploy.sh              - Full deployment (pull, build, migrate, start)
 #   ./deploy.sh setup        - First-time setup (create .env, build, migrate, seed)
 #   ./deploy.sh update       - Quick update (pull, build, migrate, restart)
+#   ./deploy.sh clean-build  - Clean build without Docker cache (fixes Server Action errors)
 #   ./deploy.sh rollback     - Rollback to previous image
 #   ./deploy.sh status       - Show container status
 #   ./deploy.sh logs         - Show app logs
@@ -16,6 +17,7 @@
 #   ./deploy.sh stop         - Stop all containers
 #   ./deploy.sh clean        - Remove containers and images (keeps data)
 #   ./deploy.sh db-check     - Check database schema and applied migrations
+#   ./deploy.sh verify-build - Verify build consistency (check for Server Action issues)
 # =============================================================================
 
 set -e
@@ -33,6 +35,11 @@ APP_CONTAINER="kametrix-app"
 DB_CONTAINER="kametrix-db"
 HEALTH_CHECK_URL="http://localhost:3000/api/health"
 HEALTH_CHECK_TIMEOUT=60
+
+# Build metadata
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+BUILD_ID="${GIT_SHA}-$(date +%s)"
 
 # Functions
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -361,6 +368,116 @@ cmd_db_check() {
     echo ""
 }
 
+# =============================================================================
+# Clean Build - Resolves Server Action mismatch errors
+# =============================================================================
+cmd_clean_build() {
+    echo ""
+    echo "=== Kametrix Clean Build ==="
+    echo ""
+    echo "This will perform a clean build without Docker cache to resolve"
+    echo "'Failed to find Server Action' errors caused by build mismatches."
+    echo ""
+
+    check_requirements
+    check_env_file
+    load_env
+
+    # Pull latest code
+    if [ -d .git ]; then
+        log_info "Pulling latest changes..."
+        git pull origin main
+    fi
+
+    backup_current_image
+
+    # Export build metadata for docker-compose
+    export BUILD_ID="${BUILD_ID}"
+    export GIT_SHA="${GIT_SHA}"
+    export BUILD_TIMESTAMP="${BUILD_TIMESTAMP}"
+
+    log_info "Build ID: ${BUILD_ID}"
+    log_info "Git SHA: ${GIT_SHA}"
+
+    # Clean existing build artifacts and Docker cache
+    log_info "Removing old build artifacts..."
+    docker compose -f $COMPOSE_FILE down app 2>/dev/null || true
+
+    # Build with no cache to ensure fresh Server Action IDs
+    log_info "Building without cache (this may take a few minutes)..."
+    docker compose -f $COMPOSE_FILE build --no-cache \
+        --build-arg BUILD_ID="${BUILD_ID}" \
+        --build-arg GIT_SHA="${GIT_SHA}" \
+        --build-arg BUILD_TIMESTAMP="${BUILD_TIMESTAMP}" \
+        app
+
+    log_info "Starting services..."
+    docker compose -f $COMPOSE_FILE up -d
+
+    wait_for_db
+
+    log_info "Running migrations..."
+    docker compose -f $COMPOSE_FILE --profile migrate run --rm migrate
+
+    sleep 5
+
+    # Verify build consistency
+    if verify_build; then
+        log_success "Clean build complete! Build ID: ${BUILD_ID}"
+        cmd_status
+    else
+        log_error "Build verification failed. Consider rollback: ./deploy.sh rollback"
+    fi
+}
+
+# =============================================================================
+# Verify Build - Check for Server Action consistency
+# =============================================================================
+verify_build() {
+    log_info "Verifying build consistency..."
+
+    # Check health endpoint with build info
+    local response=$(curl -sf "${HEALTH_CHECK_URL}?build=true" 2>/dev/null || echo "")
+
+    if [ -z "$response" ]; then
+        log_error "Health check failed - application not responding"
+        return 1
+    fi
+
+    # Check if build is valid
+    local build_valid=$(echo "$response" | grep -o '"valid":[^,}]*' | cut -d: -f2 | tr -d ' ')
+    local build_id=$(echo "$response" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+
+    if [ "$build_valid" = "true" ]; then
+        log_success "Build verified! ID: ${build_id}"
+        return 0
+    else
+        log_error "Build mismatch detected! Server build ID: ${build_id}"
+        log_warn "Expected build ID: ${EXPECTED_BUILD_ID:-not set}"
+        return 1
+    fi
+}
+
+cmd_verify_build() {
+    echo ""
+    echo "=== Build Verification ==="
+    echo ""
+
+    if verify_build; then
+        echo ""
+        log_success "No Server Action issues detected"
+    else
+        echo ""
+        log_error "Build mismatch detected!"
+        echo ""
+        echo "Recommended actions:"
+        echo "1. Run: ./deploy.sh clean-build"
+        echo "2. Or rollback: ./deploy.sh rollback"
+        echo ""
+        exit 1
+    fi
+}
+
 # Main
 case "${1:-deploy}" in
     setup)
@@ -371,6 +488,12 @@ case "${1:-deploy}" in
         ;;
     deploy)
         cmd_deploy
+        ;;
+    clean-build)
+        cmd_clean_build
+        ;;
+    verify-build)
+        cmd_verify_build
         ;;
     rollback)
         cmd_rollback
@@ -400,7 +523,7 @@ case "${1:-deploy}" in
         cmd_db_check
         ;;
     *)
-        echo "Usage: $0 {setup|update|deploy|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}"
+        echo "Usage: $0 {setup|update|deploy|clean-build|verify-build|rollback|status|logs|migrate|seed|restart|stop|clean|db-check}"
         exit 1
         ;;
 esac

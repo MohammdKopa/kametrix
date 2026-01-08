@@ -137,10 +137,15 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Note: Using GHA cache for faster builds, but the Dockerfile cleans .next
+          # directory before building to prevent Server Action ID mismatches
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
             NODE_ENV=production
+            BUILD_ID=${{ needs.preflight.outputs.version }}
+            GIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ github.event.head_commit.timestamp }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
@@ -239,14 +244,22 @@ jobs:
             echo "Starting new version..."
             docker compose -f docker-compose.prod.yml up -d app
 
-            # Health check with retries
-            echo "Running health checks..."
+            # Health check with retries (includes build verification)
+            echo "Running health checks with build verification..."
             MAX_RETRIES=30
             RETRY_COUNT=0
             while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-                echo "Health check passed!"
-                break
+              HEALTH_RESPONSE=$(curl -sf "http://localhost:3000/api/health?build=true" 2>&1 || echo "")
+              if [ -n "$HEALTH_RESPONSE" ]; then
+                # Check if build is valid to prevent Server Action mismatches
+                BUILD_VALID=$(echo "$HEALTH_RESPONSE" | grep -o '"valid":[^,}]*' | cut -d: -f2 | tr -d ' ')
+                if [ "$BUILD_VALID" = "true" ]; then
+                  echo "Health check passed with valid build!"
+                  echo "Build info: $(echo "$HEALTH_RESPONSE" | grep -o '"build":{[^}]*}')"
+                  break
+                else
+                  echo "Build mismatch detected - Server Action error likely"
+                fi
               fi
               echo "Waiting for application to be healthy... ($RETRY_COUNT/$MAX_RETRIES)"
               sleep 2
@@ -255,7 +268,7 @@ jobs:
 
             if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
               echo "Health check failed after ${MAX_RETRIES} attempts"
-              echo "Rolling back..."
+              echo "This may indicate a Server Action mismatch - rolling back..."
               ./deploy.sh rollback
               exit 1
             fi

@@ -1,0 +1,19 @@
+{
+  "category": "enhancement",
+  "description": "Add Call Forwarding for AI Voice Agent Escalation\n\nImplement call forwarding functionality that transfers calls from the AI voice agent to a human operator when specific conditions are met.\n\nRequirements:\n- Detect when the AI voice agent encounters confusion (e.g., low confidence scores, repeated clarification attempts, unrecognized intents)\n- Recognize explicit user requests to speak with a human (phrases like \"I want to talk to a person\", \"human agent\", \"representative\", etc.)\n- Trigger call transfer to appropriate human operator or queue\n- Maintain call context and conversation history during transfer\n- Provide smooth handoff experience with appropriate messaging to the user\n- Configure forwarding destination (phone number, operator queue, or department)\n- Log all escalation events with reason codes for analytics\n\nEdge cases to consider:\n- Handle scenarios when no human operators are available\n- Set maximum wait time before forwarding\n- Define fallback behavior if forwarding fails\n- Consider business hours and after-hours routing",
+  "title": "Add AI voice escalation to human operator",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "backlog",
+  "id": "feature-1767894365405-ik2ebzwri"
+}

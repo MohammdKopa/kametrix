@@ -1,3 +1,10 @@
+# =============================================================================
+# Kametrix Production Docker Compose
+# =============================================================================
+# Optimized for Next.js with proper cache invalidation to prevent
+# "Failed to find Server Action" errors in production deployments
+# =============================================================================
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -11,13 +18,27 @@ services:
     networks:
       - kametrix-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kametrix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      # Pass build arguments for cache invalidation
+      args:
+        - BUILD_ID=${BUILD_ID:-}
+        - GIT_SHA=${GIT_SHA:-}
+        - BUILD_TIMESTAMP=${BUILD_TIMESTAMP:-}
+      # Disable Docker layer caching for the build stage when needed
+      # Use --no-cache flag during deployment for clean builds
     container_name: kametrix-app
     environment:
+      - NODE_ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}
       - VAPI_API_KEY=${VAPI_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -28,13 +49,22 @@ services:
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      # Build verification - set at deploy time
+      - EXPECTED_BUILD_ID=${BUILD_ID:-}
     ports:
       - "3000:3000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - kametrix-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health?quick=true"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Migration runner - uses builder stage with full node_modules
   migrate:

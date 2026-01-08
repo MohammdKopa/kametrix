@@ -62,6 +62,55 @@ curl https://your-domain.com/api/health
 | `SMTP_PASS` | Yes | SMTP password |
 | `SMTP_FROM` | Yes | From address (e.g., `Kametrix <noreply@example.com>`) |
 
+## Deployment Script (`deploy.sh`)
+
+The `deploy.sh` script provides convenient commands for managing deployments:
+
+```bash
+# Full deployment (pull, build, migrate, start)
+./deploy.sh deploy
+
+# First-time setup (create .env, build, migrate, seed)
+./deploy.sh setup
+
+# Quick update (pull, build, migrate, restart)
+./deploy.sh update
+
+# Clean build without cache (fixes Server Action errors)
+./deploy.sh clean-build
+
+# Verify build consistency
+./deploy.sh verify-build
+
+# Rollback to previous version
+./deploy.sh rollback
+
+# View status
+./deploy.sh status
+
+# View logs (add -f to follow)
+./deploy.sh logs
+./deploy.sh logs -f
+
+# Run migrations only
+./deploy.sh migrate
+
+# Run database seed
+./deploy.sh seed
+
+# Restart containers
+./deploy.sh restart
+
+# Stop all containers
+./deploy.sh stop
+
+# Remove containers and images (keeps data)
+./deploy.sh clean
+
+# Check database schema
+./deploy.sh db-check
+```
+
 ## Docker Compose Commands
 
 ### Start Application
@@ -164,6 +213,50 @@ Use this endpoint for:
 3. Copy the webhook signing secret to your `.env`
 
 ## Troubleshooting
+
+### "Failed to find Server Action" Error
+
+This error occurs when there's a mismatch between client and server builds in Next.js. It commonly happens due to:
+- Docker layer caching preserving outdated build artifacts
+- Rolling deployments causing version mismatches
+- CDN or reverse proxy caching stale JavaScript files
+
+**Solution - Clean Build:**
+```bash
+# Use the clean-build command to rebuild without cache
+./deploy.sh clean-build
+```
+
+**Verify Build Consistency:**
+```bash
+# Check if the current build is valid
+./deploy.sh verify-build
+
+# Or check via API
+curl https://your-domain.com/api/health?build=true
+```
+
+**Response with build info:**
+```json
+{
+  "status": "healthy",
+  "database": "connected",
+  "build": {
+    "id": "abc1234-1704067200",
+    "gitSha": "abc1234",
+    "timestamp": "2024-01-01T12:00:00.000Z",
+    "valid": true
+  }
+}
+```
+
+If `build.valid` is `false`, run `./deploy.sh clean-build` to fix the issue.
+
+**Prevention Tips:**
+- Always use `./deploy.sh clean-build` for production deployments when experiencing issues
+- Clear CDN/reverse proxy cache after deployments
+- Ensure all containers are using the same image tag
+- Avoid running multiple app instances with different build versions
 
 ### Container won't start
 ```bash

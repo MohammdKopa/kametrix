@@ -1,0 +1,22 @@
+{
+  "category": "bug",
+  "description": "Resolve Next.js Server Action Not Found Error in VPS Docker Deployment\n\nFix the \"Failed to find Server Action\" error occurring in the Next.js application deployed via Docker on VPS. This error typically indicates a mismatch between the client and server builds or issues with how Server Actions are being resolved in the Docker environment.\n\nRequirements:\n- Investigate the root cause of the Server Action mismatch (build cache, deployment timing, or environment configuration)\n- Ensure Docker build process correctly bundles Server Actions with consistent identifiers\n- Verify that client and server bundles are synchronized during deployment\n- Check if multi-stage Docker builds or caching layers are causing stale references\n- Implement proper build invalidation to prevent cached mismatches\n- Add health checks to verify Server Actions are accessible before routing traffic\n- Test the fix with a fresh Docker build and deployment to confirm resolution \n\nEdge cases to consider:\n- Rolling deployments causing version mismatches between old and new containers\n- Docker layer caching preserving outdated .next build artifacts\n- Environment variables or build-time configurations affecting Server Action IDs\n- CDN or reverse proxy caching serving stale client-side JavaScript\n- Hot reload or development artifacts accidentally included in production builds\n\nDependencies:\n- Access to VPS and Docker configuration files\n- Next.js project source code and build configuration\n- Docker Compose or orchestration setup (if applicable)\n- Deployment pipeline or CI/CD configuration",
+  "title": "Fix Next.js Server Action Docker deployment mismatch",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "waiting_approval",
+  "id": "feature-1767894192673-36xfkv9k7",
+  "startedAt": "2026-01-08T17:43:12.835Z",
+  "updatedAt": "2026-01-08T17:50:32.671Z",
+  "justFinishedAt": "2026-01-08T17:50:32.671Z"
+}
