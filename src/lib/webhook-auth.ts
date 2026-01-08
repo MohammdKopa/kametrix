@@ -15,6 +15,7 @@ interface VapiAuthHeaders {
   signature: string | null; // x-vapi-signature (HMAC)
   secret: string | null; // x-vapi-secret (direct token)
   authorization: string | null; // Authorization header (Bearer token)
+  timestamp: string | null; // x-timestamp header (for HMAC with timestamp)
 }
 
 /**
@@ -51,12 +52,35 @@ export function verifyVapiWebhook(
 
   // Method 1: Try HMAC-SHA256 signature verification
   if (headers.signature && headers.signature.trim() !== '') {
+    // Try with timestamp first if present (Vapi format: {timestamp}.{body})
+    if (headers.timestamp) {
+      const payloadWithTimestamp = `${headers.timestamp}.${payload}`;
+      const isValidWithTimestamp = verifyHmacSignature(payloadWithTimestamp, headers.signature, secret);
+      if (isValidWithTimestamp) {
+        return { isValid: true, method: 'hmac-sha256-timestamp' };
+      }
+    }
+
+    // Try without timestamp (just body)
     const isValid = verifyHmacSignature(payload, headers.signature, secret);
     if (isValid) {
       return { isValid: true, method: 'hmac-sha256' };
     }
-    // HMAC failed - log debug info
+
+    // HMAC failed - log debug info with detailed comparison
     const expectedSig = createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
+    const expectedWithTimestamp = headers.timestamp
+      ? createHmac('sha256', secret).update(`${headers.timestamp}.${payload}`, 'utf8').digest('hex')
+      : 'N/A';
+    console.error('HMAC Debug:', {
+      receivedSig: headers.signature,
+      expectedSig: expectedSig,
+      expectedWithTimestamp,
+      timestamp: headers.timestamp,
+      payloadLength: payload.length,
+      payloadPreview: payload.substring(0, 200),
+      secretLength: secret.length,
+    });
     return {
       isValid: false,
       method: 'hmac-sha256',
@@ -198,5 +222,6 @@ export function extractVapiAuthHeaders(headers: Headers): VapiAuthHeaders {
     signature: headers.get('x-vapi-signature'),
     secret: headers.get('x-vapi-secret'),
     authorization: headers.get('authorization'),
+    timestamp: headers.get('x-timestamp'),
   };
 }

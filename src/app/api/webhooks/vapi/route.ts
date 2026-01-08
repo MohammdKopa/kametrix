@@ -86,6 +86,15 @@ export async function POST(req: NextRequest) {
     // Verify webhook authentication if VAPI_WEBHOOK_SECRET is configured
     const secret = process.env.VAPI_WEBHOOK_SECRET;
     if (secret) {
+      // Debug: Log all incoming headers
+      const allHeaders: Record<string, string> = {};
+      req.headers.forEach((value, key) => {
+        if (key.startsWith('x-') || key === 'authorization') {
+          allHeaders[key] = value.substring(0, 20) + '...';
+        }
+      });
+      console.log('Incoming webhook headers:', allHeaders);
+
       // Extract all possible auth headers
       const authHeaders = extractVapiAuthHeaders(req.headers);
 
