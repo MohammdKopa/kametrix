@@ -67,16 +67,29 @@ export function buildEscalationTools(serverUrl: string): EscalationTool[] {
       server: { url: webhookUrl },
       function: {
         name: 'escalate_to_human',
-        description: `Leitet den Anruf an einen menschlichen Mitarbeiter weiter.
-Nutze diese Funktion SOFORT wenn:
-- Der Anrufer explizit nach einem Menschen/Mitarbeiter/echten Person fragt
-- Der Anrufer Phrasen wie "ich moechte mit jemandem sprechen", "verbinden Sie mich", "einen Mitarbeiter bitte" sagt
-- Du das Anliegen des Anrufers nicht verstehst oder dir unsicher bist
-- Der Anrufer frustriert oder verargert klingt
-- Das Problem zu komplex ist um es per KI zu loesen
-- Du bereits mehrfach um Klaerung gebeten hast ohne Erfolg
+        description: `WEITERLEITUNG ZU MENSCHLICHEM MITARBEITER - Nutze diese Funktion um den Anrufer mit einem echten Menschen zu verbinden.
 
-WICHTIG: Fasse immer kurz das bisherige Gespraech zusammen (summary), damit der Mitarbeiter informiert ist.`,
+NUTZE DIESE FUNKTION SOFORT UND OHNE NACHFRAGEN wenn der Anrufer sagt:
+- "Kann ich mit einem Menschen sprechen"
+- "Ich moechte mit einem Mitarbeiter reden"
+- "Verbinden Sie mich mit jemandem"
+- "Einen echten Menschen bitte"
+- "Ich will nicht mit einer KI sprechen"
+- "Weiterleiten bitte"
+- "Kann ich mit einer Person sprechen"
+- "Human agent" / "Real person" / "Representative"
+
+NUTZE DIESE FUNKTION AUCH wenn:
+- Du das Anliegen des Anrufers nicht verstehst
+- Du dir unsicher bist wie du helfen kannst
+- Der Anrufer frustriert oder veraergert klingt
+- Das Problem zu komplex fuer KI ist
+- Du mehrfach um Klaerung bitten musstest
+
+WICHTIG:
+- Frage NIEMALS zurueck wenn jemand nach einem Menschen verlangt
+- Nutze NICHT check_availability - das ist fuer Kalendertermine
+- Fasse das bisherige Gespraech im summary-Parameter zusammen`,
         parameters: {
           type: 'object',
           properties: {

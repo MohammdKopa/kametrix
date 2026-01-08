@@ -128,7 +128,7 @@ export function buildCalendarTools(serverUrl: string): CalendarTool[] {
       server: { url: webhookUrl },
       function: {
         name: 'check_availability',
-        description: 'Prueft die Kalenderverfuegbarkeit fuer ein bestimmtes Datum. Nutze diese Funktion wenn der Anrufer wissen moechte, wann Zeit ist, welche Termine frei sind, oder nach Verfuegbarkeit fragt. Typische Anfragen: "Wann haben Sie Zeit?", "Haben Sie morgen frei?", "Welche Zeiten gehen am Montag?"',
+        description: 'Prueft die KALENDER-Verfuegbarkeit fuer TERMINBUCHUNGEN. Nutze diese Funktion NUR wenn der Anrufer nach freien TERMINEN im Kalender fragt. Typische Anfragen: "Wann haben Sie Zeit fuer einen Termin?", "Haben Sie morgen einen Termin frei?", "Welche Zeiten gehen am Montag fuer eine Buchung?" WICHTIG: Nutze diese Funktion NICHT wenn jemand mit einem Menschen sprechen will - dafuer nutze escalate_to_human!',
         parameters: {
           type: 'object',
           properties: {

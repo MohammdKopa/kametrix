@@ -2312,3 +2312,158 @@ To enable actual call transfers (not just callback requests):
 4. Configure business hours and other settings
 5. Save
 </summary>
+
+---
+
+## Follow-up Session
+
+Looking at the logs, I can see the issue - the AI is still calling `check_availability` (the Google Calendar tool) instead of `escalate_to_human`. This means the changes I made haven't been deployed yet, OR there's an issue with how the tools are being built/sent to Vapi.
+
+Let me investigate further by checking the tool definitions and how they're being combined:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "offset": 1200,
+  "limit": 80
+}
+The code looks correct - escalation tools should be added. Let me check the `buildEscalationTools` function to make sure it's returning the correct tool format:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\tool-definitions.ts"
+}
+I see the issue now! The tool definition looks correct, but looking at the call logs again, the AI is calling `Check Availability` which is the **calendar** tool, not `check_operator_availability`. 
+
+The problem is that the calendar tool is named `check_availability` and the escalation tool is named `check_operator_availability`. The AI is confusing them because:
+
+1. The names are too similar
+2. When the user asks for a human, the AI thinks it needs to "check availability" and picks the calendar tool instead
+
+Let me look at the calendar tools to see what they look like:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\tool-definitions.ts"
+}
+Now I understand the full picture. The issue is:
+
+1. **The AI is calling `check_availability` (calendar tool)** because the tool description says "Prueft die Kalenderverfuegbarkeit" which the AI interprets as checking if anyone is available
+2. **The escalation tools ARE being added** (based on my changes), but the AI is choosing the wrong tool because the calendar tool's name `check_availability` sounds more relevant than `escalate_to_human` when someone says "kann ich mit einem Menschen sprechen"
+
+The fix is to:
+1. Make the escalation tool descriptions much more explicit about when to use them
+2. Make the escalation tool higher priority by ensuring it's the first tool when someone asks for a human
+3. Potentially rename the calendar tool to avoid confusion
+
+Let me update the escalation tool description to be more explicit and add negative examples:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\tool-definitions.ts",
+  "old_string": "        name: 'escalate_to_human',\n        description: `Leitet den Anruf an einen menschlichen Mitarbeiter weiter.\nNutze diese Funktion SOFORT wenn:\n- Der Anrufer explizit nach einem Menschen/Mitarbeiter/echten Person fragt\n- Der Anrufer Phrasen wie \"ich moechte mit jemandem sprechen\", \"verbinden Sie mich\", \"einen Mitarbeiter bitte\" sagt\n- Du das Anliegen des Anrufers nicht verstehst oder dir unsicher bist\n- Der Anrufer frustriert oder verargert klingt\n- Das Problem zu komplex ist um es per KI zu loesen\n- Du bereits mehrfach um Klaerung gebeten hast ohne Erfolg\n\nWICHTIG: Fasse immer kurz das bisherige Gespraech zusammen (summary), damit der Mitarbeiter informiert ist.`,",
+  "new_string": "        name: 'escalate_to_human',\n        description: `WEITERLEITUNG ZU MENSCHLICHEM MITARBEITER - Nutze diese Funktion um den Anrufer mit einem echten Menschen zu verbinden.\n\nNUTZE DIESE FUNKTION SOFORT UND OHNE NACHFRAGEN wenn der Anrufer sagt:\n- \"Kann ich mit einem Menschen sprechen\"\n- \"Ich moechte mit einem Mitarbeiter reden\"\n- \"Verbinden Sie mich mit jemandem\"\n- \"Einen echten Menschen bitte\"\n- \"Ich will nicht mit einer KI sprechen\"\n- \"Weiterleiten bitte\"\n- \"Kann ich mit einer Person sprechen\"\n- \"Human agent\" / \"Real person\" / \"Representative\"\n\nNUTZE DIESE FUNKTION AUCH wenn:\n- Du das Anliegen des Anrufers nicht verstehst\n- Du dir unsicher bist wie du helfen kannst\n- Der Anrufer frustriert oder veraergert klingt\n- Das Problem zu komplex fuer KI ist\n- Du mehrfach um Klaerung bitten musstest\n\nWICHTIG:\n- Frage NIEMALS zurueck wenn jemand nach einem Menschen verlangt\n- Nutze NICHT check_availability - das ist fuer Kalendertermine\n- Fasse das bisherige Gespraech im summary-Parameter zusammen`,"
+}
+Now let me also update the calendar tool description to make it explicitly clear it's NOT for human transfers:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\tool-definitions.ts",
+  "old_string": "        name: 'check_availability',\n        description: 'Prueft die Kalenderverfuegbarkeit fuer ein bestimmtes Datum. Nutze diese Funktion wenn der Anrufer wissen moechte, wann Zeit ist, welche Termine frei sind, oder nach Verfuegbarkeit fragt. Typische Anfragen: \"Wann haben Sie Zeit?\", \"Haben Sie morgen frei?\", \"Welche Zeiten gehen am Montag?\"',",
+  "new_string": "        name: 'check_availability',\n        description: 'Prueft die KALENDER-Verfuegbarkeit fuer TERMINBUCHUNGEN. Nutze diese Funktion NUR wenn der Anrufer nach freien TERMINEN im Kalender fragt. Typische Anfragen: \"Wann haben Sie Zeit fuer einen Termin?\", \"Haben Sie morgen einen Termin frei?\", \"Welche Zeiten gehen am Montag fuer eine Buchung?\" WICHTIG: Nutze diese Funktion NICHT wenn jemand mit einem Menschen sprechen will - dafuer nutze escalate_to_human!',"
+}
+Now let me also update the system prompt's escalation section to be even more explicit:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\template-builder.ts",
+  "offset": 1,
+  "limit": 200
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "buildEscalationSection",
+  "path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\template-builder.ts",
+  "output_mode": "content",
+  "-n": true,
+  "-A": 60
+}
+The escalation section already has good instructions. Let me update it to make it even more explicit with the specific tool to call:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\prompts\\template-builder.ts",
+  "old_string": "function buildEscalationSection(): PromptSection {\n  return {\n    id: SECTION_IDS.ESCALATION,\n    title: 'Weiterleitung an Mitarbeiter',\n    content: `VERFUEGBARE ESKALATIONS-TOOLS:\n- escalate_to_human: Leitet den Anruf an einen menschlichen Mitarbeiter weiter\n- check_operator_availability: Prueft ob Mitarbeiter verfuegbar sind und gibt Wartezeit an\n\nWANN WEITERLEITEN:\nDu MUSST das escalate_to_human Tool verwenden wenn:\n1. Der Anrufer EXPLIZIT nach einem Menschen fragt:\n   - \"Ich moechte mit einem Menschen sprechen\"\n   - \"Verbinden Sie mich mit einem Mitarbeiter\"\n   - \"Kann ich mit jemandem sprechen\"\n   - \"Einen echten Menschen bitte\"\n   - \"Weiterleiten bitte\"\n   - \"Representative\" oder \"Agent\"\n\n2. Du das Anliegen NICHT verstehst:\n   - Nach 2-3 Klaerungsversuchen ohne Erfolg\n   - Bei unklaren oder komplexen Anfragen\n   - Wenn du dir unsicher bist\n\n3. Der Anrufer FRUSTRIERT oder VERAERGERT klingt:\n   - Unzufriedene Aeusserungen\n   - Wiederholte Beschwerden\n   - Aggressive Sprache\n\n4. Das Problem ZU KOMPLEX ist:\n   - Rechtliche Fragen\n   - Technische Details ausserhalb deines Wissens\n   - Individuelle Vertragsfragen\n\nWICHTIGE REGELN:\n- Frage NIEMALS zurueck wenn jemand einen Menschen verlangt - leite SOFORT weiter\n- Versuche NICHT den Anrufer zu ueberzeugen bei dir zu bleiben\n- Bei Weiterleitung: IMMER eine Zusammenfassung (summary) des Gespraechs mitgeben\n- Informiere den Anrufer hoeflich ueber die Weiterleitung\n- Teile geschaetzte Wartezeit mit wenn verfuegbar\n\nBEISPIEL-FORMULIERUNGEN:\n- \"Selbstverstaendlich, ich verbinde Sie gerne mit einem Mitarbeiter. Einen Moment bitte.\"\n- \"Ich verstehe, dass Sie mit einem Menschen sprechen moechten. Ich leite Sie jetzt weiter.\"\n- \"Bei diesem komplexen Anliegen verbinde ich Sie am besten mit einem Kollegen, der Ihnen besser helfen kann.\"\n\nNACH DER WEITERLEITUNG:\n- Das Gespraech wird automatisch an den Mitarbeiter uebergeben\n- Der Mitarbeiter erhaelt deine Zusammenfassung des Gespraechs\n- Du brauchst nichts weiter zu tun`,\n    priority: 58,\n    enabled: true,\n  };\n}",
+  "new_string": "function buildEscalationSection(): PromptSection {\n  return {\n    id: SECTION_IDS.ESCALATION,\n    title: 'Weiterleitung an Mitarbeiter',\n    content: `WICHTIGSTE REGEL - MENSCHLICHE MITARBEITER:\nWenn ein Anrufer nach einem MENSCHEN, MITARBEITER, PERSON oder echten AGENT fragt:\n-> Rufe SOFORT das Tool \"escalate_to_human\" auf\n-> NICHT \"check_availability\" - das ist nur fuer Kalendertermine!\n-> KEINE Rueckfragen, KEINE Verzoegerung - SOFORT weiterleiten!\n\nBEISPIEL-ANFRAGEN DIE SOFORTIGE WEITERLEITUNG ERFORDERN:\n- \"Kann ich mit einem Menschen sprechen\" -> escalate_to_human aufrufen\n- \"Ich moechte mit einem Mitarbeiter reden\" -> escalate_to_human aufrufen\n- \"Verbinden Sie mich bitte\" -> escalate_to_human aufrufen\n- \"Einen echten Menschen bitte\" -> escalate_to_human aufrufen\n- \"Human agent\" / \"Real person\" -> escalate_to_human aufrufen\n\nVERFUEGBARE TOOLS FUER WEITERLEITUNG:\n1. escalate_to_human - NUTZE DIESES TOOL wenn jemand mit einem Menschen sprechen will\n   Parameter: reason (Grund), summary (Zusammenfassung)\n2. check_operator_availability - Prueft Mitarbeiter-Verfuegbarkeit (optional vor Weiterleitung)\n\nTOOL-UNTERSCHEIDUNG:\n- \"Mensch\", \"Mitarbeiter\", \"Person\", \"verbinden\" -> escalate_to_human\n- \"Termin\", \"buchen\", \"Kalender\", \"wann haben Sie Zeit\" -> check_availability (Kalender-Tool)\n\nZUSAETZLICHE ESKALATIONS-GRUENDE:\n- Du verstehst das Anliegen nicht (nach 2 Versuchen)\n- Der Anrufer klingt frustriert oder veraergert\n- Das Problem ist zu komplex fuer KI\n- Der Anrufer beschwert sich wiederholt\n\nWICHTIG:\n- Frage NIEMALS zurueck wenn jemand einen Menschen verlangt\n- Sage kurz \"Einen Moment, ich verbinde Sie\" und rufe DANN escalate_to_human auf\n- Fasse im summary-Parameter das bisherige Gespraech zusammen`,\n    priority: 95, // Higher priority so it appears earlier in the prompt\n    enabled: true,\n  };\n}"
+}
+Now let me verify the TypeScript compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+Now let me build to make sure everything works:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npm run build 2>&1 | tail -30",
+  "description": "Build the Next.js application",
+  "timeout": 180000
+}
+Build successful. Now let me provide a summary of the changes:
+
+<summary>
+## Summary: Fixed Escalation Tool Not Being Called
+
+### Root Cause
+The AI was calling `check_availability` (calendar tool) instead of `escalate_to_human` when users asked for a human agent. This happened because:
+1. The tool names were similar (`check_availability` vs `check_operator_availability`)
+2. The AI misinterpreted "kann ich mit einem Menschen sprechen" as a request to check availability
+3. The escalation tool description wasn't explicit enough about when to use it
+
+### Changes Made
+
+**1. Updated Escalation Tool Description** (`src/lib/escalation/tool-definitions.ts`)
+- Made the description much more explicit with specific trigger phrases
+- Added explicit list of phrases that should trigger immediate escalation
+- Added "WICHTIG" section stating NOT to use `check_availability` for human requests
+- Added clear differentiation between escalation and calendar tools
+
+**2. Updated Calendar Tool Description** (`src/lib/prompts/tool-definitions.ts`)
+- Added clarification that `check_availability` is ONLY for CALENDAR bookings
+- Added explicit warning: "WICHTIG: Nutze diese Funktion NICHT wenn jemand mit einem Menschen sprechen will - dafuer nutze escalate_to_human!"
+
+**3. Updated System Prompt Escalation Section** (`src/lib/prompts/template-builder.ts`)
+- Increased priority from 58 to 95 so escalation instructions appear earlier in the prompt
+- Added "WICHTIGSTE REGEL" header to emphasize importance
+- Added clear tool differentiation examples:
+  - "Mensch", "Mitarbeiter", "Person" → `escalate_to_human`
+  - "Termin", "buchen", "Kalender" → `check_availability`
+- Added specific examples mapping user phrases to tool calls
+
+### Files Modified
+- `src/lib/escalation/tool-definitions.ts`
+- `src/lib/prompts/tool-definitions.ts`
+- `src/lib/prompts/template-builder.ts`
+
+### Testing After Deployment
+After deploying, test with these phrases - they should ALL trigger `escalate_to_human`:
+- "Kann ich mit einem Menschen sprechen?"
+- "Ich möchte mit einem Mitarbeiter reden"
+- "Verbinden Sie mich bitte"
+- "Einen echten Menschen bitte"
+- "Human agent"
+
+The AI should now:
+1. Say something like "Einen Moment, ich verbinde Sie mit einem Mitarbeiter"
+2. Call `escalate_to_human` (NOT `check_availability`)
+
+### Note
+The escalation tools are now **always included** for every agent (changed in previous session). Even without an EscalationConfig, the AI will:
+- Acknowledge the request for a human
+- Log the escalation request to EventLog
+- Offer to take a callback with name and phone number
+</summary>
