@@ -86,15 +86,6 @@ export async function POST(req: NextRequest) {
     // Verify webhook authentication if VAPI_WEBHOOK_SECRET is configured
     const secret = process.env.VAPI_WEBHOOK_SECRET;
     if (secret) {
-      // Debug: Log all incoming headers
-      const allHeaders: Record<string, string> = {};
-      req.headers.forEach((value, key) => {
-        if (key.startsWith('x-') || key === 'authorization') {
-          allHeaders[key] = value.substring(0, 20) + '...';
-        }
-      });
-      console.log('Incoming webhook headers:', allHeaders);
-
       // Extract all possible auth headers
       const authHeaders = extractVapiAuthHeaders(req.headers);
 
@@ -107,7 +98,7 @@ export async function POST(req: NextRequest) {
           debug: authResult.debug,
         });
 
-        // Log security audit event for invalid signature
+        // Log security audit event for invalid signature (fire-and-forget)
         const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
           req.headers.get('x-real-ip') || 'unknown';
         logInvalidWebhookSignature('vapi', ip).catch(console.error);
@@ -120,31 +111,36 @@ export async function POST(req: NextRequest) {
           { status: 401 }
         );
       }
-
-      // Log successful auth method for debugging
-      console.log(`Vapi webhook: authenticated via ${authResult.method}`);
     }
 
     // Parse JSON AFTER signature verification
     const body = JSON.parse(rawBody);
     const { message } = body;
 
-    // Log event type for debugging
-    console.log(`Vapi webhook: ${message.type}`);
+    // Log only important events (reduce noise)
+    if (message.type !== 'transcript' && message.type !== 'speech-update') {
+      console.log(`Vapi webhook: ${message.type}`);
+    }
 
     // Route based on event type
     switch (message.type) {
       case 'status-update':
-        await handleStatusUpdate(message);
+        // Process asynchronously - don't block response
+        handleStatusUpdate(message).catch(err =>
+          console.error('Error handling status update:', err)
+        );
         break;
 
       case 'end-of-call-report':
-        await handleEndOfCallReport(message);
+        // Process asynchronously - don't block response
+        handleEndOfCallReport(message).catch(err =>
+          console.error('Error handling end of call:', err)
+        );
         break;
 
       case 'transcript':
-        // Real-time transcript updates - we'll use end-of-call for full transcript
-        console.log('Transcript update received (not processed)');
+      case 'speech-update':
+        // Real-time updates - not processed, we use end-of-call for final data
         break;
 
       case 'tool-calls':
@@ -159,7 +155,7 @@ export async function POST(req: NextRequest) {
         console.log(`Unhandled Vapi event: ${message.type}`);
     }
 
-    // Always respond quickly
+    // Always respond quickly (within 7.5s timeout)
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Vapi webhook error:', error);

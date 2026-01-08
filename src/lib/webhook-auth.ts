@@ -67,24 +67,11 @@ export function verifyVapiWebhook(
       return { isValid: true, method: 'hmac-sha256' };
     }
 
-    // HMAC failed - log debug info with detailed comparison
-    const expectedSig = createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
-    const expectedWithTimestamp = headers.timestamp
-      ? createHmac('sha256', secret).update(`${headers.timestamp}.${payload}`, 'utf8').digest('hex')
-      : 'N/A';
-    console.error('HMAC Debug:', {
-      receivedSig: headers.signature,
-      expectedSig: expectedSig,
-      expectedWithTimestamp,
-      timestamp: headers.timestamp,
-      payloadLength: payload.length,
-      payloadPreview: payload.substring(0, 200),
-      secretLength: secret.length,
-    });
+    // HMAC failed - return error
     return {
       isValid: false,
       method: 'hmac-sha256',
-      debug: `HMAC mismatch. Received sig length: ${headers.signature.length}, Expected sig length: ${expectedSig.length}. Headers: ${JSON.stringify(receivedHeaders)}`,
+      debug: `HMAC signature verification failed. Headers: ${JSON.stringify(receivedHeaders)}`,
     };
   }
 
