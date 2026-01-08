@@ -52,16 +52,17 @@ export function UserMenu({ user }: UserMenuProps) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="flex items-center gap-3 px-3 py-2 h-auto rounded-lg border border-border hover:bg-muted/50 hover:border-border/80 transition-all duration-150"
+            className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 h-auto rounded-lg border border-border hover:bg-muted/50 hover:border-border/80 transition-all duration-150"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-primary-foreground shadow-sm flex-shrink-0">
               {(user.name || user.email).charAt(0).toUpperCase()}
             </div>
-            <div className="text-left">
-              <div className="text-sm font-medium text-foreground">
+            {/* Hide user details on mobile, show only avatar */}
+            <div className="text-left hidden sm:block">
+              <div className="text-sm font-medium text-foreground truncate max-w-[120px] md:max-w-[150px]">
                 {user.name || user.email}
               </div>
-              <div className="text-xs text-muted-foreground">{user.email}</div>
+              <div className="text-xs text-muted-foreground truncate max-w-[120px] md:max-w-[150px]">{user.email}</div>
             </div>
           </Button>
         </DropdownMenuTrigger>
