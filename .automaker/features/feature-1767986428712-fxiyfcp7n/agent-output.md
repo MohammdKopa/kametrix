@@ -409,3 +409,66 @@ Input: {
   - Multiple rapid deletion attempts → First succeeds, subsequent get 404 handled gracefully
 - **Behavior**: Deletion operations now prioritize successful database cleanup even when external services have already removed resources, with appropriate feedback to users
 </summary>
+
+---
+
+## Follow-up Session
+
+Looking at the screenshot, I can see the issue: the delete confirmation dialog gets stuck in the "Deleting..." state when the user clicks away (clicks outside the dialog). The dialog should close when clicking outside, but the `isDeleting` state isn't being reset properly.
+
+Let me examine the current agent-card.tsx code to understand the issue and fix it:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx"
+}
+I can see the issue. The problem is that when the user clicks away (outside the dialog), the `onOpenChange` callback on the Dialog is triggered with `false`, which closes the dialog, but the `isDeleting` state remains `true`. The next time the delete button is clicked, the dialog shows the "Deleting..." state.
+
+The fix needs to:
+1. Reset `isDeleting` to `false` when the dialog is closed by clicking away (but NOT when deletion is in progress)
+2. Prevent the dialog from being closed while deletion is actively happening
+
+Let me fix this:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\dashboard\\agent-card.tsx",
+  "old_string": "      {/* Delete Confirmation Dialog */}\n      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>\n        <DialogContent className=\"glass sm:max-w-md\" showCloseButton={false}>\n          <DialogHeader>\n            <DialogTitle>Delete Agent</DialogTitle>\n            <DialogDescription>\n              Are you sure you want to delete &ldquo;{agent.name}&rdquo;? This action cannot be undone.\n            </DialogDescription>\n          </DialogHeader>\n          <DialogFooter className=\"mt-4\">\n            <Button\n              variant=\"outline\"\n              onClick={() => setShowDeleteConfirm(false)}\n              disabled={isDeleting}\n            >\n              Cancel\n            </Button>\n            <Button\n              variant=\"destructive\"\n              onClick={handleDelete}\n              disabled={isDeleting}\n            >\n              {isDeleting ? 'Deleting...' : 'Delete'}\n            </Button>\n          </DialogFooter>\n        </DialogContent>\n      </Dialog>",
+  "new_string": "      {/* Delete Confirmation Dialog */}\n      <Dialog\n        open={showDeleteConfirm}\n        onOpenChange={(open) => {\n          // Prevent closing while deletion is in progress\n          if (isDeleting && !open) {\n            return;\n          }\n          setShowDeleteConfirm(open);\n          // Reset deleting state when dialog is closed manually\n          if (!open) {\n            setIsDeleting(false);\n          }\n        }}\n      >\n        <DialogContent className=\"glass sm:max-w-md\" showCloseButton={false}>\n          <DialogHeader>\n            <DialogTitle>Delete Agent</DialogTitle>\n            <DialogDescription>\n              Are you sure you want to delete &ldquo;{agent.name}&rdquo;? This action cannot be undone.\n            </DialogDescription>\n          </DialogHeader>\n          <DialogFooter className=\"mt-4\">\n            <Button\n              variant=\"outline\"\n              onClick={() => {\n                setShowDeleteConfirm(false);\n                setIsDeleting(false);\n              }}\n              disabled={isDeleting}\n            >\n              Cancel\n            </Button>\n            <Button\n              variant=\"destructive\"\n              onClick={handleDelete}\n              disabled={isDeleting}\n            >\n              {isDeleting ? 'Deleting...' : 'Delete'}\n            </Button>\n          </DialogFooter>\n        </DialogContent>\n      </Dialog>"
+}
+Now let me verify the build still works:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npx tsc --noEmit 2>&1",
+  "description": "Run TypeScript check to verify compilation",
+  "timeout": 60000
+}
+TypeScript compiles successfully. Let me run a quick build check to make sure everything is working:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:\\CodeBase\\Kametrix\" && npm run build 2>&1 | tail -20",
+  "description": "Run build to verify everything compiles",
+  "timeout": 180000
+}
+The build is successful. 
+
+<summary>
+## Summary: Fix Delete Dialog Getting Stuck in "Deleting..." State
+
+### Changes Implemented
+- Fixed the delete confirmation dialog getting stuck in "Deleting..." state when user clicks away
+- Added logic to prevent dialog from being closed while deletion is actively in progress (prevents accidental dismissal)
+- Added state reset when dialog is closed manually (either by clicking away when not deleting, or via Cancel button)
+
+### Files Modified
+- `src/components/dashboard/agent-card.tsx` - Updated Dialog onOpenChange handler to:
+  1. Prevent closing while `isDeleting` is true
+  2. Reset `isDeleting` to false when dialog closes normally
+  3. Also reset `isDeleting` when Cancel button is clicked
+
+### Notes for Developer
+- **Behavior Change**: While deletion is in progress, clicking outside the dialog will NOT close it - the user must wait for the deletion to complete. This prevents the confusing "stuck" state.
+- **State Reset**: If the dialog is closed before deletion starts (or after it completes with an error), the `isDeleting` state is properly reset so the next delete attempt shows the correct "Delete" button text.
+</summary>

@@ -291,7 +291,20 @@ export function AgentCard({ agent }: AgentCardProps) {
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <Dialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          // Prevent closing while deletion is in progress
+          if (isDeleting && !open) {
+            return;
+          }
+          setShowDeleteConfirm(open);
+          // Reset deleting state when dialog is closed manually
+          if (!open) {
+            setIsDeleting(false);
+          }
+        }}
+      >
         <DialogContent className="glass sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Delete Agent</DialogTitle>
@@ -302,7 +315,10 @@ export function AgentCard({ agent }: AgentCardProps) {
           <DialogFooter className="mt-4">
             <Button
               variant="outline"
-              onClick={() => setShowDeleteConfirm(false)}
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setIsDeleting(false);
+              }}
               disabled={isDeleting}
             >
               Cancel
