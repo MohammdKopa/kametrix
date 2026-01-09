@@ -13,7 +13,7 @@
  * - Analytics and event logging
  */
 
-import { metrics, MetricNames } from '@/lib/performance';
+import { metrics } from '@/lib/performance';
 
 interface BackgroundTask {
   id: string;
@@ -190,7 +190,7 @@ class BackgroundJobQueue {
         } else {
           console.error(`Background task ${task.name} failed permanently: ${errorMessage}`);
           this.stats.totalFailed++;
-          metrics.increment(MetricNames.ERROR_COUNT, { task: task.name });
+          metrics.incrementGauge('background_job.errors');
         }
       }
     }

@@ -48,7 +48,7 @@ import {
 } from '@/lib/escalation';
 import { runInBackground, runAllInBackground } from '@/lib/background-jobs';
 import { WebhookRequestContext, createWebhookContext } from '@/lib/webhook-request-context';
-import { metrics, MetricNames, parallelQueries, queryCache } from '@/lib/performance';
+import { metrics, parallelQueries } from '@/lib/performance';
 import type { EscalateCallArgs, CheckOperatorAvailabilityArgs, VapiTransferAction, TransferFailureType } from '@/types/escalation';
 
 // ============================================
@@ -294,7 +294,7 @@ export async function POST(req: NextRequest) {
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
           console.error(`Tool calls failed or timed out: ${errorMsg}`);
-          metrics.increment(MetricNames.ERROR_COUNT, { handler: 'tool-calls' });
+          metrics.incrementGauge('webhook.vapi.tool_call.errors');
 
           // Return error response for all tool calls
           return NextResponse.json({
@@ -319,7 +319,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Vapi webhook error:', error);
-    metrics.increment(MetricNames.ERROR_COUNT, { handler: 'vapi-webhook' });
+    metrics.incrementGauge('webhook.vapi.errors');
 
     // Still return 200 to avoid Vapi retries on our errors
     return NextResponse.json({ received: true, error: 'Processing failed' });
@@ -1413,20 +1413,22 @@ async function handleToolCalls(message: WebhookToolCalls, ctx: WebhookRequestCon
 
                   // Log to EventLog for tracking in background
                   runInBackground(
-                    () => prisma.eventLog.create({
-                      data: {
-                        userId: agent.userId,
-                        eventType: 'escalation_requested',
-                        eventData: {
-                          agentId: agent.id,
-                          agentName: agent.name,
-                          reason: escalateArgs.reason,
-                          summary: escalateArgs.summary,
-                          callerName: escalateArgs.callerName,
-                          configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',
+                    async () => {
+                      await prisma.eventLog.create({
+                        data: {
+                          userId: agent.userId,
+                          eventType: 'escalation_requested',
+                          eventData: {
+                            agentId: agent.id,
+                            agentName: agent.name,
+                            reason: escalateArgs.reason,
+                            summary: escalateArgs.summary,
+                            callerName: escalateArgs.callerName,
+                            configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',
+                          },
                         },
-                      },
-                    }),
+                      });
+                    },
                     { name: 'escalation-event-log' }
                   );
 

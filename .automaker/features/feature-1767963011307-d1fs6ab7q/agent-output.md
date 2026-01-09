@@ -639,3 +639,174 @@ Input: {
 
 5. **Testing**: The webhook will return 401 if `VAPI_WEBHOOK_SECRET` is set but no valid signature is provided. This is expected behavior and the tests account for it.
 </summary>
+
+---
+
+## Follow-up Session
+
+I need to fix the compilation error. The `metrics` object doesn't have an `increment` method. Let me check the performance module to understand the correct API.
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\performance\\index.ts"
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\performance\\metrics.ts"
+}
+I can see the issue. The `MetricsCollector` class doesn't have an `increment` method. It has `incrementGauge` instead. I also notice there's no `ERROR_COUNT` in `MetricNames`. I need to fix the route.ts file to use the correct metrics API.
+
+Let me search for all instances of `metrics.increment` in the route file and fix them:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "metrics\\.increment",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "output_mode": "content",
+  "-n": true
+}
+I need to fix these two occurrences. The correct approach is to use `incrementGauge` for counting errors. Let me also check what `MetricNames` constants exist:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "offset": 290,
+  "limit": 40
+}
+Now I need to fix both occurrences by replacing `metrics.increment(MetricNames.ERROR_COUNT, ...)` with `metrics.incrementGauge('webhook.vapi.errors')`:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "        } catch (error) {\n          const errorMsg = error instanceof Error ? error.message : 'Unknown error';\n          console.error(`Tool calls failed or timed out: ${errorMsg}`);\n          metrics.increment(MetricNames.ERROR_COUNT, { handler: 'tool-calls' });\n\n          // Return error response for all tool calls\n          return NextResponse.json({\n            results: message.toolCallList.map((tc: ToolCall) => ({\n              toolCallId: tc.id,\n              result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',\n            })),\n          });\n        }",
+  "new_string": "        } catch (error) {\n          const errorMsg = error instanceof Error ? error.message : 'Unknown error';\n          console.error(`Tool calls failed or timed out: ${errorMsg}`);\n          metrics.incrementGauge('webhook.vapi.tool_call.errors');\n\n          // Return error response for all tool calls\n          return NextResponse.json({\n            results: message.toolCallList.map((tc: ToolCall) => ({\n              toolCallId: tc.id,\n              result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',\n            })),\n          });\n        }"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "  } catch (error) {\n    console.error('Vapi webhook error:', error);\n    metrics.increment(MetricNames.ERROR_COUNT, { handler: 'vapi-webhook' });\n\n    // Still return 200 to avoid Vapi retries on our errors\n    return NextResponse.json({ received: true, error: 'Processing failed' });\n  }\n}",
+  "new_string": "  } catch (error) {\n    console.error('Vapi webhook error:', error);\n    metrics.incrementGauge('webhook.vapi.errors');\n\n    // Still return 200 to avoid Vapi retries on our errors\n    return NextResponse.json({ received: true, error: 'Processing failed' });\n  }\n}"
+}
+Now I need to remove the unused `MetricNames` import since we're no longer using `MetricNames.ERROR_COUNT`. Let me check the imports and update them:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "offset": 1,
+  "limit": 60
+}
+I see `MetricNames` is imported but no longer used. Let me also check if `queryCache` is used anywhere in this file:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "MetricNames",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "output_mode": "content",
+  "-n": true
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "queryCache",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "output_mode": "content",
+  "-n": true
+}
+Both `MetricNames` and `queryCache` are imported but not used in the file. Let me remove these unused imports:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "import { metrics, MetricNames, parallelQueries, queryCache } from '@/lib/performance';",
+  "new_string": "import { metrics, parallelQueries } from '@/lib/performance';"
+}
+Now let me verify the build compiles correctly by running a type check:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && npx tsc --noEmit --skipLibCheck 2>&1 | head -50",
+  "description": "Run TypeScript type check",
+  "timeout": 120000
+}
+There are still errors in other files. Let me fix the `background-jobs.ts` file and the route.ts file:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\background-jobs.ts",
+  "offset": 185,
+  "limit": 20
+}
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\background-jobs.ts",
+  "offset": 1,
+  "limit": 20
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\background-jobs.ts",
+  "old_string": "import { metrics, MetricNames } from '@/lib/performance';",
+  "new_string": "import { metrics } from '@/lib/performance';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\background-jobs.ts",
+  "old_string": "        } else {\n          console.error(`Background task ${task.name} failed permanently: ${errorMessage}`);\n          this.stats.totalFailed++;\n          metrics.increment(MetricNames.ERROR_COUNT, { task: task.name });\n        }",
+  "new_string": "        } else {\n          console.error(`Background task ${task.name} failed permanently: ${errorMessage}`);\n          this.stats.totalFailed++;\n          metrics.incrementGauge('background_job.errors');\n        }"
+}
+Now let me fix the route.ts error at line 1416. The issue is that a Prisma create call returns a promise that resolves to the created entity, not `Promise<void>` as expected by `runInBackground`:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "offset": 1405,
+  "limit": 30
+}
+I see the issue. The `runInBackground` function expects `Promise<void>`, but `prisma.eventLog.create` returns `Promise<EventLog>`. I need to wrap these calls with `.then(() => {})` to convert them to `Promise<void>`. Let me fix this:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "old_string": "                  // Log to EventLog for tracking in background\n                  runInBackground(\n                    () => prisma.eventLog.create({\n                      data: {\n                        userId: agent.userId,\n                        eventType: 'escalation_requested',\n                        eventData: {\n                          agentId: agent.id,\n                          agentName: agent.name,\n                          reason: escalateArgs.reason,\n                          summary: escalateArgs.summary,\n                          callerName: escalateArgs.callerName,\n                          configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',\n                        },\n                      },\n                    }),\n                    { name: 'escalation-event-log' }\n                  );",
+  "new_string": "                  // Log to EventLog for tracking in background\n                  runInBackground(\n                    async () => {\n                      await prisma.eventLog.create({\n                        data: {\n                          userId: agent.userId,\n                          eventType: 'escalation_requested',\n                          eventData: {\n                            agentId: agent.id,\n                            agentName: agent.name,\n                            reason: escalateArgs.reason,\n                            summary: escalateArgs.summary,\n                            callerName: escalateArgs.callerName,\n                            configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',\n                          },\n                        },\n                      });\n                    },\n                    { name: 'escalation-event-log' }\n                  );"
+}
+Now let me run the type check again to see if there are any other errors:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && npx tsc --noEmit --skipLibCheck 2>&1 | head -50",
+  "description": "Run TypeScript type check",
+  "timeout": 120000
+}
+The type check passes now. Let me also run the Next.js build to make sure everything compiles correctly:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && npm run build 2>&1 | tail -30",
+  "description": "Run Next.js build",
+  "timeout": 300000
+}
+The build completed successfully. All compilation errors have been fixed.
+
+## Summary of Fixes
+
+I fixed the following compilation errors:
+
+1. **`src/app/api/webhooks/vapi/route.ts`**:
+   - Replaced `metrics.increment(MetricNames.ERROR_COUNT, { handler: 'tool-calls' })` with `metrics.incrementGauge('webhook.vapi.tool_call.errors')`
+   - Replaced `metrics.increment(MetricNames.ERROR_COUNT, { handler: 'vapi-webhook' })` with `metrics.incrementGauge('webhook.vapi.errors')`
+   - Removed unused imports `MetricNames` and `queryCache` from the performance import
+
+2. **`src/lib/background-jobs.ts`**:
+   - Replaced `metrics.increment(MetricNames.ERROR_COUNT, { task: task.name })` with `metrics.incrementGauge('background_job.errors')`
+   - Removed unused import `MetricNames`
+
+3. **`src/app/api/webhooks/vapi/route.ts` (line 1416)**:
+   - Wrapped the `prisma.eventLog.create()` call in an `async` function to return `Promise<void>` instead of `Promise<EventLog>`, which is what `runInBackground` expects
+
+The `MetricsCollector` class uses `incrementGauge(name, by)` method for counting instead of a non-existent `increment()` method. The build now completes successfully.
