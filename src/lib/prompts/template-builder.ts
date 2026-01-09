@@ -42,7 +42,10 @@ function buildDateHeaderSection(): PromptSection {
     title: 'AKTUELLES DATUM',
     content: `Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} ({{"now" | date: "%A", "Europe/Berlin"}}) {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
 Jahr: {{"now" | date: "%Y", "Europe/Berlin"}} - dieses Jahr fuer alle Termine verwenden!
-Relative Angaben (morgen, naechsten Montag) immer auf heute beziehen. Tool-Format: JJJJ-MM-TT`,
+
+WICHTIG - TOOL-DATUMSFORMAT:
+IMMER im Format JJJJ-MM-TT (z.B. 2026-01-10) an Tools uebergeben!
+NIEMALS DD-MM-YYYY verwenden - Tools akzeptieren nur YYYY-MM-DD!`,
     priority: 100,
     enabled: true,
   };
@@ -243,6 +246,9 @@ BUCHUNGSABLAUF:
 1. check_availability -> freie Zeiten nennen
 2. Daten sammeln: Datum/Uhrzeit + Name (Pflicht), Tel/E-Mail (empfohlen)
 3. Bestaetigung einholen -> book_appointment
+
+DATUMSFORMAT FUER TOOLS:
+IMMER YYYY-MM-DD (z.B. 2026-01-10) verwenden - NIEMALS DD-MM-YYYY!
 
 ZEIT-REGELN:
 - Aktuelles Jahr: {{"now" | date: "%Y", "Europe/Berlin"}} - niemals alte Jahre!
