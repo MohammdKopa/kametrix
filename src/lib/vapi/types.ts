@@ -46,3 +46,21 @@ export interface VapiPhoneNumber {
   assistantId?: string | null;
   createdAt: string;
 }
+
+/**
+ * Result of a graceful deletion attempt
+ */
+export interface DeletionResult {
+  success: boolean;
+  alreadyDeleted: boolean;
+  error?: string;
+}
+
+/**
+ * Result of a graceful phone number operation
+ */
+export interface PhoneOperationResult {
+  success: boolean;
+  notFound: boolean;
+  error?: string;
+}

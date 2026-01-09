@@ -6,6 +6,7 @@ export {
   createBusinessAssistant,
   updateAssistant,
   deleteAssistant,
+  deleteAssistantGracefully,
   refreshAssistantDate,
 } from './assistants';
 
@@ -14,6 +15,7 @@ export {
   listPhoneNumbers,
   assignAssistantToPhoneNumber,
   unassignPhoneNumber,
+  unassignPhoneNumberGracefully,
 } from './phone-numbers';
 
 // Types
@@ -22,4 +24,6 @@ export type {
   UpdateAssistantConfig,
   VapiAssistantResponse,
   VapiPhoneNumber,
+  DeletionResult,
+  PhoneOperationResult,
 } from './types';

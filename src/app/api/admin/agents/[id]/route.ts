@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, getRequestMetadata } from '@/lib/audit-logger';
-import { unassignPhoneNumber } from '@/lib/vapi/phone-numbers';
-import { deleteAssistant } from '@/lib/vapi';
+import { unassignPhoneNumberGracefully } from '@/lib/vapi/phone-numbers';
+import { deleteAssistantGracefully } from '@/lib/vapi';
 
 // Force dynamic rendering since we use cookies() for authentication
 export const dynamic = 'force-dynamic';
@@ -179,6 +179,9 @@ export async function PATCH(
 
 /**
  * DELETE /api/admin/agents/[id] - Delete agent (admin only)
+ *
+ * This endpoint gracefully handles cases where external resources (Vapi assistant, phone numbers)
+ * may already be deleted or don't exist. It treats "not found" errors as success cases.
  */
 export async function DELETE(
   request: NextRequest,
@@ -187,6 +190,16 @@ export async function DELETE(
   try {
     const admin = await requireAdmin(request);
     const { id } = await params;
+
+    // Track deletion status for detailed response
+    const deletionStatus = {
+      agentDeleted: false,
+      phoneUnassigned: false,
+      phoneUnassignedAlreadyDone: false,
+      vapiAssistantDeleted: false,
+      vapiAssistantAlreadyDeleted: false,
+      warnings: [] as string[],
+    };
 
     // Get current agent state
     const currentAgent = await prisma.agent.findUnique({
@@ -206,35 +219,53 @@ export async function DELETE(
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    // If agent has a phone number, unassign it from Vapi
+    // If agent has a phone number, unassign it from Vapi gracefully
     if (currentAgent.phoneNumber && currentAgent.phoneNumber.vapiPhoneId) {
-      try {
-        await unassignPhoneNumber(currentAgent.phoneNumber.vapiPhoneId);
-        await prisma.phoneNumber.update({
-          where: { id: currentAgent.phoneNumber.id },
-          data: {
-            agentId: null,
-            status: 'AVAILABLE',
-          },
-        });
-      } catch (phoneError) {
-        console.error('Failed to unassign phone number:', phoneError);
+      const phoneResult = await unassignPhoneNumberGracefully(currentAgent.phoneNumber.vapiPhoneId);
+
+      if (phoneResult.success) {
+        deletionStatus.phoneUnassigned = true;
+        deletionStatus.phoneUnassignedAlreadyDone = phoneResult.notFound;
+
+        // Update phone number in DB to make it available again
+        try {
+          await prisma.phoneNumber.update({
+            where: { id: currentAgent.phoneNumber.id },
+            data: {
+              agentId: null,
+              status: 'AVAILABLE',
+            },
+          });
+        } catch (dbError) {
+          console.error('Failed to update phone number in database:', dbError);
+          deletionStatus.warnings.push('Phone number database update failed');
+        }
+      } else {
+        // Non-critical error - log warning but continue
+        deletionStatus.warnings.push(`Phone unassignment warning: ${phoneResult.error}`);
+        console.warn('Phone unassignment had issues:', phoneResult.error);
       }
     }
 
-    // Delete Vapi assistant if it exists
+    // Delete Vapi assistant if it exists, using graceful deletion
     if (currentAgent.vapiAssistantId) {
-      try {
-        await deleteAssistant(currentAgent.vapiAssistantId);
-      } catch (vapiError) {
-        console.error('Failed to delete Vapi assistant:', vapiError);
+      const vapiResult = await deleteAssistantGracefully(currentAgent.vapiAssistantId);
+
+      if (vapiResult.success) {
+        deletionStatus.vapiAssistantDeleted = true;
+        deletionStatus.vapiAssistantAlreadyDeleted = vapiResult.alreadyDeleted;
+      } else {
+        // Non-critical error - log warning but continue with database deletion
+        deletionStatus.warnings.push(`Vapi assistant cleanup warning: ${vapiResult.error}`);
+        console.warn('Vapi assistant deletion had issues:', vapiResult.error);
       }
     }
 
-    // Delete agent
+    // Delete agent from database
     await prisma.agent.delete({
       where: { id },
     });
+    deletionStatus.agentDeleted = true;
 
     // Create audit log
     await createAuditLog({
@@ -252,10 +283,34 @@ export async function DELETE(
       metadata: {
         deletedAgentId: id,
         ownerEmail: currentAgent.user.email,
+        deletionDetails: {
+          phoneUnassigned: deletionStatus.phoneUnassigned,
+          vapiAssistantDeleted: deletionStatus.vapiAssistantDeleted,
+          alreadyCleanedUp: {
+            phoneNumber: deletionStatus.phoneUnassignedAlreadyDone,
+            vapiAssistant: deletionStatus.vapiAssistantAlreadyDeleted,
+          },
+          warnings: deletionStatus.warnings.length > 0 ? deletionStatus.warnings : undefined,
+        },
       },
     });
 
-    return NextResponse.json({ success: true });
+    // Return success with detailed status
+    return NextResponse.json({
+      success: true,
+      message: 'Agent deleted successfully',
+      details: {
+        agentId: id,
+        agentName: currentAgent.name,
+        phoneUnassigned: deletionStatus.phoneUnassigned,
+        vapiAssistantDeleted: deletionStatus.vapiAssistantDeleted,
+        alreadyCleanedUp: {
+          phoneNumber: deletionStatus.phoneUnassignedAlreadyDone,
+          vapiAssistant: deletionStatus.vapiAssistantAlreadyDeleted,
+        },
+        warnings: deletionStatus.warnings.length > 0 ? deletionStatus.warnings : undefined,
+      },
+    });
   } catch (error) {
     console.error('Error deleting agent:', error);
 
@@ -269,7 +324,7 @@ export async function DELETE(
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete agent' },
+      { error: 'Failed to delete agent', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

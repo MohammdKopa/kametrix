@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useToastHelpers } from '@/components/ui/toast';
 
 interface AgentCardProps {
   agent: Agent & {
@@ -41,10 +42,12 @@ function formatPhoneNumber(number: string): string {
 
 export function AgentCard({ agent }: AgentCardProps) {
   const router = useRouter();
+  const toast = useToastHelpers();
   const [isToggling, setIsToggling] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   const handleToggle = async () => {
     setIsToggling(true);
@@ -59,10 +62,11 @@ export function AgentCard({ agent }: AgentCardProps) {
         throw new Error('Failed to toggle agent');
       }
 
+      toast.success(`Agent ${!agent.isActive ? 'activated' : 'deactivated'} successfully`);
       router.refresh();
     } catch (error) {
       console.error('Error toggling agent:', error);
-      alert('Failed to toggle agent status');
+      toast.error('Failed to toggle agent status');
     } finally {
       setIsToggling(false);
     }
@@ -75,15 +79,37 @@ export function AgentCard({ agent }: AgentCardProps) {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to delete agent');
+        // Handle specific error cases
+        if (response.status === 404) {
+          // Agent was already deleted (maybe in another tab/session)
+          setIsDeleted(true);
+          toast.info('Agent was already deleted');
+          router.refresh();
+          return;
+        }
+        throw new Error(data.error || 'Failed to delete agent');
       }
 
+      // Success - optimistically hide the card immediately
+      setIsDeleted(true);
+      setShowDeleteConfirm(false);
+
+      // Show appropriate success message
+      if (data.details?.warnings?.length > 0) {
+        toast.warning(`Agent "${agent.name}" deleted with some warnings`);
+      } else {
+        toast.success(`Agent "${agent.name}" deleted successfully`);
+      }
+
+      // Refresh the page to sync state
       router.refresh();
     } catch (error) {
       console.error('Error deleting agent:', error);
-      alert('Failed to delete agent');
-    } finally {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete agent';
+      toast.error(errorMessage);
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -95,11 +121,18 @@ export function AgentCard({ agent }: AgentCardProps) {
     try {
       await navigator.clipboard.writeText(agent.phoneNumber.number);
       setIsCopied(true);
+      toast.success('Phone number copied');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy phone number:', error);
+      toast.error('Failed to copy phone number');
     }
   };
+
+  // If the agent has been deleted, don't render the card
+  if (isDeleted) {
+    return null;
+  }
 
   return (
     <>

@@ -1,5 +1,5 @@
 import { getVapiClient } from './client';
-import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantResponse } from './types';
+import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantResponse, DeletionResult } from './types';
 import { buildSystemPrompt, buildCalendarTools } from '@/lib/prompts';
 import { buildEscalationTools } from '@/lib/escalation';
 
@@ -156,6 +156,37 @@ export async function updateAssistant(
 export async function deleteAssistant(assistantId: string): Promise<void> {
   const client = getVapiClient();
   await client.assistants.delete({ id: assistantId });
+}
+
+/**
+ * Gracefully delete an assistant from Vapi
+ * Handles cases where the assistant may already be deleted
+ */
+export async function deleteAssistantGracefully(assistantId: string): Promise<DeletionResult> {
+  const client = getVapiClient();
+  try {
+    await client.assistants.delete({ id: assistantId });
+    return { success: true, alreadyDeleted: false };
+  } catch (error) {
+    // Check if the error indicates the assistant doesn't exist
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorString = String(error).toLowerCase();
+
+    // Handle "not found" errors gracefully - treat as already deleted
+    if (
+      errorString.includes('not found') ||
+      errorString.includes('assistant not found') ||
+      errorString.includes('404') ||
+      (error && typeof error === 'object' && 'status' in error && (error as any).status === 404)
+    ) {
+      console.log(`Assistant ${assistantId} already deleted or not found in Vapi`);
+      return { success: true, alreadyDeleted: true };
+    }
+
+    // Re-throw other errors
+    console.error('Failed to delete Vapi assistant:', error);
+    return { success: false, alreadyDeleted: false, error: errorMessage };
+  }
 }
 
 /**

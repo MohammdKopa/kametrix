@@ -278,11 +278,13 @@ export function AgentWizard() {
         />
       )}
 
-      {/* Auto-save indicator and wizard progress */}
-      <div className="flex items-center justify-between mb-4">
-        <WizardProgress currentStep={state.step} totalSteps={TOTAL_STEPS} />
+      {/* Auto-save indicator */}
+      <div className="flex justify-end mb-2">
         <AutoSaveIndicator metadata={autoSaveMetadata} />
       </div>
+
+      {/* Wizard progress */}
+      <WizardProgress currentStep={state.step} totalSteps={TOTAL_STEPS} />
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl">
