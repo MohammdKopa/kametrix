@@ -1,6 +1,6 @@
 'use client';
 
-import { Edit2 } from 'lucide-react';
+import { Edit2, PhoneForwarded, Clock, CheckCircle, XCircle } from 'lucide-react';
 import type { WizardState } from '@/types/wizard';
 
 interface ReviewStepProps {
@@ -162,6 +162,84 @@ export function ReviewStep({ data, onEdit }: ReviewStepProps) {
               &ldquo;{data.greeting.endCallMessage || '-'}&rdquo;
             </dd>
           </div>
+        </dl>
+      </div>
+
+      {/* Escalation Settings */}
+      <div className="border border-gray-200 rounded-lg p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center gap-2">
+            <PhoneForwarded className="w-4 h-4 text-orange-500" />
+            <h3 className="font-medium text-gray-900">Weiterleitung an Mitarbeiter</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => onEdit(5)}
+            className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
+          >
+            <Edit2 className="w-3 h-3" />
+            Bearbeiten
+          </button>
+        </div>
+        <dl className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <dt className="font-medium text-gray-700">Status:</dt>
+            <dd className="text-gray-600 flex items-center gap-1">
+              {data.escalation.enabled ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-green-700">Aktiviert</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-500">Deaktiviert</span>
+                </>
+              )}
+            </dd>
+          </div>
+          {data.escalation.enabled && (
+            <>
+              <div>
+                <dt className="font-medium text-gray-700">Weiterleitungsnummer:</dt>
+                <dd className="text-gray-600">{data.escalation.forwardingNumber || '-'}</dd>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-gray-400" />
+                <dt className="font-medium text-gray-700">Geschäftszeiten:</dt>
+                <dd className="text-gray-600 ml-1">
+                  {data.escalation.businessHoursStart} - {data.escalation.businessHoursEnd}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-700">Geschäftstage:</dt>
+                <dd className="text-gray-600">
+                  {data.escalation.businessDays?.map((day) => {
+                    const dayLabels: Record<string, string> = {
+                      Mon: 'Mo', Tue: 'Di', Wed: 'Mi', Thu: 'Do', Fri: 'Fr', Sat: 'Sa', Sun: 'So'
+                    };
+                    return dayLabels[day] || day;
+                  }).join(', ') || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-700">Voicemail:</dt>
+                <dd className="text-gray-600">
+                  {data.escalation.voicemailEnabled ? 'Aktiviert' : 'Deaktiviert'}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-700">Max. Nachfragen vor Weiterleitung:</dt>
+                <dd className="text-gray-600">{data.escalation.maxClarifications}</dd>
+              </div>
+            </>
+          )}
+          {!data.escalation.enabled && (
+            <div className="text-gray-500 text-xs mt-2">
+              Der KI-Assistent wird Anrufer bitten, ihre Kontaktdaten zu hinterlassen,
+              wenn er nicht weiterhelfen kann.
+            </div>
+          )}
         </dl>
       </div>
 

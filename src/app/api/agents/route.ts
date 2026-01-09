@@ -3,7 +3,9 @@ import { requireAuth } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import { createBusinessAssistant, deleteAssistant } from '@/lib/vapi';
 import { buildSystemPrompt } from '@/lib/prompts';
+import { createEscalationConfig } from '@/lib/escalation/config-manager';
 import type { WizardState } from '@/types/wizard';
+import { DEFAULT_TRIGGER_PHRASES } from '@/types/escalation';
 import {
   getCachedUserAgents,
   invalidateUserCache,
@@ -171,6 +173,35 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           },
         });
 
+        // Create escalation config if escalation is enabled in wizard
+        let escalationConfigCreated = false;
+        if (wizardData.escalation?.enabled && wizardData.escalation.forwardingNumber) {
+          try {
+            await createEscalationConfig(agent.id, {
+              enabled: true,
+              forwardingNumber: wizardData.escalation.forwardingNumber,
+              businessHoursStart: wizardData.escalation.businessHoursStart || '09:00',
+              businessHoursEnd: wizardData.escalation.businessHoursEnd || '18:00',
+              businessDays: wizardData.escalation.businessDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+              voicemailEnabled: wizardData.escalation.voicemailEnabled ?? true,
+              maxClarifications: wizardData.escalation.maxClarifications ?? 3,
+              triggerPhrases: [...DEFAULT_TRIGGER_PHRASES],
+              timezone: 'Europe/Berlin',
+            });
+            escalationConfigCreated = true;
+            context.logger.info('Escalation config created for agent', {
+              agentId: agent.id,
+              forwardingNumber: wizardData.escalation.forwardingNumber,
+            });
+          } catch (escalationError) {
+            // Log but don't fail - escalation config can be added later
+            context.logger.warn('Failed to create escalation config', {
+              agentId: agent.id,
+              error: escalationError instanceof Error ? escalationError.message : String(escalationError),
+            });
+          }
+        }
+
         // Invalidate user's agent cache
         invalidateUserCache(user.id);
 
@@ -178,6 +209,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           agentId: agent.id,
           userId: user.id,
           hasGoogleCalendar,
+          hasEscalation: escalationConfigCreated,
           duration: getRequestDuration(context),
         });
 
@@ -186,7 +218,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         return apiResponse(
           {
             agent,
-            message: 'Agent created successfully. Admin will assign a phone number.',
+            message: escalationConfigCreated
+              ? 'Agent created successfully with escalation enabled. Admin will assign a phone number.'
+              : 'Agent created successfully. Admin will assign a phone number.',
           },
           201,
           context.requestId

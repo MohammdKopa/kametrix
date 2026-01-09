@@ -23,6 +23,15 @@ export interface WizardState {
     greeting: string;
     endCallMessage: string;
   };
+  escalation: {
+    enabled: boolean;
+    forwardingNumber: string;
+    businessHoursStart: string;
+    businessHoursEnd: string;
+    businessDays: string[];
+    voicemailEnabled: boolean;
+    maxClarifications: number;
+  };
 }
 
 export const DEFAULT_WIZARD_STATE: WizardState = {
@@ -49,5 +58,14 @@ export const DEFAULT_WIZARD_STATE: WizardState = {
     agentName: '',
     greeting: '',
     endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',
+  },
+  escalation: {
+    enabled: false,
+    forwardingNumber: '',
+    businessHoursStart: '09:00',
+    businessHoursEnd: '18:00',
+    businessDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    voicemailEnabled: true,
+    maxClarifications: 3,
   },
 };

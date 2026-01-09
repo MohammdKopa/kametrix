@@ -10,6 +10,7 @@ import { BusinessInfoStep } from './steps/business-info-step';
 import { KnowledgeStep } from './steps/knowledge-step';
 import { VoiceStep } from './steps/voice-step';
 import { GreetingStep } from './steps/greeting-step';
+import { EscalationStep } from './steps/escalation-step';
 import { ReviewStep } from './steps/review-step';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 interface CreatedAgent {
   id: string;
@@ -129,6 +130,19 @@ export function AgentWizard() {
         }
         return true;
 
+      case 5: // Escalation
+        // If escalation is enabled, a forwarding number is required
+        if (state.escalation.enabled && !state.escalation.forwardingNumber.trim()) {
+          setError('Bitte geben Sie eine Weiterleitungsnummer ein, wenn die Weiterleitung aktiviert ist');
+          return false;
+        }
+        // Validate phone number format if provided
+        if (state.escalation.forwardingNumber.trim() && !/^\+?[0-9\s-]{6,}$/.test(state.escalation.forwardingNumber)) {
+          setError('Bitte geben Sie eine gültige Telefonnummer ein');
+          return false;
+        }
+        return true;
+
       default:
         return true;
     }
@@ -217,7 +231,13 @@ export function AgentWizard() {
             onChange={(data) => updateState('greeting', data)}
           />
         )}
-        {state.step === 5 && <ReviewStep data={state} onEdit={goToStep} />}
+        {state.step === 5 && (
+          <EscalationStep
+            data={state.escalation}
+            onChange={(data) => updateState('escalation', data)}
+          />
+        )}
+        {state.step === 6 && <ReviewStep data={state} onEdit={goToStep} />}
       </div>
 
       {/* Navigation buttons */}

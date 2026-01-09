@@ -3072,3 +3072,536 @@ New agents created after this deployment will automatically have escalation tool
 - **New agents will automatically have escalation tools** after this deployment
 - **Escalation tools appear FIRST** in the tools array to give them priority over calendar tools
 </summary>
+
+---
+
+## Follow-up Session
+
+I'll add escalation configuration to the AI setup agent wizard. Let me first explore the wizard structure to understand how it's organized.
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/wizard/**/*.tsx"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/setup/**/*.tsx"
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "wizard|setup.*agent",
+  "glob": "*.tsx",
+  "output_mode": "files_with_matches"
+}
+I found the wizard structure. Let me read the main wizard component to understand how it works:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\agent-wizard.tsx"
+}
+Now let me check the wizard types to understand the state structure:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\types\\wizard.ts"
+}
+Now let me look at one of the steps to understand the component structure:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\steps\\business-info-step.tsx"
+}
+Let me also check the review step to see how data is displayed:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\steps\\review-step.tsx"
+}
+Now I have a good understanding of the wizard structure. I need to:
+
+1. Add an escalation configuration section to the wizard types
+2. Create a new escalation step component
+3. Update the wizard to include the new step
+4. Update the review step to show escalation settings
+5. Update the API to handle escalation configuration during agent creation
+
+Let me start by updating the wizard types:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "in_progress",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "pending",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "pending",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "pending",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "pending",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "pending",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\types\\wizard.ts",
+  "old_string": "/**\n * Wizard state types for agent creation wizard\n */\n\nexport interface WizardState {\n  step: number;\n  businessInfo: {\n    businessName: string;\n    businessDescription: string;\n    businessHours: string;\n    services: string[];\n  };\n  knowledge: {\n    faqs: { question: string; answer: string }[];\n    policies: string;\n  };\n  voice: {\n    voiceId: string;\n    voiceProvider: 'azure' | '11labs';\n  };\n  greeting: {\n    agentName: string;\n    greeting: string;\n    endCallMessage: string;\n  };\n}",
+  "new_string": "/**\n * Wizard state types for agent creation wizard\n */\n\nexport interface WizardState {\n  step: number;\n  businessInfo: {\n    businessName: string;\n    businessDescription: string;\n    businessHours: string;\n    services: string[];\n  };\n  knowledge: {\n    faqs: { question: string; answer: string }[];\n    policies: string;\n  };\n  voice: {\n    voiceId: string;\n    voiceProvider: 'azure' | '11labs';\n  };\n  greeting: {\n    agentName: string;\n    greeting: string;\n    endCallMessage: string;\n  };\n  escalation: {\n    enabled: boolean;\n    forwardingNumber: string;\n    businessHoursStart: string;\n    businessHoursEnd: string;\n    businessDays: string[];\n    voicemailEnabled: boolean;\n    maxClarifications: number;\n  };\n}"
+}
+Now let me update the default wizard state:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\types\\wizard.ts",
+  "old_string": "export const DEFAULT_WIZARD_STATE: WizardState = {\n  step: 1,\n  businessInfo: {\n    businessName: '',\n    businessDescription: '',\n    businessHours: '',\n    services: [],\n  },\n  knowledge: {\n    faqs: [\n      { question: '', answer: '' },\n      { question: '', answer: '' },\n      { question: '', answer: '' },\n    ],\n    policies: '',\n  },\n  voice: {\n    voiceId: 'EXAVITQu4vr4xnSDxMaL',\n    voiceProvider: '11labs',\n  },\n  greeting: {\n    agentName: '',\n    greeting: '',\n    endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',\n  },\n};",
+  "new_string": "export const DEFAULT_WIZARD_STATE: WizardState = {\n  step: 1,\n  businessInfo: {\n    businessName: '',\n    businessDescription: '',\n    businessHours: '',\n    services: [],\n  },\n  knowledge: {\n    faqs: [\n      { question: '', answer: '' },\n      { question: '', answer: '' },\n      { question: '', answer: '' },\n    ],\n    policies: '',\n  },\n  voice: {\n    voiceId: 'EXAVITQu4vr4xnSDxMaL',\n    voiceProvider: '11labs',\n  },\n  greeting: {\n    agentName: '',\n    greeting: '',\n    endCallMessage: 'Vielen Dank für Ihren Anruf. Auf Wiederhören!',\n  },\n  escalation: {\n    enabled: false,\n    forwardingNumber: '',\n    businessHoursStart: '09:00',\n    businessHoursEnd: '18:00',\n    businessDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],\n    voicemailEnabled: true,\n    maxClarifications: 3,\n  },\n};"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "completed",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "in_progress",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "pending",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "pending",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "pending",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "pending",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+Now let me create the escalation step component:
+
+🔧 Tool: Write
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\steps\\escalation-step.tsx",
+  "content": "'use client';\n\nimport { PhoneForwarded, Clock, Voicemail, AlertTriangle, Info } from 'lucide-react';\nimport type { WizardState } from '@/types/wizard';\n\ninterface EscalationStepProps {\n  data: WizardState['escalation'];\n  onChange: (data: Partial<WizardState['escalation']>) => void;\n}\n\nconst BUSINESS_DAYS = [\n  { value: 'Mon', label: 'Mo' },\n  { value: 'Tue', label: 'Di' },\n  { value: 'Wed', label: 'Mi' },\n  { value: 'Thu', label: 'Do' },\n  { value: 'Fri', label: 'Fr' },\n  { value: 'Sat', label: 'Sa' },\n  { value: 'Sun', label: 'So' },\n];\n\nexport function EscalationStep({ data, onChange }: EscalationStepProps) {\n  const handleDayToggle = (day: string) => {\n    const currentDays = data.businessDays || [];\n    if (currentDays.includes(day)) {\n      onChange({ businessDays: currentDays.filter((d) => d !== day) });\n    } else {\n      onChange({ businessDays: [...currentDays, day] });\n    }\n  };\n\n  return (\n    <div className=\"space-y-6\">\n      <div>\n        <h2 className=\"text-xl font-semibold text-gray-900 dark:text-white mb-2\">\n          Weiterleitung an Mitarbeiter\n        </h2>\n        <p className=\"text-sm text-gray-600 dark:text-gray-400\">\n          Konfigurieren Sie, wann und wie Anrufe an echte Mitarbeiter weitergeleitet werden sollen.\n        </p>\n      </div>\n\n      {/* Info Banner */}\n      <div className=\"flex gap-3 p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl\">\n        <Info className=\"w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5\" />\n        <div className=\"text-sm text-blue-800 dark:text-blue-300\">\n          <p className=\"font-medium mb-1\">Was passiert bei einer Weiterleitung?</p>\n          <p>\n            Wenn ein Anrufer explizit nach einem Menschen fragt, der KI-Assistent verwirrt ist,\n            oder der Anrufer frustriert klingt, kann der Anruf an einen echten Mitarbeiter\n            weitergeleitet werden.\n          </p>\n        </div>\n      </div>\n\n      {/* Enable/Disable Toggle */}\n      <div className=\"flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50\">\n        <div className=\"flex items-center gap-3\">\n          <div className=\"p-2 rounded-lg bg-orange-100 dark:bg-orange-500/20\">\n            <PhoneForwarded className=\"w-5 h-5 text-orange-600 dark:text-orange-400\" />\n          </div>\n          <div>\n            <p className=\"font-medium text-gray-900 dark:text-white\">\n              Weiterleitung aktivieren\n            </p>\n            <p className=\"text-sm text-gray-500 dark:text-gray-400\">\n              {data.enabled\n                ? 'Anrufe können an Mitarbeiter weitergeleitet werden'\n                : 'Der KI-Assistent bietet Rückruf an, wenn er nicht weiterhelfen kann'}\n            </p>\n          </div>\n        </div>\n        <label className=\"relative inline-flex items-center cursor-pointer\">\n          <input\n            type=\"checkbox\"\n            checked={data.enabled}\n            onChange={(e) => onChange({ enabled: e.target.checked })}\n            className=\"sr-only peer\"\n          />\n          <div className=\"w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500\"></div>\n        </label>\n      </div>\n\n      {data.enabled && (\n        <>\n          {/* Forwarding Number */}\n          <div>\n            <label\n              htmlFor=\"forwardingNumber\"\n              className=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\"\n            >\n              Weiterleitungsnummer <span className=\"text-red-500\">*</span>\n            </label>\n            <div className=\"relative\">\n              <input\n                type=\"tel\"\n                id=\"forwardingNumber\"\n                value={data.forwardingNumber}\n                onChange={(e) => onChange({ forwardingNumber: e.target.value })}\n                className=\"w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white\"\n                placeholder=\"+49 30 12345678\"\n              />\n              <PhoneForwarded className=\"absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400\" />\n            </div>\n            <p className=\"mt-1 text-xs text-gray-500 dark:text-gray-400\">\n              Die Telefonnummer, an die Anrufe weitergeleitet werden sollen.\n            </p>\n          </div>\n\n          {/* Business Hours */}\n          <div className=\"space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl\">\n            <div className=\"flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300\">\n              <Clock className=\"w-4 h-4\" />\n              Geschäftszeiten für Weiterleitung\n            </div>\n\n            <div className=\"grid grid-cols-2 gap-4\">\n              <div>\n                <label\n                  htmlFor=\"businessHoursStart\"\n                  className=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\"\n                >\n                  Öffnungszeit\n                </label>\n                <input\n                  type=\"time\"\n                  id=\"businessHoursStart\"\n                  value={data.businessHoursStart}\n                  onChange={(e) => onChange({ businessHoursStart: e.target.value })}\n                  className=\"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white\"\n                />\n              </div>\n\n              <div>\n                <label\n                  htmlFor=\"businessHoursEnd\"\n                  className=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\"\n                >\n                  Schlusszeit\n                </label>\n                <input\n                  type=\"time\"\n                  id=\"businessHoursEnd\"\n                  value={data.businessHoursEnd}\n                  onChange={(e) => onChange({ businessHoursEnd: e.target.value })}\n                  className=\"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white\"\n                />\n              </div>\n            </div>\n\n            <div>\n              <label className=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2\">\n                Geschäftstage\n              </label>\n              <div className=\"flex flex-wrap gap-2\">\n                {BUSINESS_DAYS.map((day) => (\n                  <button\n                    key={day.value}\n                    type=\"button\"\n                    onClick={() => handleDayToggle(day.value)}\n                    className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${\n                      data.businessDays?.includes(day.value)\n                        ? 'bg-orange-500 text-white border-orange-500'\n                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'\n                    }`}\n                  >\n                    {day.label}\n                  </button>\n                ))}\n              </div>\n              <p className=\"mt-2 text-xs text-gray-500 dark:text-gray-400\">\n                Außerhalb dieser Zeiten werden Anrufer auf die Voicemail hingewiesen.\n              </p>\n            </div>\n          </div>\n\n          {/* Voicemail Setting */}\n          <div className=\"flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl\">\n            <div className=\"flex items-center gap-3\">\n              <div className=\"p-2 rounded-lg bg-purple-100 dark:bg-purple-500/20\">\n                <Voicemail className=\"w-5 h-5 text-purple-600 dark:text-purple-400\" />\n              </div>\n              <div>\n                <p className=\"font-medium text-gray-900 dark:text-white\">Voicemail aktivieren</p>\n                <p className=\"text-sm text-gray-500 dark:text-gray-400\">\n                  Anrufer können eine Nachricht hinterlassen, wenn kein Mitarbeiter verfügbar ist.\n                </p>\n              </div>\n            </div>\n            <label className=\"relative inline-flex items-center cursor-pointer\">\n              <input\n                type=\"checkbox\"\n                checked={data.voicemailEnabled}\n                onChange={(e) => onChange({ voicemailEnabled: e.target.checked })}\n                className=\"sr-only peer\"\n              />\n              <div className=\"w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-500\"></div>\n            </label>\n          </div>\n\n          {/* Max Clarifications */}\n          <div className=\"p-4 border border-gray-200 dark:border-gray-700 rounded-xl\">\n            <div className=\"flex items-center gap-2 mb-3\">\n              <AlertTriangle className=\"w-4 h-4 text-amber-500\" />\n              <label\n                htmlFor=\"maxClarifications\"\n                className=\"text-sm font-medium text-gray-700 dark:text-gray-300\"\n              >\n                Maximale Nachfragen\n              </label>\n            </div>\n            <input\n              type=\"number\"\n              id=\"maxClarifications\"\n              min={1}\n              max={10}\n              value={data.maxClarifications}\n              onChange={(e) => onChange({ maxClarifications: parseInt(e.target.value, 10) || 3 })}\n              className=\"w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white\"\n            />\n            <p className=\"mt-2 text-xs text-gray-500 dark:text-gray-400\">\n              Nach dieser Anzahl von Nachfragen wird der Anruf automatisch an einen Mitarbeiter\n              weitergeleitet. (Empfohlen: 3)\n            </p>\n          </div>\n        </>\n      )}\n\n      {/* Disabled State Info */}\n      {!data.enabled && (\n        <div className=\"p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl\">\n          <p className=\"text-sm text-gray-600 dark:text-gray-400\">\n            <strong>Ohne aktivierte Weiterleitung:</strong> Der KI-Assistent kann keine Anrufe\n            direkt an Mitarbeiter weiterleiten. Stattdessen wird er Anrufer bitten, ihre\n            Kontaktdaten zu hinterlassen, damit Sie sie zurückrufen können.\n          </p>\n        </div>\n      )}\n    </div>\n  );\n}\n"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "completed",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "completed",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "in_progress",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "pending",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "pending",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "pending",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+Now let me update the main agent wizard to include the new escalation step:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\agent-wizard.tsx",
+  "old_string": "import { WizardProgress } from './wizard-progress';\nimport { DEFAULT_WIZARD_STATE, type WizardState } from '@/types/wizard';\nimport { BusinessInfoStep } from './steps/business-info-step';\nimport { KnowledgeStep } from './steps/knowledge-step';\nimport { VoiceStep } from './steps/voice-step';\nimport { GreetingStep } from './steps/greeting-step';\nimport { ReviewStep } from './steps/review-step';",
+  "new_string": "import { WizardProgress } from './wizard-progress';\nimport { DEFAULT_WIZARD_STATE, type WizardState } from '@/types/wizard';\nimport { BusinessInfoStep } from './steps/business-info-step';\nimport { KnowledgeStep } from './steps/knowledge-step';\nimport { VoiceStep } from './steps/voice-step';\nimport { GreetingStep } from './steps/greeting-step';\nimport { EscalationStep } from './steps/escalation-step';\nimport { ReviewStep } from './steps/review-step';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\agent-wizard.tsx",
+  "old_string": "const TOTAL_STEPS = 5;",
+  "new_string": "const TOTAL_STEPS = 6;"
+}
+Now I need to update the validation for the escalation step (step 5) and adjust the review step to be step 6:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\agent-wizard.tsx",
+  "old_string": "      case 4: // Greeting\n        if (!state.greeting.agentName.trim()) {\n          setError('Name des Assistenten ist erforderlich');\n          return false;\n        }\n        if (!state.greeting.greeting.trim()) {\n          setError('Begrüßung ist erforderlich');\n          return false;\n        }\n        if (!state.greeting.endCallMessage.trim()) {\n          setError('Verabschiedung ist erforderlich');\n          return false;\n        }\n        return true;\n\n      default:\n        return true;\n    }\n  };",
+  "new_string": "      case 4: // Greeting\n        if (!state.greeting.agentName.trim()) {\n          setError('Name des Assistenten ist erforderlich');\n          return false;\n        }\n        if (!state.greeting.greeting.trim()) {\n          setError('Begrüßung ist erforderlich');\n          return false;\n        }\n        if (!state.greeting.endCallMessage.trim()) {\n          setError('Verabschiedung ist erforderlich');\n          return false;\n        }\n        return true;\n\n      case 5: // Escalation\n        // If escalation is enabled, a forwarding number is required\n        if (state.escalation.enabled && !state.escalation.forwardingNumber.trim()) {\n          setError('Bitte geben Sie eine Weiterleitungsnummer ein, wenn die Weiterleitung aktiviert ist');\n          return false;\n        }\n        // Validate phone number format if provided\n        if (state.escalation.forwardingNumber.trim() && !/^\\+?[0-9\\s-]{6,}$/.test(state.escalation.forwardingNumber)) {\n          setError('Bitte geben Sie eine gültige Telefonnummer ein');\n          return false;\n        }\n        return true;\n\n      default:\n        return true;\n    }\n  };"
+}
+Now let me update the step rendering to include the escalation step and move review to step 6:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\agent-wizard.tsx",
+  "old_string": "        {state.step === 4 && (\n          <GreetingStep\n            data={state.greeting}\n            businessInfo={state.businessInfo}\n            onChange={(data) => updateState('greeting', data)}\n          />\n        )}\n        {state.step === 5 && <ReviewStep data={state} onEdit={goToStep} />}",
+  "new_string": "        {state.step === 4 && (\n          <GreetingStep\n            data={state.greeting}\n            businessInfo={state.businessInfo}\n            onChange={(data) => updateState('greeting', data)}\n          />\n        )}\n        {state.step === 5 && (\n          <EscalationStep\n            data={state.escalation}\n            onChange={(data) => updateState('escalation', data)}\n          />\n        )}\n        {state.step === 6 && <ReviewStep data={state} onEdit={goToStep} />}"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "completed",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "completed",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "completed",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "in_progress",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "pending",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "pending",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+Now let me update the review step to show escalation settings:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\steps\\review-step.tsx",
+  "old_string": "'use client';\n\nimport { Edit2 } from 'lucide-react';\nimport type { WizardState } from '@/types/wizard';",
+  "new_string": "'use client';\n\nimport { Edit2, PhoneForwarded, Clock, CheckCircle, XCircle } from 'lucide-react';\nimport type { WizardState } from '@/types/wizard';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\components\\wizard\\steps\\review-step.tsx",
+  "old_string": "      {/* Greeting & Messages */}\n      <div className=\"border border-gray-200 rounded-lg p-4\">\n        <div className=\"flex justify-between items-start mb-3\">\n          <h3 className=\"font-medium text-gray-900\">Begrüßung & Verabschiedung</h3>\n          <button\n            type=\"button\"\n            onClick={() => onEdit(4)}\n            className=\"text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm\"\n          >\n            <Edit2 className=\"w-3 h-3\" />\n            Bearbeiten\n          </button>\n        </div>\n        <dl className=\"space-y-2 text-sm\">\n          <div>\n            <dt className=\"font-medium text-gray-700\">Name des Assistenten:</dt>\n            <dd className=\"text-gray-600\">{data.greeting.agentName || '-'}</dd>\n          </div>\n          <div>\n            <dt className=\"font-medium text-gray-700\">Begrüßung:</dt>\n            <dd className=\"text-gray-600 italic\">\n              &ldquo;{data.greeting.greeting || '-'}&rdquo;\n            </dd>\n          </div>\n          <div>\n            <dt className=\"font-medium text-gray-700\">Verabschiedung:</dt>\n            <dd className=\"text-gray-600 italic\">\n              &ldquo;{data.greeting.endCallMessage || '-'}&rdquo;\n            </dd>\n          </div>\n        </dl>\n      </div>\n\n      {/* Ready to Create */}\n      <div className=\"bg-green-50 border border-green-200 rounded-lg p-4\">\n        <p className=\"text-sm text-green-800\">\n          <strong>Bereit zur Erstellung!</strong> Klicken Sie auf &ldquo;Assistent erstellen&rdquo; um Ihren KI-Sprachassistenten zu generieren.\n          Es wird sowohl der Datenbankeintrag als auch die Vapi-Konfiguration erstellt.\n        </p>\n      </div>\n    </div>\n  );\n}",
+  "new_string": "      {/* Greeting & Messages */}\n      <div className=\"border border-gray-200 rounded-lg p-4\">\n        <div className=\"flex justify-between items-start mb-3\">\n          <h3 className=\"font-medium text-gray-900\">Begrüßung & Verabschiedung</h3>\n          <button\n            type=\"button\"\n            onClick={() => onEdit(4)}\n            className=\"text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm\"\n          >\n            <Edit2 className=\"w-3 h-3\" />\n            Bearbeiten\n          </button>\n        </div>\n        <dl className=\"space-y-2 text-sm\">\n          <div>\n            <dt className=\"font-medium text-gray-700\">Name des Assistenten:</dt>\n            <dd className=\"text-gray-600\">{data.greeting.agentName || '-'}</dd>\n          </div>\n          <div>\n            <dt className=\"font-medium text-gray-700\">Begrüßung:</dt>\n            <dd className=\"text-gray-600 italic\">\n              &ldquo;{data.greeting.greeting || '-'}&rdquo;\n            </dd>\n          </div>\n          <div>\n            <dt className=\"font-medium text-gray-700\">Verabschiedung:</dt>\n            <dd className=\"text-gray-600 italic\">\n              &ldquo;{data.greeting.endCallMessage || '-'}&rdquo;\n            </dd>\n          </div>\n        </dl>\n      </div>\n\n      {/* Escalation Settings */}\n      <div className=\"border border-gray-200 rounded-lg p-4\">\n        <div className=\"flex justify-between items-start mb-3\">\n          <div className=\"flex items-center gap-2\">\n            <PhoneForwarded className=\"w-4 h-4 text-orange-500\" />\n            <h3 className=\"font-medium text-gray-900\">Weiterleitung an Mitarbeiter</h3>\n          </div>\n          <button\n            type=\"button\"\n            onClick={() => onEdit(5)}\n            className=\"text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm\"\n          >\n            <Edit2 className=\"w-3 h-3\" />\n            Bearbeiten\n          </button>\n        </div>\n        <dl className=\"space-y-2 text-sm\">\n          <div className=\"flex items-center gap-2\">\n            <dt className=\"font-medium text-gray-700\">Status:</dt>\n            <dd className=\"text-gray-600 flex items-center gap-1\">\n              {data.escalation.enabled ? (\n                <>\n                  <CheckCircle className=\"w-4 h-4 text-green-500\" />\n                  <span className=\"text-green-700\">Aktiviert</span>\n                </>\n              ) : (\n                <>\n                  <XCircle className=\"w-4 h-4 text-gray-400\" />\n                  <span className=\"text-gray-500\">Deaktiviert</span>\n                </>\n              )}\n            </dd>\n          </div>\n          {data.escalation.enabled && (\n            <>\n              <div>\n                <dt className=\"font-medium text-gray-700\">Weiterleitungsnummer:</dt>\n                <dd className=\"text-gray-600\">{data.escalation.forwardingNumber || '-'}</dd>\n              </div>\n              <div className=\"flex items-center gap-1\">\n                <Clock className=\"w-3 h-3 text-gray-400\" />\n                <dt className=\"font-medium text-gray-700\">Geschäftszeiten:</dt>\n                <dd className=\"text-gray-600 ml-1\">\n                  {data.escalation.businessHoursStart} - {data.escalation.businessHoursEnd}\n                </dd>\n              </div>\n              <div>\n                <dt className=\"font-medium text-gray-700\">Geschäftstage:</dt>\n                <dd className=\"text-gray-600\">\n                  {data.escalation.businessDays?.map((day) => {\n                    const dayLabels: Record<string, string> = {\n                      Mon: 'Mo', Tue: 'Di', Wed: 'Mi', Thu: 'Do', Fri: 'Fr', Sat: 'Sa', Sun: 'So'\n                    };\n                    return dayLabels[day] || day;\n                  }).join(', ') || '-'}\n                </dd>\n              </div>\n              <div>\n                <dt className=\"font-medium text-gray-700\">Voicemail:</dt>\n                <dd className=\"text-gray-600\">\n                  {data.escalation.voicemailEnabled ? 'Aktiviert' : 'Deaktiviert'}\n                </dd>\n              </div>\n              <div>\n                <dt className=\"font-medium text-gray-700\">Max. Nachfragen vor Weiterleitung:</dt>\n                <dd className=\"text-gray-600\">{data.escalation.maxClarifications}</dd>\n              </div>\n            </>\n          )}\n          {!data.escalation.enabled && (\n            <div className=\"text-gray-500 text-xs mt-2\">\n              Der KI-Assistent wird Anrufer bitten, ihre Kontaktdaten zu hinterlassen,\n              wenn er nicht weiterhelfen kann.\n            </div>\n          )}\n        </dl>\n      </div>\n\n      {/* Ready to Create */}\n      <div className=\"bg-green-50 border border-green-200 rounded-lg p-4\">\n        <p className=\"text-sm text-green-800\">\n          <strong>Bereit zur Erstellung!</strong> Klicken Sie auf &ldquo;Assistent erstellen&rdquo; um Ihren KI-Sprachassistenten zu generieren.\n          Es wird sowohl der Datenbankeintrag als auch die Vapi-Konfiguration erstellt.\n        </p>\n      </div>\n    </div>\n  );\n}"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "completed",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "completed",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "completed",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "completed",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "in_progress",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "pending",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+Now let me update the agents API to handle escalation configuration during agent creation. Let me first check the current API:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\route.ts"
+}
+Now I need to update the agents API to create the EscalationConfig when an agent is created via the wizard. Let me add the import and update the code:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\route.ts",
+  "old_string": "import { NextRequest, NextResponse } from 'next/server';\nimport { requireAuth } from '@/lib/auth-guard';\nimport { prisma } from '@/lib/prisma';\nimport { createBusinessAssistant, deleteAssistant } from '@/lib/vapi';\nimport { buildSystemPrompt } from '@/lib/prompts';\nimport type { WizardState } from '@/types/wizard';",
+  "new_string": "import { NextRequest, NextResponse } from 'next/server';\nimport { requireAuth } from '@/lib/auth-guard';\nimport { prisma } from '@/lib/prisma';\nimport { createBusinessAssistant, deleteAssistant } from '@/lib/vapi';\nimport { buildSystemPrompt } from '@/lib/prompts';\nimport { createEscalationConfig } from '@/lib/escalation/config-manager';\nimport type { WizardState } from '@/types/wizard';\nimport { DEFAULT_TRIGGER_PHRASES } from '@/types/escalation';"
+}
+Now let me add the code to create the escalation config after the agent is created. I'll add it right after the agent is created in the database:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\route.ts",
+  "old_string": "        // Invalidate user's agent cache\n        invalidateUserCache(user.id);\n\n        context.logger.info('Agent created successfully', {\n          agentId: agent.id,\n          userId: user.id,\n          hasGoogleCalendar,\n          duration: getRequestDuration(context),\n        });\n\n        metrics.endTimer(timer);\n\n        return apiResponse(\n          {\n            agent,\n            message: 'Agent created successfully. Admin will assign a phone number.',\n          },\n          201,\n          context.requestId\n        );",
+  "new_string": "        // Create escalation config if escalation is enabled in wizard\n        let escalationConfigCreated = false;\n        if (wizardData.escalation?.enabled && wizardData.escalation.forwardingNumber) {\n          try {\n            await createEscalationConfig(agent.id, {\n              enabled: true,\n              forwardingNumber: wizardData.escalation.forwardingNumber,\n              businessHoursStart: wizardData.escalation.businessHoursStart || '09:00',\n              businessHoursEnd: wizardData.escalation.businessHoursEnd || '18:00',\n              businessDays: wizardData.escalation.businessDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],\n              voicemailEnabled: wizardData.escalation.voicemailEnabled ?? true,\n              maxClarifications: wizardData.escalation.maxClarifications ?? 3,\n              triggerPhrases: [...DEFAULT_TRIGGER_PHRASES],\n              timezone: 'Europe/Berlin',\n            });\n            escalationConfigCreated = true;\n            context.logger.info('Escalation config created for agent', {\n              agentId: agent.id,\n              forwardingNumber: wizardData.escalation.forwardingNumber,\n            });\n          } catch (escalationError) {\n            // Log but don't fail - escalation config can be added later\n            context.logger.warn('Failed to create escalation config', escalationError, {\n              agentId: agent.id,\n            });\n          }\n        }\n\n        // Invalidate user's agent cache\n        invalidateUserCache(user.id);\n\n        context.logger.info('Agent created successfully', {\n          agentId: agent.id,\n          userId: user.id,\n          hasGoogleCalendar,\n          hasEscalation: escalationConfigCreated,\n          duration: getRequestDuration(context),\n        });\n\n        metrics.endTimer(timer);\n\n        return apiResponse(\n          {\n            agent,\n            message: escalationConfigCreated\n              ? 'Agent created successfully with escalation enabled. Admin will assign a phone number.'\n              : 'Agent created successfully. Admin will assign a phone number.',\n          },\n          201,\n          context.requestId\n        );"
+}
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "completed",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "completed",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "completed",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "completed",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "completed",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "in_progress",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+Now let me run the TypeScript check to ensure everything compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -40",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+I need to check the logger interface. Let me fix that:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "logger.warn",
+  "path": "F:\\CodeBase\\Kametrix\\src",
+  "output_mode": "content",
+  "-n": true
+}
+I see - the logger.warn function takes only two arguments. Let me fix this:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\route.ts",
+  "old_string": "          } catch (escalationError) {\n            // Log but don't fail - escalation config can be added later\n            context.logger.warn('Failed to create escalation config', escalationError, {\n              agentId: agent.id,\n            });\n          }",
+  "new_string": "          } catch (escalationError) {\n            // Log but don't fail - escalation config can be added later\n            context.logger.warn('Failed to create escalation config', {\n              agentId: agent.id,\n              error: escalationError instanceof Error ? escalationError.message : String(escalationError),\n            });\n          }"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -40",
+  "description": "Type check TypeScript files again",
+  "timeout": 120000
+}
+No TypeScript errors. Now let me run the build to ensure everything works:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npm run build 2>&1 | tail -50",
+  "description": "Build the Next.js application",
+  "timeout": 180000
+}
+Build succeeded. Let me update the todo list and provide a summary:
+
+🔧 Tool: TodoWrite
+Input: {
+  "todos": [
+    {
+      "content": "Update wizard types to include escalation configuration",
+      "status": "completed",
+      "activeForm": "Updating wizard types for escalation"
+    },
+    {
+      "content": "Create escalation step component for wizard",
+      "status": "completed",
+      "activeForm": "Creating escalation step component"
+    },
+    {
+      "content": "Update agent wizard to include escalation step",
+      "status": "completed",
+      "activeForm": "Updating agent wizard"
+    },
+    {
+      "content": "Update review step to show escalation settings",
+      "status": "completed",
+      "activeForm": "Updating review step"
+    },
+    {
+      "content": "Update agents API to create escalation config",
+      "status": "completed",
+      "activeForm": "Updating agents API"
+    },
+    {
+      "content": "Test and build the changes",
+      "status": "completed",
+      "activeForm": "Testing and building changes"
+    }
+  ]
+}
+<summary>
+## Summary: Added Escalation Configuration to AI Agent Setup Wizard
+
+### Changes Implemented
+
+**1. Updated Wizard State Types** (`src/types/wizard.ts`)
+- Added new `escalation` section to `WizardState` interface with:
+  - `enabled`: boolean to toggle escalation on/off
+  - `forwardingNumber`: phone number for call transfers
+  - `businessHoursStart`/`businessHoursEnd`: time range for transfers
+  - `businessDays`: array of days when transfers are allowed
+  - `voicemailEnabled`: allow voicemail when no operators available
+  - `maxClarifications`: auto-escalate after this many clarification attempts
+- Updated `DEFAULT_WIZARD_STATE` with sensible defaults
+
+**2. Created New Escalation Step Component** (`src/components/wizard/steps/escalation-step.tsx`)
+- New wizard step for configuring escalation settings
+- Features include:
+  - Toggle switch to enable/disable escalation
+  - Forwarding phone number input with validation
+  - Business hours time pickers (start/end)
+  - Business days selector with clickable buttons (Mo-So)
+  - Voicemail toggle
+  - Max clarifications number input
+  - Informational banner explaining escalation behavior
+  - Graceful handling when disabled (shows callback message)
+
+**3. Updated Agent Wizard** (`src/components/wizard/agent-wizard.tsx`)
+- Increased total steps from 5 to 6
+- Added import for `EscalationStep` component
+- Added step 5 for escalation configuration
+- Moved review step to step 6
+- Added validation for escalation step (requires forwarding number if enabled)
+
+**4. Updated Review Step** (`src/components/wizard/steps/review-step.tsx`)
+- Added new section showing escalation configuration summary
+- Shows status (enabled/disabled with icons)
+- When enabled, displays:
+  - Forwarding number
+  - Business hours
+  - Business days (translated to German abbreviations)
+  - Voicemail status
+  - Max clarifications setting
+- Edit button to go back to escalation step
+
+**5. Updated Agents API** (`src/app/api/agents/route.ts`)
+- Added imports for `createEscalationConfig` and `DEFAULT_TRIGGER_PHRASES`
+- After agent creation, checks if escalation is enabled in wizard data
+- If enabled, creates `EscalationConfig` record with:
+  - All user-specified settings
+  - Default trigger phrases for human request detection
+  - Europe/Berlin timezone (default)
+- Logs escalation config creation
+- Non-blocking: if config creation fails, agent is still created
+
+### Files Created
+- `src/components/wizard/steps/escalation-step.tsx`
+
+### Files Modified
+- `src/types/wizard.ts`
+- `src/components/wizard/agent-wizard.tsx`
+- `src/components/wizard/steps/review-step.tsx`
+- `src/app/api/agents/route.ts`
+
+### Wizard Flow Now
+1. **Step 1**: Business Info (name, description, hours, services)
+2. **Step 2**: Knowledge Base (FAQs, policies)
+3. **Step 3**: Voice Selection (ElevenLabs voice)
+4. **Step 4**: Greeting & Farewell Messages
+5. **Step 5**: Escalation Settings (NEW)
+6. **Step 6**: Review & Create
+
+### How Users Configure Escalation
+
+1. Navigate to **Dashboard → Agents → New Agent**
+2. Complete steps 1-4 as before
+3. On **Step 5 (Escalation)**:
+   - Toggle "Weiterleitung aktivieren" to enable
+   - Enter forwarding phone number (required when enabled)
+   - Set business hours for transfers
+   - Select which days transfers are allowed
+   - Enable/disable voicemail
+   - Set max clarifications before auto-escalate
+4. Review settings on Step 6
+5. Create agent
+
+### Notes for Developer
+- The escalation step is optional - users can leave it disabled and configure later via `/dashboard/agents/[id]/escalation`
+- Default business days are Mon-Fri, hours 09:00-18:00
+- Voicemail is enabled by default
+- Max clarifications defaults to 3
+- All UI text is in German to match the rest of the wizard
+- The escalation config uses default trigger phrases from `DEFAULT_TRIGGER_PHRASES`
+</summary>
