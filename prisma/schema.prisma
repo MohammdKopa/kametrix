@@ -19,6 +19,12 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
 enum CallStatus {
   RINGING
   IN_PROGRESS
@@ -69,7 +75,9 @@ model User {
   email               String              @unique @db.VarChar(255)
   passwordHash        String
   name                String?
+  username            String?             @unique @db.VarChar(50) // optional unique username
   role                Role                @default(USER)
+  status              UserStatus          @default(ACTIVE) // account status for activation/deactivation
   creditBalance       Int                 @default(0) // current credit balance in cents
   graceCreditsUsed    Int                 @default(0) // credits used during grace period
 
@@ -89,6 +97,11 @@ model User {
   defaultTimezone      String?
   lastCalendarSync     DateTime?
 
+  // Account management
+  lastPasswordReset    DateTime?           // last password reset timestamp
+  deactivatedAt        DateTime?           // when account was deactivated
+  deactivatedBy        String?             // admin who deactivated
+
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
@@ -100,6 +113,8 @@ model User {
   calendarEvents      CalendarEvent[]
   calendarSyncLogs    CalendarSyncLog[]
   calendarSyncQueues  CalendarSyncQueue[]
+  adminAuditLogs      AdminAuditLog[]     @relation("AdminAuditLogs") // audit logs performed by this admin
+  userAuditLogs       AdminAuditLog[]     @relation("UserAuditLogs")  // audit logs targeting this user
 }
 
 model Agent {
@@ -680,4 +695,45 @@ model EscalationLog {
   @@index([triggeredAt(sort: Desc)])
   @@index([userId, triggeredAt(sort: Desc)])
   @@index([agentId, triggeredAt(sort: Desc)])
+}
+
+// ============================================
+// Admin Audit Log for User Management
+// ============================================
+
+enum AdminAction {
+  USER_UPDATE           // Updated user details
+  USER_ROLE_CHANGE      // Changed user role
+  USER_STATUS_CHANGE    // Activated/deactivated/suspended user
+  USER_PASSWORD_RESET   // Reset user password
+  USER_CREDIT_ADJUST    // Adjusted user credits
+  USER_DELETE           // Deleted user account
+  BULK_STATUS_CHANGE    // Bulk status change
+  BULK_ROLE_CHANGE      // Bulk role change
+}
+
+model AdminAuditLog {
+  id              String      @id @default(cuid())
+  adminId         String      // Admin who performed the action
+  targetUserId    String?     // User affected by the action (null for bulk operations)
+  action          AdminAction
+  description     String      @db.Text // Human-readable description
+  previousValue   Json?       // Previous state before change
+  newValue        Json?       // New state after change
+  ipAddress       String?     // Admin's IP address
+  userAgent       String?     // Admin's browser/user agent
+  metadata        Json?       // Additional context data
+
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  admin           User        @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: Cascade)
+  targetUser      User?       @relation("UserAuditLogs", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt(sort: Desc)])
+  @@index([adminId, createdAt(sort: Desc)])
+  @@index([targetUserId, createdAt(sort: Desc)])
 }
