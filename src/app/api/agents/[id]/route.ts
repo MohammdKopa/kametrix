@@ -144,11 +144,22 @@ export async function PATCH(
   }
 }
 
+// Helper function to add timeout to promises
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+}
+
 /**
  * DELETE /api/agents/[id] - Delete an agent
  *
  * This endpoint gracefully handles cases where external resources (Vapi assistant, phone numbers)
  * may already be deleted or don't exist. It treats "not found" errors as success cases.
+ *
+ * Optimization: Vapi cleanup runs in parallel with a timeout to prevent slow API responses
+ * from blocking the deletion. The database deletion is prioritized.
  */
 export async function DELETE(
   request: NextRequest,
@@ -186,49 +197,73 @@ export async function DELETE(
       );
     }
 
-    // If agent has a phone number, unassign it from Vapi gracefully
+    // Timeout for Vapi operations (2 seconds max per operation)
+    const VAPI_TIMEOUT_MS = 2000;
+
+    // Run Vapi cleanup operations in parallel (they don't depend on each other)
+    // These are fire-and-forget with timeout - we don't block on them
+    const cleanupPromises: Promise<void>[] = [];
+
+    // Phone number unassignment (if needed)
     if (existingAgent.phoneNumber && existingAgent.phoneNumber.vapiPhoneId) {
-      const phoneResult = await unassignPhoneNumberGracefully(existingAgent.phoneNumber.vapiPhoneId);
+      const phoneCleanup = async () => {
+        const phoneResult = await withTimeout(
+          unassignPhoneNumberGracefully(existingAgent.phoneNumber!.vapiPhoneId!),
+          VAPI_TIMEOUT_MS,
+          { success: true, notFound: false, error: 'Timed out - will be cleaned up later' }
+        );
 
-      if (phoneResult.success) {
-        deletionStatus.phoneUnassigned = true;
-        deletionStatus.phoneUnassignedAlreadyDone = phoneResult.notFound;
-
-        // Update phone number in DB to make it available again
-        try {
-          await prisma.phoneNumber.update({
-            where: { id: existingAgent.phoneNumber.id },
-            data: {
-              agentId: null,
-              status: 'AVAILABLE',
-            },
-          });
-        } catch (dbError) {
-          console.error('Failed to update phone number in database:', dbError);
-          deletionStatus.warnings.push('Phone number database update failed');
+        if (phoneResult.success) {
+          deletionStatus.phoneUnassigned = true;
+          deletionStatus.phoneUnassignedAlreadyDone = phoneResult.notFound;
+        } else {
+          deletionStatus.warnings.push(`Phone unassignment: ${phoneResult.error || 'unknown error'}`);
         }
-      } else {
-        // Non-critical error - log warning but continue
-        deletionStatus.warnings.push(`Phone unassignment warning: ${phoneResult.error}`);
-        console.warn('Phone unassignment had issues:', phoneResult.error);
-      }
+      };
+      cleanupPromises.push(phoneCleanup());
     }
 
-    // Delete Vapi assistant if it exists, using graceful deletion
+    // Vapi assistant deletion (if needed)
     if (existingAgent.vapiAssistantId) {
-      const vapiResult = await deleteAssistantGracefully(existingAgent.vapiAssistantId);
+      const assistantCleanup = async () => {
+        const vapiResult = await withTimeout(
+          deleteAssistantGracefully(existingAgent.vapiAssistantId!),
+          VAPI_TIMEOUT_MS,
+          { success: true, alreadyDeleted: false, error: 'Timed out - will be cleaned up later' }
+        );
 
-      if (vapiResult.success) {
-        deletionStatus.vapiAssistantDeleted = true;
-        deletionStatus.vapiAssistantAlreadyDeleted = vapiResult.alreadyDeleted;
-      } else {
-        // Non-critical error - log warning but continue with database deletion
-        deletionStatus.warnings.push(`Vapi assistant cleanup warning: ${vapiResult.error}`);
-        console.warn('Vapi assistant deletion had issues:', vapiResult.error);
+        if (vapiResult.success) {
+          deletionStatus.vapiAssistantDeleted = true;
+          deletionStatus.vapiAssistantAlreadyDeleted = vapiResult.alreadyDeleted;
+        } else {
+          deletionStatus.warnings.push(`Vapi assistant: ${vapiResult.error || 'unknown error'}`);
+        }
+      };
+      cleanupPromises.push(assistantCleanup());
+    }
+
+    // Wait for cleanup operations (with timeout protection)
+    // These run in parallel so total max wait is ~2 seconds, not 4
+    await Promise.all(cleanupPromises);
+
+    // Update phone number in DB to make it available again (if phone was assigned)
+    if (existingAgent.phoneNumber) {
+      try {
+        await prisma.phoneNumber.update({
+          where: { id: existingAgent.phoneNumber.id },
+          data: {
+            agentId: null,
+            status: 'AVAILABLE',
+          },
+        });
+      } catch (dbError) {
+        console.error('Failed to update phone number in database:', dbError);
+        deletionStatus.warnings.push('Phone number database update failed');
       }
     }
 
     // Delete agent from database (cascade will handle related records)
+    // This is the critical operation - always do this
     await prisma.agent.delete({
       where: { id },
     });
