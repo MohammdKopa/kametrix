@@ -1,0 +1,9 @@
+{
+  "category": "feature",
+  "description": "Implement main admin dashboard interface with navigation, summary widgets, quick stats, and role-based access control. Features include responsive layout, dashboard customization, real-time data updates, search/filter capabilities across all admin functions, and consistent design system integration. Serves as the central hub for all administrative operations.",
+  "title": "Admin Dashboard - Core UI and Navigation",
+  "dependencies": [],
+  "priority": 1,
+  "status": "backlog",
+  "id": "feature-1767920061366-kaxvutxec"
+}

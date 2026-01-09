@@ -2608,3 +2608,467 @@ and
 Escalate to human tool called
 ```
 </summary>
+
+---
+
+## Follow-up Session
+
+Looking at the logs, I can see the critical issue: **The escalation tools (`escalate_to_human`, `check_operator_availability`) are NOT in the tools array being sent to Vapi!**
+
+Looking at the `assistantOverrides.model.tools` in the end-of-call report, I only see calendar tools:
+- `check_availability`
+- `check_conflicts`
+- `book_appointment`
+- `reschedule_appointment`
+- `cancel_appointment`
+- `list_appointments`
+- `search_appointments`
+- `find_next_available`
+
+**The escalation tools are completely missing!** This means the changes I made previously haven't been deployed yet.
+
+Let me verify the current state of the code and ensure the escalation tools are being added:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "hasEscalationTools",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "output_mode": "content",
+  "-n": true,
+  "-A": 5
+}
+Based on my analysis of the previous conversation, the issue is clear: **the code changes are correct locally but haven't been deployed to production**. The production logs show only calendar tools being sent to Vapi, while the local code should be sending escalation tools first.
+
+Let me verify the current state of the code to confirm everything is in place:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "hasEscalationTools",
+  "path": "/Users/joaocarvalho/Development/agentic-flow",
+  "output_mode": "content",
+  "-C": 3
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "escalate_to_human",
+  "path": "/Users/joaocarvalho/Development/agentic-flow",
+  "output_mode": "files_with_matches"
+}
+Let me find the correct project path:
+
+🔧 Tool: Bash
+Input: {
+  "command": "pwd",
+  "description": "Get current working directory"
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "hasEscalationTools",
+  "output_mode": "content",
+  "-C": 5
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "escalate_to_human",
+  "output_mode": "files_with_matches"
+}
+The code is in place locally. Let me verify the tool-definitions.ts file and ensure the `buildEscalationTools` import is also correct:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\tool-definitions.ts"
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "import.*buildEscalationTools",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "output_mode": "content"
+}
+The `buildEscalationTools` import is missing! Let me check the current imports in the route file:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "limit": 60
+}
+The import is present on line 43. Let me check the escalation index.ts to ensure the exports are correct:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\escalation\\index.ts"
+}
+The exports are correct. The code looks good locally. Let me also check the area around line 1241-1252 to confirm the tool building logic is correct:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\webhooks\\vapi\\route.ts",
+  "offset": 1230,
+  "limit": 50
+}
+The code is correct locally. The issue is that **the code has not been deployed to production yet**. The local code changes include:
+
+1. ✅ `hasEscalationTools = true` (line 1241)
+2. ✅ `escalationTools` built first (line 1248)
+3. ✅ `calendarTools` built second (line 1249)
+4. ✅ Tools combined with escalation FIRST: `[...escalationTools, ...calendarTools]` (line 1252)
+5. ✅ Debug logging added (line 1256)
+6. ✅ Import for `buildEscalationTools` present (line 43)
+
+Let me check the git status to see if there are uncommitted changes that need to be pushed:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && git status",
+  "description": "Check git status for uncommitted changes"
+}
+Interesting - the git status shows the branch is up to date with origin/main, and the only unstaged changes are automaker metadata files. This means all the code changes were already committed. Let me check the git log to see recent commits:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && git log --oneline -10",
+  "description": "Check recent git commits"
+}
+The commits are there. Let me verify what was in the most recent commits to ensure the escalation tool changes were included:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && git show ac37df8 --stat",
+  "description": "Check what was in the latest commit"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && git show 2c26236 --stat",
+  "description": "Check what was in the second latest commit"
+}
+The changes to `src/app/api/webhooks/vapi/route.ts` and `src/lib/escalation/tool-definitions.ts` were committed. Let me check if there's a deployment pipeline or if the production system might be using a different branch/version:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && git branch -a",
+  "description": "List all branches"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd F:/CodeBase/Kametrix && git log origin/main --oneline -3",
+  "description": "Check remote main commits"
+}
+The remote is up-to-date with the local main branch. Now let me check if there's a Vercel or similar deployment configuration:
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "vercel.json"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/docker*.{yml,yaml}"
+}
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "Dockerfile*"
+}
+It's a Docker-based deployment. The code has been committed and pushed to the remote. The issue is that **the production Docker container needs to be rebuilt and redeployed** with the latest code.
+
+## Summary
+
+**The escalation feature code is complete and correctly implemented locally.** The problem is a **deployment issue** - the production environment is still running an older version of the code that doesn't include the escalation tools.
+
+### To fix this, you need to redeploy the application:
+
+If you're using Docker Compose for production, run these commands on your production server:
+
+```bash
+# Pull the latest code
+git pull origin main
+
+# Rebuild and restart the container
+docker-compose -f docker-compose.prod.yml build
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+Or if you have a CI/CD pipeline, trigger a new deployment.
+
+### After redeployment, verify with:
+
+1. **Check the logs** - You should see this log line when an assistant request comes in:
+   ```
+   Assistant request: tools being sent: ['escalate_to_human', 'check_operator_availability', 'check_availability', ...]
+   ```
+
+2. **Test with a phrase** like: "Ich möchte mit einem Mitarbeiter reden"
+
+3. **The AI should call** `escalate_to_human` instead of `check_availability`
+
+The escalation tools will now appear **first** in the tools array, which gives them priority. The `escalate_to_human` tool has an explicit description telling the AI to use it immediately when hearing keywords like "Mitarbeiter", "Mensch", "verbinden", etc.
+
+---
+
+## Follow-up Session
+
+Looking at the follow-up instructions, I need to fix the `createBusinessAssistant` function in `src/lib/vapi/assistants.ts` to include escalation tools when creating Vapi assistants. Let me first read the current state of that file:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts"
+}
+Now I can see the issue clearly. The `createBusinessAssistant` function only builds calendar tools (line 23), but never includes escalation tools. I need to:
+
+1. Import `buildEscalationTools` from the escalation module
+2. Always include escalation tools (they handle gracefully when not configured)
+3. Put escalation tools FIRST in the array for priority
+
+Let me also check the types to understand the config structure:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\types.ts"
+}
+Now let me update the `assistants.ts` file to include escalation tools. I'll make the following changes:
+
+1. Import `buildEscalationTools` from the escalation module
+2. Always include escalation tools (put them FIRST for priority)
+3. Update the `buildSystemPrompt` call to include `hasEscalation: true`
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts",
+  "old_string": "import { getVapiClient } from './client';\nimport type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantResponse } from './types';\nimport { buildSystemPrompt, buildCalendarTools } from '@/lib/prompts';",
+  "new_string": "import { getVapiClient } from './client';\nimport type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantResponse } from './types';\nimport { buildSystemPrompt, buildCalendarTools } from '@/lib/prompts';\nimport { buildEscalationTools } from '@/lib/escalation';"
+}
+Now let me update the `createBusinessAssistant` function to include escalation tools:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts",
+  "old_string": "  // Check if user has Google Calendar connected\n  const hasCalendarTools = config.hasGoogleCalendar ?? false;\n\n  // Get the server URL for tool callbacks\n  const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n\n  // Build calendar tools if Google is connected\n  const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;\n\n  // Build system prompt using consolidated module\n  const systemPrompt = buildSystemPrompt({\n    businessName: config.businessName,\n    businessHours: config.businessHours,\n    services: config.services,\n    faqs: config.faqs,\n    hasGoogleCalendar: hasCalendarTools,\n  });",
+  "new_string": "  // Check if user has Google Calendar connected\n  const hasCalendarTools = config.hasGoogleCalendar ?? false;\n\n  // Get the server URL for tool callbacks\n  const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n\n  // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools\n  // Escalation tools are always included so the AI can recognize human transfer requests\n  const escalationTools = buildEscalationTools(serverUrl);\n  const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];\n\n  // Combine tools with escalation FIRST (so AI prioritizes them when user asks for human)\n  const allTools = [...escalationTools, ...calendarTools];\n  const tools = allTools.length > 0 ? allTools : undefined;\n\n  console.log(`Building assistant with tools: ${allTools.map(t => t.function.name).join(', ')}`);\n\n  // Build system prompt using consolidated module\n  // hasEscalation is always true since we always include escalation tools\n  const systemPrompt = buildSystemPrompt({\n    businessName: config.businessName,\n    businessHours: config.businessHours,\n    services: config.services,\n    faqs: config.faqs,\n    hasGoogleCalendar: hasCalendarTools,\n    hasEscalation: true,\n  });"
+}
+Now let me update the logging message at the end of the function:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts",
+  "old_string": "  if (hasCalendarTools) {\n    console.log(`Created assistant ${assistant.id} with calendar tools enabled`);\n  } else {\n    console.log(`Created assistant ${assistant.id} without calendar tools (Google not connected)`);\n  }",
+  "new_string": "  console.log(`Created assistant ${assistant.id} with tools: ${allTools.map(t => t.function.name).join(', ') || 'none'}`);"
+}
+Now let me also update the `refreshAssistantDate` function which is used to update existing assistants:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts",
+  "old_string": "export async function refreshAssistantDate(\n  assistantId: string,\n  config: CreateAssistantConfig\n): Promise<VapiAssistantResponse> {\n  const client = getVapiClient();\n  const hasCalendarTools = config.hasGoogleCalendar ?? false;\n\n  const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n\n  // Build tools using consolidated module\n  const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;\n\n  // Build system prompt using consolidated module\n  const systemPrompt = buildSystemPrompt({\n    businessName: config.businessName,\n    businessHours: config.businessHours,\n    services: config.services,\n    faqs: config.faqs,\n    hasGoogleCalendar: hasCalendarTools,\n  });\n\n  const assistant = await client.assistants.update({\n    id: assistantId,\n    model: {\n      provider: 'openai',\n      model: 'gpt-4o',\n      messages: [{ role: 'system', content: systemPrompt }],\n      ...(tools && { tools }),\n    } as any,\n  });\n\n  console.log(`Refreshed assistant ${assistantId} with Vapi dynamic date variables`);\n\n  return {\n    id: assistant.id,\n    name: assistant.name ?? '',\n    createdAt: assistant.createdAt ?? new Date().toISOString(),\n    updatedAt: assistant.updatedAt ?? new Date().toISOString(),\n  };\n}",
+  "new_string": "export async function refreshAssistantDate(\n  assistantId: string,\n  config: CreateAssistantConfig\n): Promise<VapiAssistantResponse> {\n  const client = getVapiClient();\n  const hasCalendarTools = config.hasGoogleCalendar ?? false;\n\n  const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n\n  // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools\n  const escalationTools = buildEscalationTools(serverUrl);\n  const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];\n\n  // Combine tools with escalation FIRST\n  const allTools = [...escalationTools, ...calendarTools];\n  const tools = allTools.length > 0 ? allTools : undefined;\n\n  // Build system prompt using consolidated module\n  const systemPrompt = buildSystemPrompt({\n    businessName: config.businessName,\n    businessHours: config.businessHours,\n    services: config.services,\n    faqs: config.faqs,\n    hasGoogleCalendar: hasCalendarTools,\n    hasEscalation: true,\n  });\n\n  const assistant = await client.assistants.update({\n    id: assistantId,\n    model: {\n      provider: 'openai',\n      model: 'gpt-4o',\n      messages: [{ role: 'system', content: systemPrompt }],\n      ...(tools && { tools }),\n    } as any,\n  });\n\n  console.log(`Refreshed assistant ${assistantId} with tools: ${allTools.map(t => t.function.name).join(', ') || 'none'}`);\n\n  return {\n    id: assistant.id,\n    name: assistant.name ?? '',\n    createdAt: assistant.createdAt ?? new Date().toISOString(),\n    updatedAt: assistant.updatedAt ?? new Date().toISOString(),\n  };\n}"
+}
+Now let me also update the `updateAssistant` function to include escalation tools when rebuilding the model:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts",
+  "old_string": "  // If any business info changed, rebuild system prompt\n  if (config.businessName || config.businessHours || config.services || config.faqs) {\n    // We need full config to rebuild prompt - this would require fetching current config\n    // For now, only update if all required fields are provided\n    if (config.businessName && config.businessHours && config.services && config.faqs) {\n      const hasCalendarTools = config.hasGoogleCalendar ?? false;\n      const systemPrompt = buildSystemPrompt({\n        businessName: config.businessName,\n        businessHours: config.businessHours,\n        services: config.services,\n        faqs: config.faqs,\n        hasGoogleCalendar: hasCalendarTools,\n      });\n      updatePayload.model = {\n        provider: 'openai',\n        model: 'gpt-4o',\n        messages: [{ role: 'system', content: systemPrompt }],\n      };\n    }\n  }",
+  "new_string": "  // If any business info changed, rebuild system prompt\n  if (config.businessName || config.businessHours || config.services || config.faqs) {\n    // We need full config to rebuild prompt - this would require fetching current config\n    // For now, only update if all required fields are provided\n    if (config.businessName && config.businessHours && config.services && config.faqs) {\n      const hasCalendarTools = config.hasGoogleCalendar ?? false;\n      const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n\n      // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools\n      const escalationTools = buildEscalationTools(serverUrl);\n      const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];\n      const allTools = [...escalationTools, ...calendarTools];\n\n      const systemPrompt = buildSystemPrompt({\n        businessName: config.businessName,\n        businessHours: config.businessHours,\n        services: config.services,\n        faqs: config.faqs,\n        hasGoogleCalendar: hasCalendarTools,\n        hasEscalation: true,\n      });\n      updatePayload.model = {\n        provider: 'openai',\n        model: 'gpt-4o',\n        messages: [{ role: 'system', content: systemPrompt }],\n        tools: allTools.length > 0 ? allTools : undefined,\n      };\n    }\n  }"
+}
+Now let me verify that the TypeScript compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -40",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -40",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+No TypeScript errors. Now let me build the application to make sure everything compiles correctly:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npm run build 2>&1 | tail -40",
+  "description": "Build the Next.js application",
+  "timeout": 180000
+}
+Build successful. Now let me read the final state of the file to confirm all changes are in place:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\lib\\vapi\\assistants.ts"
+}
+All changes are in place. Now, there's one important thing to note: **Existing agents won't automatically get the escalation tools** because they were created before these changes. To update existing agents, you need to either:
+
+1. **Edit and save the agent** (triggers `updateAssistant`)
+2. **Call `refreshAssistantDate`** for each existing agent
+3. **Create a migration script** to update all existing Vapi assistants
+
+Let me check if there's an API endpoint or script that can be used to refresh existing agents:
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "refreshAssistantDate",
+  "output_mode": "files_with_matches"
+}
+The function is exported. Let me check if there's an agent refresh endpoint:
+
+🔧 Tool: Glob
+Input: {
+  "pattern": "**/api/agents/[id]/refresh/**"
+}
+
+🔧 Tool: Grep
+Input: {
+  "pattern": "refresh",
+  "path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents",
+  "output_mode": "files_with_matches"
+}
+There's already a refresh endpoint. Let me check it:
+
+🔧 Tool: Read
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\refresh\\route.ts"
+}
+This endpoint only updates the date header, not the tools! I need to update this endpoint to also include the escalation tools. Let me update it:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\refresh\\route.ts",
+  "old_string": "import { NextRequest, NextResponse } from 'next/server';\nimport { requireAuth } from '@/lib/auth-guard';\nimport { prisma } from '@/lib/prisma';\nimport { getVapiClient } from '@/lib/vapi';",
+  "new_string": "import { NextRequest, NextResponse } from 'next/server';\nimport { requireAuth } from '@/lib/auth-guard';\nimport { prisma } from '@/lib/prisma';\nimport { getVapiClient } from '@/lib/vapi';\nimport { buildCalendarTools } from '@/lib/prompts';\nimport { buildEscalationTools } from '@/lib/escalation';"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\refresh\\route.ts",
+  "old_string": "    // Get agent\n    const agent = await prisma.agent.findFirst({\n      where: {\n        id,\n        userId: user.id,\n      },\n    });",
+  "new_string": "    // Get agent with user info to check Google Calendar status\n    const agent = await prisma.agent.findFirst({\n      where: {\n        id,\n        userId: user.id,\n      },\n      include: {\n        user: {\n          select: {\n            googleRefreshToken: true,\n          },\n        },\n      },\n    });"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\refresh\\route.ts",
+  "old_string": "    // Build date header\n    const today = new Date();\n    const currentDateStr = today.toISOString().split('T')[0];\n    const dateHeader = `[CURRENT DATE: ${currentDateStr}. Always use year ${today.getFullYear()} for appointments.]\\n\\n`;\n\n    // Remove any existing date header from system prompt\n    let systemPrompt = agent.systemPrompt;\n    systemPrompt = systemPrompt.replace(/^\\[CURRENT DATE:[^\\]]*\\]\\n\\n/, '');\n\n    // Prepend new date header\n    const updatedPrompt = dateHeader + systemPrompt;\n\n    // Update Vapi assistant\n    const client = getVapiClient();\n    await client.assistants.update({\n      id: agent.vapiAssistantId,\n      model: {\n        provider: 'openai',\n        model: 'gpt-4o',\n        messages: [{ role: 'system', content: updatedPrompt }],\n      },\n    });\n\n    console.log(`Refreshed assistant ${agent.vapiAssistantId} with date ${currentDateStr}`);",
+  "new_string": "    // Build date header\n    const today = new Date();\n    const currentDateStr = today.toISOString().split('T')[0];\n    const dateHeader = `[CURRENT DATE: ${currentDateStr}. Always use year ${today.getFullYear()} for appointments.]\\n\\n`;\n\n    // Remove any existing date header from system prompt\n    let systemPrompt = agent.systemPrompt;\n    systemPrompt = systemPrompt.replace(/^\\[CURRENT DATE:[^\\]]*\\]\\n\\n/, '');\n\n    // Prepend new date header\n    const updatedPrompt = dateHeader + systemPrompt;\n\n    // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools\n    const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n    const hasCalendarTools = !!agent.user?.googleRefreshToken;\n\n    const escalationTools = buildEscalationTools(serverUrl);\n    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];\n\n    // Combine tools with escalation FIRST (so AI prioritizes them when user asks for human)\n    const allTools = [...escalationTools, ...calendarTools];\n    const tools = allTools.length > 0 ? allTools : undefined;\n\n    // Update Vapi assistant with prompt AND tools\n    const client = getVapiClient();\n    await client.assistants.update({\n      id: agent.vapiAssistantId,\n      model: {\n        provider: 'openai',\n        model: 'gpt-4o',\n        messages: [{ role: 'system', content: updatedPrompt }],\n        ...(tools && { tools }),\n      },\n    });\n\n    console.log(`Refreshed assistant ${agent.vapiAssistantId} with date ${currentDateStr} and tools: ${allTools.map(t => t.function.name).join(', ') || 'none'}`);"
+}
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\refresh\\route.ts",
+  "old_string": "    return NextResponse.json({\n      success: true,\n      message: 'Agent assistant refreshed with current date',\n      date: currentDateStr,\n    });",
+  "new_string": "    return NextResponse.json({\n      success: true,\n      message: 'Agent assistant refreshed with current date and tools',\n      date: currentDateStr,\n      tools: allTools.map(t => t.function.name),\n    });"
+}
+Now let me verify the TypeScript compiles:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+There's a type issue. Let me add a type assertion to fix it:
+
+🔧 Tool: Edit
+Input: {
+  "file_path": "F:\\CodeBase\\Kametrix\\src\\app\\api\\agents\\[id]\\refresh\\route.ts",
+  "old_string": "    // Update Vapi assistant with prompt AND tools\n    const client = getVapiClient();\n    await client.assistants.update({\n      id: agent.vapiAssistantId,\n      model: {\n        provider: 'openai',\n        model: 'gpt-4o',\n        messages: [{ role: 'system', content: updatedPrompt }],\n        ...(tools && { tools }),\n      },\n    });",
+  "new_string": "    // Update Vapi assistant with prompt AND tools\n    const client = getVapiClient();\n    await client.assistants.update({\n      id: agent.vapiAssistantId,\n      model: {\n        provider: 'openai',\n        model: 'gpt-4o',\n        messages: [{ role: 'system', content: updatedPrompt }],\n        ...(tools && { tools }),\n      } as any, // Type assertion needed due to Vapi SDK type limitations\n    });"
+}
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npx tsc --noEmit 2>&1 | head -30",
+  "description": "Type check TypeScript files",
+  "timeout": 120000
+}
+Now let me build the application:
+
+🔧 Tool: Bash
+Input: {
+  "command": "cd \"F:/CodeBase/Kametrix\" && npm run build 2>&1 | tail -30",
+  "description": "Build the Next.js application",
+  "timeout": 180000
+}
+Build successful. Let me provide a summary of all the changes made:
+
+<summary>
+## Summary: Fixed Escalation Tools Not Being Included in Vapi Assistant
+
+### Root Cause Identified
+The escalation tools (`escalate_to_human`, `check_operator_availability`) were never being included when creating Vapi assistants. The `createBusinessAssistant` function in `src/lib/vapi/assistants.ts` only built calendar tools, completely omitting escalation tools.
+
+Even though the webhook handler (`src/app/api/webhooks/vapi/route.ts`) correctly included escalation tools, **Vapi doesn't call the assistant-request webhook when the assistant already has tools defined** - it uses the tools that were set when the assistant was created.
+
+### Changes Made
+
+**1. Updated `createBusinessAssistant` function** (`src/lib/vapi/assistants.ts`)
+- Added import for `buildEscalationTools` from escalation module
+- Now builds escalation tools FIRST, then calendar tools
+- Escalation tools are ALWAYS included (not conditional)
+- Added logging to show which tools are being sent
+- Updated `buildSystemPrompt` call to include `hasEscalation: true`
+
+**2. Updated `updateAssistant` function** (`src/lib/vapi/assistants.ts`)
+- Now includes escalation tools when rebuilding the model
+- Escalation tools come FIRST for priority
+
+**3. Updated `refreshAssistantDate` function** (`src/lib/vapi/assistants.ts`)
+- Now includes escalation tools when refreshing assistant
+- Escalation tools come FIRST for priority
+
+**4. Updated `/api/agents/[id]/refresh` endpoint** (`src/app/api/agents/[id]/refresh/route.ts`)
+- Now includes escalation tools when refreshing an agent
+- Returns list of tools in response for verification
+- Added logging for tools being set
+
+### Files Modified
+- `src/lib/vapi/assistants.ts` - All assistant creation/update functions now include escalation tools
+- `src/app/api/agents/[id]/refresh/route.ts` - Refresh endpoint now includes escalation tools
+
+### How to Update Existing Agents
+
+**Option 1: Use the refresh endpoint**
+For each existing agent, call:
+```
+POST /api/agents/{agentId}/refresh
+```
+
+The response will show the tools that were added:
+```json
+{
+  "success": true,
+  "message": "Agent assistant refreshed with current date and tools",
+  "date": "2026-01-09",
+  "tools": ["escalate_to_human", "check_operator_availability", "check_availability", ...]
+}
+```
+
+**Option 2: Edit and save each agent through the UI**
+This triggers `updateAssistant` which now includes escalation tools.
+
+**Option 3: Create new agents**
+New agents created after this deployment will automatically have escalation tools.
+
+### After Deployment Verification
+
+1. **Check server logs** when creating/refreshing an agent:
+   ```
+   Building assistant with tools: escalate_to_human, check_operator_availability, check_availability, ...
+   ```
+
+2. **Check the Vapi dashboard** for your assistant - the tools list should now include `escalate_to_human` and `check_operator_availability`
+
+3. **Test with a phrase** like "Ich möchte mit einem Mitarbeiter reden" - the AI should now call `escalate_to_human`
+
+### Important Notes
+
+- **Existing agents need to be refreshed** by calling `POST /api/agents/{id}/refresh` or editing them in the UI
+- **New agents will automatically have escalation tools** after this deployment
+- **Escalation tools appear FIRST** in the tools array to give them priority over calendar tools
+</summary>

@@ -1,0 +1,12 @@
+{
+  "category": "feature",
+  "description": "Implement real-time agent monitoring dashboard displaying status (online, offline, error states), key health metrics (uptime, response time, error rate, resource usage), historical activity logs, and manual restart/reset capabilities. Includes configurable alert thresholds and proactive failure detection to prevent system downtime.",
+  "title": "Admin Dashboard - Agent Health Monitoring",
+  "dependencies": [
+    "feature-1767723557667-cvztu68rs",
+    "feature-1767723557668-v703oj0rl"
+  ],
+  "priority": 1,
+  "status": "backlog",
+  "id": "feature-1767920061361-dffwmluyl"
+}

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import { getVapiClient } from '@/lib/vapi';
+import { buildCalendarTools } from '@/lib/prompts';
+import { buildEscalationTools } from '@/lib/escalation';
 
 // Force dynamic rendering since we use cookies() for authentication
 export const dynamic = 'force-dynamic';
@@ -20,11 +22,18 @@ export async function POST(
     const user = await requireAuth(request);
     const { id } = await params;
 
-    // Get agent
+    // Get agent with user info to check Google Calendar status
     const agent = await prisma.agent.findFirst({
       where: {
         id,
         userId: user.id,
+      },
+      include: {
+        user: {
+          select: {
+            googleRefreshToken: true,
+          },
+        },
       },
     });
 
@@ -54,7 +63,18 @@ export async function POST(
     // Prepend new date header
     const updatedPrompt = dateHeader + systemPrompt;
 
-    // Update Vapi assistant
+    // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools
+    const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const hasCalendarTools = !!agent.user?.googleRefreshToken;
+
+    const escalationTools = buildEscalationTools(serverUrl);
+    const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
+
+    // Combine tools with escalation FIRST (so AI prioritizes them when user asks for human)
+    const allTools = [...escalationTools, ...calendarTools];
+    const tools = allTools.length > 0 ? allTools : undefined;
+
+    // Update Vapi assistant with prompt AND tools
     const client = getVapiClient();
     await client.assistants.update({
       id: agent.vapiAssistantId,
@@ -62,15 +82,17 @@ export async function POST(
         provider: 'openai',
         model: 'gpt-4o',
         messages: [{ role: 'system', content: updatedPrompt }],
-      },
+        ...(tools && { tools }),
+      } as any, // Type assertion needed due to Vapi SDK type limitations
     });
 
-    console.log(`Refreshed assistant ${agent.vapiAssistantId} with date ${currentDateStr}`);
+    console.log(`Refreshed assistant ${agent.vapiAssistantId} with date ${currentDateStr} and tools: ${allTools.map(t => t.function.name).join(', ') || 'none'}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Agent assistant refreshed with current date',
+      message: 'Agent assistant refreshed with current date and tools',
       date: currentDateStr,
+      tools: allTools.map(t => t.function.name),
     });
   } catch (error) {
     console.error('Error refreshing agent:', error);

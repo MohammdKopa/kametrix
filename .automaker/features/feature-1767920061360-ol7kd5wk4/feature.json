@@ -1,0 +1,9 @@
+{
+  "category": "feature",
+  "description": "Implement comprehensive user account management interface for administrators. Features include: searchable/filterable user list, edit user details (email, username, role, permissions, status), activate/deactivate accounts, password reset functionality, audit logging of all modifications with timestamps and admin identifiers, and confirmation dialogs for destructive actions. Includes role-based access control and bulk operations support.",
+  "title": "Admin Dashboard - User Account Management",
+  "dependencies": [],
+  "priority": 1,
+  "status": "backlog",
+  "id": "feature-1767920061360-ol7kd5wk4"
+}

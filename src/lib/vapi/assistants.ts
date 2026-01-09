@@ -1,6 +1,7 @@
 import { getVapiClient } from './client';
 import type { CreateAssistantConfig, UpdateAssistantConfig, VapiAssistantResponse } from './types';
 import { buildSystemPrompt, buildCalendarTools } from '@/lib/prompts';
+import { buildEscalationTools } from '@/lib/escalation';
 
 /**
  * Create a new business assistant in Vapi
@@ -19,16 +20,26 @@ export async function createBusinessAssistant(
   // Get the server URL for tool callbacks
   const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Build calendar tools if Google is connected
-  const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;
+  // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools
+  // Escalation tools are always included so the AI can recognize human transfer requests
+  const escalationTools = buildEscalationTools(serverUrl);
+  const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
+
+  // Combine tools with escalation FIRST (so AI prioritizes them when user asks for human)
+  const allTools = [...escalationTools, ...calendarTools];
+  const tools = allTools.length > 0 ? allTools : undefined;
+
+  console.log(`Building assistant with tools: ${allTools.map(t => t.function.name).join(', ')}`);
 
   // Build system prompt using consolidated module
+  // hasEscalation is always true since we always include escalation tools
   const systemPrompt = buildSystemPrompt({
     businessName: config.businessName,
     businessHours: config.businessHours,
     services: config.services,
     faqs: config.faqs,
     hasGoogleCalendar: hasCalendarTools,
+    hasEscalation: true,
   });
 
   const assistantConfig: any = {
@@ -57,11 +68,7 @@ export async function createBusinessAssistant(
 
   const assistant = await client.assistants.create(assistantConfig);
 
-  if (hasCalendarTools) {
-    console.log(`Created assistant ${assistant.id} with calendar tools enabled`);
-  } else {
-    console.log(`Created assistant ${assistant.id} without calendar tools (Google not connected)`);
-  }
+  console.log(`Created assistant ${assistant.id} with tools: ${allTools.map(t => t.function.name).join(', ') || 'none'}`);
 
   return {
     id: assistant.id,
@@ -106,17 +113,26 @@ export async function updateAssistant(
     // For now, only update if all required fields are provided
     if (config.businessName && config.businessHours && config.services && config.faqs) {
       const hasCalendarTools = config.hasGoogleCalendar ?? false;
+      const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+      // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools
+      const escalationTools = buildEscalationTools(serverUrl);
+      const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
+      const allTools = [...escalationTools, ...calendarTools];
+
       const systemPrompt = buildSystemPrompt({
         businessName: config.businessName,
         businessHours: config.businessHours,
         services: config.services,
         faqs: config.faqs,
         hasGoogleCalendar: hasCalendarTools,
+        hasEscalation: true,
       });
       updatePayload.model = {
         provider: 'openai',
         model: 'gpt-4o',
         messages: [{ role: 'system', content: systemPrompt }],
+        tools: allTools.length > 0 ? allTools : undefined,
       };
     }
   }
@@ -155,8 +171,13 @@ export async function refreshAssistantDate(
 
   const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Build tools using consolidated module
-  const tools = hasCalendarTools ? buildCalendarTools(serverUrl) : undefined;
+  // Build tools - ESCALATION TOOLS FIRST for priority, then calendar tools
+  const escalationTools = buildEscalationTools(serverUrl);
+  const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
+
+  // Combine tools with escalation FIRST
+  const allTools = [...escalationTools, ...calendarTools];
+  const tools = allTools.length > 0 ? allTools : undefined;
 
   // Build system prompt using consolidated module
   const systemPrompt = buildSystemPrompt({
@@ -165,6 +186,7 @@ export async function refreshAssistantDate(
     services: config.services,
     faqs: config.faqs,
     hasGoogleCalendar: hasCalendarTools,
+    hasEscalation: true,
   });
 
   const assistant = await client.assistants.update({
@@ -177,7 +199,7 @@ export async function refreshAssistantDate(
     } as any,
   });
 
-  console.log(`Refreshed assistant ${assistantId} with Vapi dynamic date variables`);
+  console.log(`Refreshed assistant ${assistantId} with tools: ${allTools.map(t => t.function.name).join(', ') || 'none'}`);
 
   return {
     id: assistant.id,
