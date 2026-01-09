@@ -34,22 +34,15 @@ export const SECTION_IDS = {
 } as const;
 
 /**
- * Build the date header section with Vapi dynamic variables
+ * Build the date header section with Vapi dynamic variables (optimized)
  */
 function buildDateHeaderSection(): PromptSection {
   return {
     id: SECTION_IDS.DATE_HEADER,
-    title: 'AKTUELLES DATUM UND UHRZEIT',
-    content: `Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} (ISO: {{"now" | date: "%Y-%m-%d", "Europe/Berlin"}})
-Uhrzeit: {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
-Wochentag: {{"now" | date: "%A", "Europe/Berlin"}}
-Jahr: {{"now" | date: "%Y", "Europe/Berlin"}}
-
-WICHTIG - DATUMSREGELN:
-- Das aktuelle Jahr ist {{"now" | date: "%Y", "Europe/Berlin"}} - NIEMALS 2023 oder 2024 verwenden!
-- Wenn der Kunde "morgen" sagt, berechne das korrekte Datum basierend auf heute
-- Wenn der Kunde "Montag" sagt, nimm den NAECHSTEN Montag (nicht vergangene)
-- Uebergib Datumsangaben im Format JJJJ-MM-TT an die Tools`,
+    title: 'AKTUELLES DATUM',
+    content: `Heute: {{"now" | date: "%d.%m.%Y", "Europe/Berlin"}} ({{"now" | date: "%A", "Europe/Berlin"}}) {{"now" | date: "%H:%M", "Europe/Berlin"}} Uhr
+Jahr: {{"now" | date: "%Y", "Europe/Berlin"}} - dieses Jahr fuer alle Termine verwenden!
+Relative Angaben (morgen, naechsten Montag) immer auf heute beziehen. Tool-Format: JJJJ-MM-TT`,
     priority: 100,
     enabled: true,
   };
@@ -213,102 +206,52 @@ function buildPoliciesSection(config: PromptConfig): PromptSection {
 }
 
 /**
- * Build escalation section with transfer instructions
+ * Build escalation section with transfer instructions (optimized for token efficiency)
  */
 function buildEscalationSection(): PromptSection {
   return {
     id: SECTION_IDS.ESCALATION,
     title: 'Weiterleitung an Mitarbeiter',
-    content: `WICHTIGSTE REGEL - MENSCHLICHE MITARBEITER:
-Wenn ein Anrufer nach einem MENSCHEN, MITARBEITER, PERSON oder echten AGENT fragt:
--> Rufe SOFORT das Tool "escalate_to_human" auf
--> NICHT "check_availability" - das ist nur fuer Kalendertermine!
--> KEINE Rueckfragen, KEINE Verzoegerung - SOFORT weiterleiten!
+    content: `KERNREGEL: Bei Anfragen nach Mensch/Mitarbeiter/Person -> SOFORT escalate_to_human aufrufen (nicht check_availability!)
 
-BEISPIEL-ANFRAGEN DIE SOFORTIGE WEITERLEITUNG ERFORDERN:
-- "Kann ich mit einem Menschen sprechen" -> escalate_to_human aufrufen
-- "Ich moechte mit einem Mitarbeiter reden" -> escalate_to_human aufrufen
-- "Verbinden Sie mich bitte" -> escalate_to_human aufrufen
-- "Einen echten Menschen bitte" -> escalate_to_human aufrufen
-- "Human agent" / "Real person" -> escalate_to_human aufrufen
+TOOLS:
+- escalate_to_human(reason, summary): Weiterleitung an Menschen
+- check_operator_availability: Mitarbeiter-Status pruefen
 
-VERFUEGBARE TOOLS FUER WEITERLEITUNG:
-1. escalate_to_human - NUTZE DIESES TOOL wenn jemand mit einem Menschen sprechen will
-   Parameter: reason (Grund), summary (Zusammenfassung)
-2. check_operator_availability - Prueft Mitarbeiter-Verfuegbarkeit (optional vor Weiterleitung)
+WANN WEITERLEITEN:
+- Anfrage nach menschlichem Kontakt (z.B. "Mit Mitarbeiter sprechen", "Verbinden Sie mich")
+- Nach 2 erfolglosen Klaerungsversuchen
+- Bei Frustration/Beschwerden
+- Bei komplexen Problemen
 
-TOOL-UNTERSCHEIDUNG:
-- "Mensch", "Mitarbeiter", "Person", "verbinden" -> escalate_to_human
-- "Termin", "buchen", "Kalender", "wann haben Sie Zeit" -> check_availability (Kalender-Tool)
-
-ZUSAETZLICHE ESKALATIONS-GRUENDE:
-- Du verstehst das Anliegen nicht (nach 2 Versuchen)
-- Der Anrufer klingt frustriert oder veraergert
-- Das Problem ist zu komplex fuer KI
-- Der Anrufer beschwert sich wiederholt
-
-WICHTIG:
-- Frage NIEMALS zurueck wenn jemand einen Menschen verlangt
-- Sage kurz "Einen Moment, ich verbinde Sie" und rufe DANN escalate_to_human auf
-- Fasse im summary-Parameter das bisherige Gespraech zusammen`,
-    priority: 95, // Higher priority so it appears earlier in the prompt
+ABLAUF: "Einen Moment, ich verbinde Sie" -> escalate_to_human aufrufen mit Gespraechszusammenfassung`,
+    priority: 95,
     enabled: true,
   };
 }
 
 /**
- * Build calendar functions section with enhanced instructions
+ * Build calendar functions section (optimized for token efficiency)
  */
 function buildCalendarSection(): PromptSection {
   return {
     id: SECTION_IDS.CALENDAR,
     title: 'Kalender-Funktionen',
-    content: `VERFUEGBARE TOOLS:
-- check_availability: Pruefen Sie die Kalenderverfuegbarkeit (unterstuetzt Tageszeit-Filter wie "morgens", "nachmittags")
-- check_conflicts: Pruefen Sie ob ein gewuenschter Zeitpunkt frei ist (vor dem Buchen verwenden)
-- book_appointment: Buchen Sie einen Termin (unterstuetzt mehrere Teilnehmer, wiederkehrende Termine)
-- reschedule_appointment: Verschieben Sie einen bestehenden Termin
-- cancel_appointment: Stornieren Sie einen Termin
-- list_appointments: Zeigen Sie Termine in einem Zeitraum an
-- search_appointments: Suchen Sie nach spezifischen Terminen
-- find_next_available: Finden Sie den naechsten freien Termin
+    content: `TOOLS: check_availability, check_conflicts, book_appointment, reschedule_appointment, cancel_appointment, list_appointments, search_appointments, find_next_available
 
-BUCHUNGSPROZESS:
-1. Bei Terminwunsch: Zuerst Verfuegbarkeit pruefen (check_availability)
-2. Freie Zeiten dem Anrufer nennen und Praeferenz erfragen
-3. Folgende Daten sammeln:
-   - Datum und Uhrzeit (ERFORDERLICH)
-   - Vollstaendiger Name (ERFORDERLICH)
-   - Telefonnummer (empfohlen fuer Rueckruf)
-   - E-Mail-Adresse (fuer Kalendereinladung)
-   - Termingrund/Betreff (optional)
-4. Details zusammenfassen: "Sie moechten also am [Datum] um [Uhrzeit] einen Termin? Ist das korrekt?"
-5. Nach Bestaetigung: Termin buchen (book_appointment)
-6. Buchungsbestaetigung mit allen Details geben
+BUCHUNGSABLAUF:
+1. check_availability -> freie Zeiten nennen
+2. Daten sammeln: Datum/Uhrzeit + Name (Pflicht), Tel/E-Mail (empfohlen)
+3. Bestaetigung einholen -> book_appointment
 
-DATUMSVERARBEITUNG:
-- Relative Begriffe IMMER verwenden: "morgen", "uebermorgen", "naechsten Montag", "Freitag"
-- Bei Woechentagen: Den NAECHSTEN kommenden Tag nehmen
-- "Diese Woche" = ab heute, "Naechste Woche" = ab Montag
-- NIE alte Jahre wie 2023 oder 2024 verwenden - aktuelles Jahr beachten!
+ZEIT-REGELN:
+- Aktuelles Jahr: {{"now" | date: "%Y", "Europe/Berlin"}} - niemals alte Jahre!
+- Woechentage = naechster kommender Tag
+- Deutsche Zeit: halb drei=14:30, viertel nach zehn=10:15, viertel vor elf=10:45
 
-ZEITVERARBEITUNG (Deutsche Ausdruecke):
-- "halb drei" = 14:30 Uhr (NICHT 14:00!)
-- "viertel nach zehn" = 10:15 Uhr
-- "viertel vor elf" = 10:45 Uhr
-- "3 Uhr nachmittags" = 15:00 Uhr
-- Bei unklaren Zeiten: "Meinen Sie vormittags oder nachmittags?"
+BEI KONFLIKTEN: Alternativen anbieten (check_conflicts liefert diese automatisch)
 
-KONFLIKTBEHANDLUNG:
-- Wenn gewuenschte Zeit belegt: Alternative Zeiten anbieten
-- check_conflicts gibt automatisch Alternativen zurueck
-- Nicht aufgeben - immer Alternativen vorschlagen
-
-WICHTIGE REGELN:
-- NIEMALS ohne explizite Bestaetigung des Anrufers buchen
-- Bei Aenderungen/Stornierungen: Nach dem Namen fragen um Termin zu finden
-- Bei mehreren Terminen: Datum zur Identifikation nutzen
-- Freundlich bleiben auch bei Fehlern - Loesungen anbieten`,
+WICHTIG: Nur nach Bestaetigung buchen. Bei Aenderungen nach Name fragen.`,
     priority: 60,
     enabled: true,
   };
@@ -348,9 +291,8 @@ function buildBoundariesSection(businessType: BusinessType): PromptSection {
     };
   }
 
-  let content = 'Folgende Themen sollten Sie NICHT behandeln:\n';
-  content += context.avoidTopics.map((t) => `- ${t}`).join('\n');
-  content += '\n\nBei solchen Anfragen: Hoeflich erklaeren, dass Sie dafuer nicht zustaendig sind und anbieten, einen Rueckruf zu organisieren.';
+  let content = 'NICHT behandeln: ' + context.avoidTopics.join(', ');
+  content += '\nBei solchen Anfragen: Ablehnen und Rueckruf anbieten.';
 
   return {
     id: SECTION_IDS.BOUNDARIES,
@@ -362,44 +304,29 @@ function buildBoundariesSection(businessType: BusinessType): PromptSection {
 }
 
 /**
- * Build style section with configurable tone
+ * Build style section with configurable tone (optimized for token efficiency)
  */
 function buildStyleSection(config: PromptConfig, businessType: BusinessType): PromptSection {
   const context = getBusinessTypeContext(businessType);
 
-  // Determine response length guidance
-  let lengthGuidance = 'Halten Sie Antworten kurz (max 2-3 Saetze)';
-  if (config.responseLength === 'brief') {
-    lengthGuidance = 'Halten Sie Antworten sehr kurz (max 1-2 Saetze)';
-  } else if (config.responseLength === 'detailed') {
-    lengthGuidance = 'Geben Sie ausfuehrliche Antworten wenn noetig (3-4 Saetze)';
-  }
+  // Compact length guidance
+  const lengthMap: Record<string, string> = {
+    brief: '1-2 Saetze',
+    detailed: '3-4 Saetze',
+    default: '2-3 Saetze'
+  };
+  const lengthGuidance = lengthMap[config.responseLength || 'default'] || lengthMap.default;
 
-  // Determine tone guidance
-  let toneGuidance = context.suggestedTone;
-  if (config.tone === 'formal') {
-    toneGuidance = 'Sehr formell und geschaeftsmaessig';
-  } else if (config.tone === 'friendly') {
-    toneGuidance = 'Besonders herzlich und warmherzig';
-  }
+  // Compact tone guidance
+  const toneMap: Record<string, string> = {
+    formal: 'sehr formell',
+    friendly: 'herzlich-warmherzig'
+  };
+  const toneGuidance = toneMap[config.tone || ''] || context.suggestedTone;
 
-  const content = `KOMMUNIKATIONSSTIL:
-- Tonfall: ${toneGuidance}
-- Sprechen Sie Anrufer IMMER mit "Sie" an (formell)
-- Seien Sie freundlich, professionell und praezise
-- ${lengthGuidance}
-- Natuerlich fuer Telefongespraeche sprechen
-- Keine Markdown-Formatierung verwenden
-
-REAKTION AUF UNBEKANNTES:
-- Bei Fragen, die Sie nicht beantworten koennen, sagen Sie hoeflich, dass Sie die Information nicht haben
-- Bieten Sie an, einen Rueckruf durch einen Mitarbeiter zu organisieren
-- Erfragen Sie dafuer Name und Rueckrufnummer
-
-SPRACHLICHE QUALITAET:
-- Verwenden Sie korrekte deutsche Grammatik
-- Vermeiden Sie Fuellwoerter und Wiederholungen
-- Sprechen Sie klar und deutlich`;
+  const content = `STIL: ${toneGuidance}, ${lengthGuidance}, Sie-Form, kein Markdown
+BEI UNBEKANNTEM: Hoeflich ablehnen, Rueckruf anbieten (Name + Telefon erfragen)
+SPRACHE: Korrekt, klar, ohne Fuellwoerter`;
 
   return {
     id: SECTION_IDS.STYLE,
