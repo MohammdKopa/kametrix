@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, Play, ArrowRight } from 'lucide-react';
@@ -12,6 +12,8 @@ import { VoiceStep } from './steps/voice-step';
 import { GreetingStep } from './steps/greeting-step';
 import { EscalationStep } from './steps/escalation-step';
 import { ReviewStep } from './steps/review-step';
+import { AutoSaveIndicator, DraftRecoveryBanner } from './auto-save-indicator';
+import { useWizardAutoSave } from '@/hooks/useWizardAutoSave';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,6 +39,66 @@ export function AgentWizard() {
   const [error, setError] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdAgent, setCreatedAgent] = useState<CreatedAgent | null>(null);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<WizardState | null>(null);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
+
+  // Auto-save functionality
+  const {
+    autoSaveMetadata,
+    loadDraft,
+    clearDraft,
+    getLocalBackup,
+  } = useWizardAutoSave(state, {
+    enabled: !isSubmitting && !showSuccessDialog,
+    onSaveError: (err) => {
+      console.warn('Auto-save failed:', err.message);
+    },
+  });
+
+  // Load existing draft on mount
+  useEffect(() => {
+    const initializeDraft = async () => {
+      try {
+        // First try to load from server
+        const serverDraft = await loadDraft();
+
+        if (serverDraft) {
+          setPendingDraft(serverDraft);
+          setShowDraftBanner(true);
+        } else {
+          // Fall back to localStorage if no server draft
+          const localDraft = getLocalBackup();
+          if (localDraft && localDraft.businessInfo?.businessName) {
+            setPendingDraft(localDraft);
+            setShowDraftBanner(true);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load draft:', err);
+      } finally {
+        setIsLoadingDraft(false);
+      }
+    };
+
+    initializeDraft();
+  }, [loadDraft, getLocalBackup]);
+
+  // Handle draft restoration
+  const handleRestoreDraft = useCallback(() => {
+    if (pendingDraft) {
+      setState(pendingDraft);
+      setShowDraftBanner(false);
+      setPendingDraft(null);
+    }
+  }, [pendingDraft]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(async () => {
+    setShowDraftBanner(false);
+    setPendingDraft(null);
+    await clearDraft();
+  }, [clearDraft]);
 
   const updateState = <K extends keyof Omit<WizardState, 'step'>>(
     section: K,
@@ -177,6 +239,9 @@ export function AgentWizard() {
         throw new Error('Invalid response from server: missing agent data');
       }
 
+      // Clear the draft after successful agent creation
+      await clearDraft(agent.id);
+
       // Show success dialog with test option
       setCreatedAgent({
         id: agent.id,
@@ -192,9 +257,32 @@ export function AgentWizard() {
     }
   };
 
+  // Show loading state while checking for drafts
+  if (isLoadingDraft) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <WizardProgress currentStep={state.step} totalSteps={TOTAL_STEPS} />
+      {/* Draft Recovery Banner */}
+      {showDraftBanner && pendingDraft && (
+        <DraftRecoveryBanner
+          lastSavedAt={autoSaveMetadata.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          className="mb-4"
+        />
+      )}
+
+      {/* Auto-save indicator and wizard progress */}
+      <div className="flex items-center justify-between mb-4">
+        <WizardProgress currentStep={state.step} totalSteps={TOTAL_STEPS} />
+        <AutoSaveIndicator metadata={autoSaveMetadata} />
+      </div>
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl">

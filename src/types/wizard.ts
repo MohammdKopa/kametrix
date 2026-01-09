@@ -2,6 +2,27 @@
  * Wizard state types for agent creation wizard
  */
 
+/**
+ * Auto-save status for the wizard
+ */
+export type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+/**
+ * Draft status for incomplete configurations
+ */
+export type DraftStatus = 'draft' | 'submitted' | 'published' | 'abandoned';
+
+/**
+ * Auto-save metadata tracked alongside wizard state
+ */
+export interface AutoSaveMetadata {
+  draftId?: string;
+  status: AutoSaveStatus;
+  lastSavedAt?: Date;
+  draftStatus: DraftStatus;
+  error?: string;
+}
+
 export interface WizardState {
   step: number;
   businessInfo: {

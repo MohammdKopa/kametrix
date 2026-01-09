@@ -1,9 +1,0 @@
-{
-  "category": "refactor",
-  "description": "CODE QUALITY: Consolidate escalation type definitions scattered across types/escalation.ts, route.ts inline interfaces, and EscalationService. Create single source of truth for escalation types, import consistently across codebase, and remove duplicates.",
-  "title": "Consolidate duplicate escalation type definitions",
-  "dependencies": [],
-  "priority": 2,
-  "status": "backlog",
-  "id": "feature-1767963011311-2y5joj8xr"
-}

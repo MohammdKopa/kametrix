@@ -12,6 +12,7 @@ const STEP_LABELS = [
   'Wissen & FAQs',
   'Stimme',
   'Begrüßung',
+  'Weiterleitung',
   'Übersicht',
 ];
 

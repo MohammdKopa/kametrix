@@ -1,0 +1,19 @@
+{
+  "category": "bug",
+  "description": "Fix Agent Deletion Error Handling and UI State Management\n\nResolve the agent deletion flow that fails with \"Assistant not found\" and \"PhoneNumber Not Found\" errors, while appearing to succeed on the backend but showing incorrect feedback in the UI.\n\nRequirements:\n- Investigate why DELETE returns 200 status despite \"Assistant not found\" (400) error in Vapi\n- Fix phone number unassignment failing with \"PhoneNumber Not Found\" error\n- Ensure deletion operations handle cases where external resources (Vapi assistant, phone numbers) are already removed\n- Update UI to properly reflect deletion state without requiring manual refresh\n- Show accurate success/failure feedback to user immediately after deletion attempt\n- Handle race conditions where UI state doesn't sync with backend state\n- Verify deletion flow works correctly in both local and VPS environments\n\nEdge Cases to Address:\n- Agent exists in database but Vapi assistant already deleted\n- Phone number already unassigned or doesn't exist in provider\n- Partial deletion failures (database succeeds but external service fails)\n- Multiple rapid deletion attempts on same agent\n\nSuccess Criteria:\n- User sees immediate, accurate feedback after clicking delete\n- UI updates without requiring page refresh\n- No misleading \"failed to delete\" messages when deletion actually succeeded\n- Gracefully handle missing external resources (treat as already deleted)\n- Consistent behavior between local and production environments",
+  "title": "Fix agent deletion error handling and UI state",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "opus",
+  "thinkingLevel": "none",
+  "branchName": "main",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "titleGenerating": false,
+  "status": "backlog",
+  "id": "feature-1767986428712-fxiyfcp7n"
+}

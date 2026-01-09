@@ -1,9 +1,0 @@
-{
-  "category": "enhancement",
-  "description": "MEDIUM: Implement startup validation for required environment variables (VAPI_API_KEY, VAPI_WEBHOOK_SECRET, NEXT_PUBLIC_APP_URL, Google OAuth credentials). Fail fast with clear error messages if critical env vars are missing rather than cryptic runtime failures.",
-  "title": "Add environment variable validation at startup",
-  "dependencies": [],
-  "priority": 2,
-  "status": "backlog",
-  "id": "feature-1767963011312-evw66q24h"
-}
