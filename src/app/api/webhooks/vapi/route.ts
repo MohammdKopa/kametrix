@@ -42,8 +42,10 @@ import {
   logEscalationEvent,
   buildEscalationTools,
   isEscalationTool,
+  realTimeTracker,
+  type ConversationMessage,
 } from '@/lib/escalation';
-import type { EscalateCallArgs, CheckOperatorAvailabilityArgs } from '@/types/escalation';
+import type { EscalateCallArgs, CheckOperatorAvailabilityArgs, VapiTransferAction } from '@/types/escalation';
 
 /**
  * Tool call payload from Vapi
@@ -64,6 +66,35 @@ interface WebhookToolCalls {
     id: string;
     assistantId: string;
   };
+}
+
+/**
+ * Conversation update payload from Vapi
+ * Contains real-time messages during active calls
+ */
+interface WebhookConversationUpdate {
+  type: 'conversation-update';
+  messages?: Array<{
+    role: 'user' | 'assistant' | 'system' | 'tool';
+    message?: string;
+    content?: string;
+    time?: number; // Unix timestamp in milliseconds
+  }>;
+  call: {
+    id: string;
+    assistantId: string;
+    startedAt?: string;
+  };
+}
+
+/**
+ * Auto-escalation action to inject into Vapi response
+ * This allows us to trigger automatic escalation mid-conversation
+ */
+interface AutoEscalationResult {
+  triggered: boolean;
+  reason?: string;
+  confidence?: number;
 }
 
 /**
@@ -141,8 +172,15 @@ export async function POST(req: NextRequest) {
 
       case 'transcript':
       case 'speech-update':
+        // Real-time transcript/speech updates - not processed for escalation
+        break;
+
       case 'conversation-update':
-        // Real-time updates - not processed, we use end-of-call for final data
+        // Process conversation updates for real-time escalation detection
+        // Fire-and-forget to avoid blocking the response
+        handleConversationUpdate(message).catch(err =>
+          console.error('Error handling conversation update:', err)
+        );
         break;
 
       case 'tool-calls':
@@ -193,8 +231,11 @@ async function handleStatusUpdate(message: WebhookStatusUpdate) {
       callStatus = CallStatus.RINGING;
     } else if (status === 'in-progress') {
       callStatus = CallStatus.IN_PROGRESS;
+      // Start real-time tracking for this call
+      realTimeTracker.startTracking(call.id, agent.id);
     } else if (status === 'ended') {
-      // Wait for end-of-call-report for final status
+      // Stop real-time tracking and wait for end-of-call-report for final status
+      realTimeTracker.stopTracking(call.id);
       return;
     } else {
       console.warn(`Unknown status: ${status}`);
@@ -234,6 +275,14 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
     if (!call?.id || !call?.assistantId) {
       console.warn('End of call report missing required fields:', { call });
       return;
+    }
+
+    // Stop real-time tracking for this call (ensure cleanup)
+    const trackedState = realTimeTracker.stopTracking(call.id);
+    if (trackedState) {
+      console.log(`End of call: Tracked ${trackedState.messages.length} messages, ` +
+        `${trackedState.clarificationCount} clarifications, ` +
+        `frustration score: ${trackedState.frustrationScore.toFixed(2)}`);
     }
 
     // Find agent by Vapi assistant ID
@@ -380,6 +429,124 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
     );
   } catch (error) {
     console.error('Error handling end of call report:', error);
+    // Don't throw - we already responded to Vapi
+  }
+}
+
+/**
+ * Handle conversation-update events
+ * Processes real-time messages for automatic escalation detection.
+ *
+ * This enables automatic escalation based on:
+ * - Sentiment analysis (frustration detection)
+ * - Multiple clarification requests
+ * - Unrecognized intent patterns
+ * - Low confidence AI responses
+ * - Explicit escalation trigger phrases
+ */
+async function handleConversationUpdate(message: WebhookConversationUpdate) {
+  try {
+    const { messages, call } = message;
+
+    if (!call?.id || !call?.assistantId || !messages || messages.length === 0) {
+      return;
+    }
+
+    // Find agent by Vapi assistant ID
+    const agent = await findAgentByVapiAssistantId(call.assistantId);
+    if (!agent) {
+      return;
+    }
+
+    // Ensure we're tracking this call
+    if (!realTimeTracker.getCallState(call.id)) {
+      realTimeTracker.startTracking(call.id, agent.id);
+
+      // Load agent-specific escalation config
+      const escalationConfig = await prisma.escalationConfig.findUnique({
+        where: { agentId: agent.id },
+      });
+
+      if (escalationConfig) {
+        realTimeTracker.updateDetectorConfig({
+          maxClarifications: escalationConfig.maxClarifications,
+          maxCallDuration: escalationConfig.maxCallDuration,
+          sentimentThreshold: escalationConfig.sentimentThreshold,
+          triggerPhrases: escalationConfig.triggerPhrases as string[],
+        });
+      }
+    }
+
+    // Process each new message
+    for (const msg of messages) {
+      const content = msg.message || msg.content || '';
+      if (!content) continue;
+
+      const conversationMessage: ConversationMessage = {
+        role: msg.role,
+        content,
+        timestamp: msg.time ? new Date(msg.time).toISOString() : new Date().toISOString(),
+      };
+
+      const { needsEscalation, result } = realTimeTracker.processMessage(
+        call.id,
+        conversationMessage
+      );
+
+      // If automatic escalation is triggered, log it
+      // Note: We cannot force a tool call from here, but we can:
+      // 1. Log the event for analytics
+      // 2. Update the call record with pending escalation
+      // 3. The AI will naturally trigger escalate_to_human based on conversation flow
+      if (needsEscalation && result) {
+        console.log(`Auto-escalation triggered for call ${call.id}`, {
+          reason: result.reason,
+          confidence: result.confidence,
+        });
+
+        // Find or create the call record
+        const callRecord = await prisma.call.findFirst({
+          where: {
+            OR: [
+              { vapiCallId: call.id },
+              {
+                agentId: agent.id,
+                status: { in: ['RINGING', 'IN_PROGRESS'] },
+              },
+            ],
+          },
+          orderBy: { startedAt: 'desc' },
+        });
+
+        if (callRecord) {
+          // Mark call as needing escalation (pre-emptive flag)
+          // The actual escalation happens when escalate_to_human tool is called
+          await prisma.call.update({
+            where: { id: callRecord.id },
+            data: {
+              escalationNotes: `Auto-detected: ${result.reason} (confidence: ${result.confidence?.toFixed(2)})`,
+            },
+          });
+        }
+
+        // Log event for analytics
+        await prisma.eventLog.create({
+          data: {
+            userId: agent.userId,
+            eventType: 'auto_escalation_detected',
+            eventData: {
+              callId: call.id,
+              agentId: agent.id,
+              reason: result.reason,
+              confidence: result.confidence,
+              triggerDetails: result.triggerDetails,
+            },
+          },
+        }).catch(err => console.error('Failed to log auto-escalation event:', err));
+      }
+    }
+  } catch (error) {
+    console.error('Error handling conversation update:', error);
     // Don't throw - we already responded to Vapi
   }
 }
@@ -1096,14 +1263,53 @@ async function handleToolCalls(message: WebhookToolCalls) {
                   urgency: escalateArgs.urgency as 'low' | 'normal' | 'high' | 'critical' | undefined,
                 });
 
-                // Return appropriate message to caller
-                result = escalationResult.callerMessage;
-
                 console.log('Escalation initiated', {
                   escalationId: escalationResult.escalationId,
                   status: escalationResult.status,
                   transferNumber: escalationResult.transferNumber,
                 });
+
+                // If we have a transfer number and escalation is pending, return a transfer action
+                // This instructs Vapi to actually transfer the call instead of just announcing it
+                if (escalationResult.transferNumber && escalationResult.status === 'PENDING') {
+                  // Build operator briefing message for warm transfer
+                  const operatorBriefing = escalationResult.operatorBriefing ||
+                    `Eingehender Anruf von ${agentWithConfig.businessName}. Grund: ${escalateArgs.reason}. Zusammenfassung: ${escalateArgs.summary}`;
+
+                  // Determine transfer mode based on config
+                  // Use warm transfer if configured to share context, otherwise blind transfer
+                  const useWarmTransfer = config.shareSummary || config.shareTranscript;
+
+                  // Build Vapi transfer action object with proper typing
+                  const transferAction: VapiTransferAction = {
+                    action: 'transferCall',
+                    destination: {
+                      type: 'number',
+                      number: escalationResult.transferNumber,
+                      message: escalationResult.callerMessage, // Message played to caller during transfer
+                      transferPlan: useWarmTransfer ? {
+                        mode: 'warm-transfer-with-message',
+                        message: operatorBriefing, // Briefing message for the operator
+                      } : {
+                        mode: 'blind-transfer',
+                      },
+                    },
+                  };
+
+                  // Return Vapi transfer destination object as JSON string
+                  // This triggers an actual call transfer instead of just playing a message
+                  result = JSON.stringify(transferAction);
+
+                  console.log('Returning transfer action to Vapi:', {
+                    transferNumber: escalationResult.transferNumber,
+                    mode: useWarmTransfer ? 'warm-transfer-with-message' : 'blind-transfer',
+                    hasOperatorBriefing: !!operatorBriefing,
+                  });
+                } else {
+                  // No transfer possible (no operators, after hours, etc.)
+                  // Return just the caller message
+                  result = escalationResult.callerMessage;
+                }
               } catch (error) {
                 console.error('Escalation error:', error);
                 result = 'Es tut mir leid, die Weiterleitung ist momentan nicht möglich. Kann ich Ihnen anders helfen oder möchten Sie Ihre Kontaktdaten hinterlassen?';

@@ -222,3 +222,65 @@ export interface CheckOperatorAvailabilityArgs {
   department?: string;
   queue?: string;
 }
+
+/**
+ * Vapi Transfer Plan configuration for call transfers
+ * @see https://docs.vapi.ai/call-forwarding
+ */
+export interface VapiTransferPlan {
+  /**
+   * Transfer mode:
+   * - 'blind-transfer': Direct transfer without context
+   * - 'warm-transfer-with-message': Transfer with custom message to operator
+   * - 'warm-transfer-with-summary': Transfer with AI-generated summary
+   * - 'warm-transfer-experimental': Experimental mode with hold music and voicemail detection
+   */
+  mode: 'blind-transfer' | 'warm-transfer-with-message' | 'warm-transfer-with-summary' | 'warm-transfer-experimental';
+  /** Custom message to play to the operator (for warm-transfer-with-message) */
+  message?: string;
+  /** Summary plan configuration (for warm-transfer-with-summary) */
+  summaryPlan?: {
+    enabled: boolean;
+    messages: Array<{
+      role: 'system' | 'user';
+      content: string;
+    }>;
+  };
+  /** Hold audio URL for experimental mode */
+  holdAudioUrl?: string;
+  /** Timeout in seconds for transfer completion */
+  timeout?: number;
+}
+
+/**
+ * Vapi Transfer Destination object
+ * Returned from escalation to trigger actual call transfer
+ * @see https://docs.vapi.ai/call-forwarding
+ */
+export interface VapiTransferDestination {
+  /** Destination type */
+  type: 'number' | 'sip' | 'assistant';
+  /** Phone number in E.164 format (for type: 'number') */
+  number?: string;
+  /** SIP URI (for type: 'sip') */
+  sipUri?: string;
+  /** Assistant name (for type: 'assistant') */
+  assistantName?: string;
+  /** Message played to caller during transfer initiation */
+  message?: string;
+  /** Phone extension (optional) */
+  extension?: string;
+  /** Transfer plan configuration */
+  transferPlan?: VapiTransferPlan;
+}
+
+/**
+ * Vapi Transfer Action response object
+ * Returned from tool call to instruct Vapi to transfer the call
+ */
+export interface VapiTransferAction {
+  /** Action type - must be 'transferCall' */
+  action: 'transferCall';
+  /** Transfer destination configuration */
+  destination: VapiTransferDestination;
+}
