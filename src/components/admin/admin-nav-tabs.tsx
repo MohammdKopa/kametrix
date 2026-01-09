@@ -2,17 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, Bot, Phone, Settings, Activity, Monitor, FileText, type LucideIcon } from 'lucide-react';
+import { Users, Bot, Phone, Settings, Activity, Monitor, FileText, LayoutDashboard, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Tab {
   name: string;
   href: string;
   icon: LucideIcon;
+  exact?: boolean; // Whether to match the path exactly
 }
 
 const tabs: Tab[] = [
-  { name: 'Users', href: '/admin', icon: Users },
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
+  { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Agents', href: '/admin/agents', icon: Bot },
   { name: 'Phone Numbers', href: '/admin/phone-numbers', icon: Phone },
   { name: 'System', href: '/admin/monitoring', icon: Activity },
@@ -26,10 +28,10 @@ export function AdminNavTabs() {
 
   return (
     <nav className="-mb-px">
-      <div className="flex gap-1">
+      <div className="flex gap-1 overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = tab.href === '/admin'
+          const isActive = tab.exact
             ? pathname === tab.href
             : pathname.startsWith(tab.href);
           return (
