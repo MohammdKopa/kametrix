@@ -46,7 +46,30 @@ import {
   realTimeTracker,
   type ConversationMessage,
 } from '@/lib/escalation';
+import { runInBackground, runAllInBackground } from '@/lib/background-jobs';
+import { WebhookRequestContext, createWebhookContext } from '@/lib/webhook-request-context';
+import { metrics, MetricNames, parallelQueries, queryCache } from '@/lib/performance';
 import type { EscalateCallArgs, CheckOperatorAvailabilityArgs, VapiTransferAction, TransferFailureType } from '@/types/escalation';
+
+// ============================================
+// Constants and Configuration
+// ============================================
+
+/**
+ * Vapi webhook timeout constraint (7.5 seconds)
+ * We use 7 seconds as our internal limit to leave buffer for response serialization
+ */
+const VAPI_TIMEOUT_MS = 7500;
+const INTERNAL_TIMEOUT_MS = 7000;
+
+/**
+ * Tool call timeout - shorter to ensure we respond in time
+ */
+const TOOL_CALL_TIMEOUT_MS = 6500;
+
+// ============================================
+// Type Definitions
+// ============================================
 
 /**
  * Tool call payload from Vapi
@@ -98,6 +121,64 @@ interface AutoEscalationResult {
   confidence?: number;
 }
 
+// ============================================
+// Timeout Utilities
+// ============================================
+
+/**
+ * Wraps an async function with a timeout
+ * Returns the result or throws TimeoutError if exceeded
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operationName: string
+): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Operation '${operationName}' timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
+
+/**
+ * Monitors operation timing and logs warnings for slow operations
+ */
+function createTimingMonitor(operationName: string, warningThresholdMs = 1000) {
+  const startTime = Date.now();
+
+  return {
+    checkpoint: (label: string) => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > warningThresholdMs) {
+        console.warn(`[TIMING] ${operationName}/${label}: ${elapsed}ms (threshold: ${warningThresholdMs}ms)`);
+      }
+    },
+    end: () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > warningThresholdMs) {
+        console.warn(`[TIMING] ${operationName} completed in ${elapsed}ms (threshold: ${warningThresholdMs}ms)`);
+      }
+      return elapsed;
+    },
+  };
+}
+
+// ============================================
+// Main Webhook Handler
+// ============================================
+
 /**
  * Vapi webhook endpoint - handles server URL events
  *
@@ -109,11 +190,20 @@ interface AutoEscalationResult {
  *
  * CRITICAL: Must respond within 7.5 seconds or Vapi will timeout
  * CRITICAL: Uses request.text() NOT request.json() for signature verification
+ *
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Request-level caching via WebhookRequestContext
+ * - Background job queue for non-critical operations
+ * - Parallel database queries where possible
+ * - Timeout monitoring and alerting
  */
 export async function POST(req: NextRequest) {
+  const timing = createTimingMonitor('POST /api/webhooks/vapi');
+
   try {
     // Get raw body FIRST for signature verification
     const rawBody = await req.text();
+    timing.checkpoint('body-read');
 
     // Verify webhook authentication if VAPI_WEBHOOK_SECRET is configured
     const secret = process.env.VAPI_WEBHOOK_SECRET;
@@ -133,7 +223,11 @@ export async function POST(req: NextRequest) {
         // Log security audit event for invalid signature (fire-and-forget)
         const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
           req.headers.get('x-real-ip') || 'unknown';
-        logInvalidWebhookSignature('vapi', ip).catch(console.error);
+
+        runInBackground(
+          () => logInvalidWebhookSignature('vapi', ip),
+          { name: 'log-invalid-signature' }
+        );
 
         return NextResponse.json(
           {
@@ -144,6 +238,7 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+    timing.checkpoint('auth-verified');
 
     // Parse JSON AFTER signature verification
     const body = JSON.parse(rawBody);
@@ -155,18 +250,21 @@ export async function POST(req: NextRequest) {
       console.log(`Vapi webhook: ${message.type}`);
     }
 
+    // Create request context for per-request caching
+    const ctx = createWebhookContext();
+
     // Route based on event type
     switch (message.type) {
       case 'status-update':
         // Process asynchronously - don't block response
-        handleStatusUpdate(message).catch(err =>
+        handleStatusUpdate(message, ctx).catch(err =>
           console.error('Error handling status update:', err)
         );
         break;
 
       case 'end-of-call-report':
         // Process asynchronously - don't block response
-        handleEndOfCallReport(message).catch(err =>
+        handleEndOfCallReport(message, ctx).catch(err =>
           console.error('Error handling end of call:', err)
         );
         break;
@@ -179,37 +277,66 @@ export async function POST(req: NextRequest) {
       case 'conversation-update':
         // Process conversation updates for real-time escalation detection
         // Fire-and-forget to avoid blocking the response
-        handleConversationUpdate(message).catch(err =>
+        handleConversationUpdate(message, ctx).catch(err =>
           console.error('Error handling conversation update:', err)
         );
         break;
 
       case 'tool-calls':
         // Tool calls require a synchronous response with results
-        return await handleToolCalls(message);
+        // Apply timeout to ensure we respond in time
+        try {
+          return await withTimeout(
+            handleToolCalls(message, ctx),
+            TOOL_CALL_TIMEOUT_MS,
+            'handleToolCalls'
+          );
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Tool calls failed or timed out: ${errorMsg}`);
+          metrics.increment(MetricNames.ERROR_COUNT, { handler: 'tool-calls' });
+
+          // Return error response for all tool calls
+          return NextResponse.json({
+            results: message.toolCallList.map((tc: ToolCall) => ({
+              toolCallId: tc.id,
+              result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',
+            })),
+          });
+        }
 
       case 'assistant-request':
         // Dynamic assistant config - return current date in system prompt
-        return await handleAssistantRequest(message);
+        return await handleAssistantRequest(message, ctx);
 
       default:
         console.log(`Unhandled Vapi event: ${message.type}`);
     }
 
+    timing.end();
+
     // Always respond quickly (within 7.5s timeout)
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Vapi webhook error:', error);
+    metrics.increment(MetricNames.ERROR_COUNT, { handler: 'vapi-webhook' });
+
     // Still return 200 to avoid Vapi retries on our errors
     return NextResponse.json({ received: true, error: 'Processing failed' });
   }
 }
 
+// ============================================
+// Event Handlers
+// ============================================
+
 /**
  * Handle status-update events
  * Creates or updates call records as status changes
  */
-async function handleStatusUpdate(message: WebhookStatusUpdate) {
+async function handleStatusUpdate(message: WebhookStatusUpdate, ctx: WebhookRequestContext) {
+  const timing = createTimingMonitor('handleStatusUpdate', 500);
+
   try {
     const { call, status } = message;
 
@@ -218,8 +345,9 @@ async function handleStatusUpdate(message: WebhookStatusUpdate) {
       return;
     }
 
-    // Find agent by Vapi assistant ID
-    const agent = await findAgentByVapiAssistantId(call.assistantId);
+    // Find agent by Vapi assistant ID (uses cached lookup)
+    const agent = await ctx.getAgentByVapiId(call.assistantId);
+    timing.checkpoint('agent-lookup');
 
     if (!agent) {
       console.warn(`Agent not found for assistantId: ${call.assistantId}`);
@@ -255,6 +383,7 @@ async function handleStatusUpdate(message: WebhookStatusUpdate) {
       startedAt: call.startedAt ? new Date(call.startedAt) : new Date(),
     });
 
+    timing.end();
     console.log(`Call ${call.id} status updated to ${callStatus}`);
   } catch (error) {
     console.error('Error handling status update:', error);
@@ -265,8 +394,12 @@ async function handleStatusUpdate(message: WebhookStatusUpdate) {
 /**
  * Handle end-of-call-report events
  * Saves final call data including transcript, duration, and final status
+ *
+ * OPTIMIZED: Uses parallel queries and background jobs
  */
-async function handleEndOfCallReport(message: WebhookEndOfCall) {
+async function handleEndOfCallReport(message: WebhookEndOfCall, ctx: WebhookRequestContext) {
+  const timing = createTimingMonitor('handleEndOfCallReport', 1000);
+
   try {
     const { call, artifact, endedReason } = message;
 
@@ -286,8 +419,9 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
         `frustration score: ${trackedState.frustrationScore.toFixed(2)}`);
     }
 
-    // Find agent by Vapi assistant ID
-    const agent = await findAgentByVapiAssistantId(call.assistantId);
+    // Find agent by Vapi assistant ID (uses cached lookup)
+    const agent = await ctx.getAgentByVapiId(call.assistantId);
+    timing.checkpoint('agent-lookup');
 
     if (!agent) {
       console.warn(`Agent not found for assistantId: ${call.assistantId}`);
@@ -309,7 +443,7 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
     // Extract phone number
     const phoneNumber = call.customer?.number || 'Unknown';
 
-    // Handle transfer failure - log and potentially update escalation status
+    // Handle transfer failure in background - log and potentially update escalation status
     if (transferFailureInfo.isTransferFailure) {
       console.log(`Transfer failure detected: ${endedReason}`, {
         failureType: transferFailureInfo.failureType,
@@ -317,12 +451,15 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
         callId: call.id,
       });
 
-      // Try to find and update associated escalation log
-      await handleTransferFailureStatus(
-        call.id,
-        agent.id,
-        transferFailureInfo.failureType as TransferFailureType | null,
-        endedReason
+      // Run in background to avoid blocking
+      runInBackground(
+        () => handleTransferFailureStatus(
+          call.id,
+          agent.id,
+          transferFailureInfo.failureType as TransferFailureType | null,
+          endedReason
+        ),
+        { name: 'transfer-failure-status', maxRetries: 1 }
       );
     }
 
@@ -337,63 +474,61 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
       durationSeconds: durationSeconds || undefined,
       transcript,
     });
+    timing.checkpoint('call-upserted');
 
     console.log(`Call ${call.id} completed: ${finalStatus}, duration: ${durationSeconds}s`);
 
     // Deduct credits for completed calls with duration
     if (finalStatus === CallStatus.COMPLETED && durationSeconds && durationSeconds > 0) {
       try {
-        // Get the call record we just upserted
-        const callRecord = await prisma.call.findUnique({
-          where: { vapiCallId: call.id },
-        });
-
-        if (callRecord) {
-          // Get user state BEFORE deduction to check if this is first low balance event
-          const userBefore = await prisma.user.findUnique({
+        // OPTIMIZED: Use parallel queries for call record and user info
+        const [callRecord, userBefore] = await parallelQueries([
+          () => prisma.call.findUnique({ where: { vapiCallId: call.id } }),
+          () => prisma.user.findUnique({
             where: { id: agent.userId },
             select: { email: true, name: true, creditBalance: true, graceCreditsUsed: true },
-          });
+          }),
+        ]);
+        timing.checkpoint('credit-queries');
 
-          const wasLowBefore = userBefore ? isLowBalance(userBefore.creditBalance) : false;
-          const hadGraceUsageBefore = userBefore ? userBefore.graceCreditsUsed > 0 : false;
+        if (callRecord && userBefore) {
+          const wasLowBefore = isLowBalance(userBefore.creditBalance);
+          const hadGraceUsageBefore = userBefore.graceCreditsUsed > 0;
 
           await deductCreditsForCall(
             agent.userId,
             callRecord.id,
             durationSeconds
           );
+          timing.checkpoint('credits-deducted');
           console.log(`Deducted credits for call ${call.id}: ${durationSeconds}s`);
 
-          // Send low credit email when crossing threshold for the first time
-          // Only send if: now low balance AND wasn't low before AND no grace usage before
-          if (userBefore) {
-            const userAfter = await prisma.user.findUnique({
-              where: { id: agent.userId },
-              select: { creditBalance: true, graceCreditsUsed: true },
-            });
+          // Check if we need to send low credit email (in background)
+          runInBackground(
+            async () => {
+              const userAfter = await prisma.user.findUnique({
+                where: { id: agent.userId },
+                select: { creditBalance: true, graceCreditsUsed: true },
+              });
 
-            if (userAfter) {
-              const isNowLow = isLowBalance(userAfter.creditBalance);
-              // Send email only when first crossing threshold (wasn't low before, is low now)
-              // OR when first entering grace (no grace before, has grace now)
-              const justCrossedThreshold = !wasLowBefore && isNowLow;
-              const justEnteredGrace = !hadGraceUsageBefore && userAfter.graceCreditsUsed > 0;
+              if (userAfter) {
+                const isNowLow = isLowBalance(userAfter.creditBalance);
+                const justCrossedThreshold = !wasLowBefore && isNowLow;
+                const justEnteredGrace = !hadGraceUsageBefore && userAfter.graceCreditsUsed > 0;
 
-              if (justCrossedThreshold || justEnteredGrace) {
-                // Fire and forget - don't await
-                sendLowCreditEmail({
-                  email: userBefore.email,
-                  name: userBefore.name,
-                  currentBalance: userAfter.creditBalance,
-                  graceCreditsUsed: userAfter.graceCreditsUsed,
-                }).catch((err) => {
-                  console.error('Failed to send low credit email:', err);
-                });
-                console.log(`Low credit email triggered for user ${agent.userId}`);
+                if (justCrossedThreshold || justEnteredGrace) {
+                  await sendLowCreditEmail({
+                    email: userBefore.email,
+                    name: userBefore.name,
+                    currentBalance: userAfter.creditBalance,
+                    graceCreditsUsed: userAfter.graceCreditsUsed,
+                  });
+                  console.log(`Low credit email triggered for user ${agent.userId}`);
+                }
               }
-            }
-          }
+            },
+            { name: 'low-credit-check', maxRetries: 1 }
+          );
         }
       } catch (error) {
         console.error('Error deducting credits:', error);
@@ -401,10 +536,8 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
       }
     }
 
-    // Log to Google Sheets (non-blocking, fire-and-forget)
+    // Log to Google Sheets (non-blocking, background job)
     // Check if any book_appointment tool was called
-    // Vapi can send toolCalls in different formats, so check multiple paths
-    // Also check messages array for tool-call-result messages
     let appointmentBooked = false;
 
     // Check artifact.toolCalls (various possible formats)
@@ -435,9 +568,9 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
 
     console.log(`Appointment booked detection: ${appointmentBooked}`);
 
-    // Fire-and-forget pattern - don't await
-    Promise.resolve().then(() =>
-      logCallToSheets(agent.userId, {
+    // Fire-and-forget pattern using background job queue
+    runInBackground(
+      () => logCallToSheets(agent.userId, {
         startedAt: call.startedAt ? new Date(call.startedAt) : new Date(),
         phoneNumber,
         agentName: agent.name,
@@ -446,8 +579,11 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
         summary: artifact?.summary || null,
         transcript,
         appointmentBooked,
-      })
+      }),
+      { name: 'sheets-logging', maxRetries: 2 }
     );
+
+    timing.end();
   } catch (error) {
     console.error('Error handling end of call report:', error);
     // Don't throw - we already responded to Vapi
@@ -465,7 +601,7 @@ async function handleTransferFailureStatus(
   endedReason: string
 ) {
   try {
-    // Find the call record by vapi call ID
+    // Find the call record by vapi call ID with relations in single query
     const callRecord = await prisma.call.findUnique({
       where: { vapiCallId },
       include: {
@@ -491,44 +627,45 @@ async function handleTransferFailureStatus(
       return;
     }
 
-    // Update the escalation log with failure information
-    await prisma.escalationLog.update({
-      where: { id: escalationLog.id },
-      data: {
-        status: 'FAILED',
-        failureReason: `Transfer failed: ${failureType || 'UNKNOWN'} (${endedReason})`,
-        transferCompletedAt: new Date(),
-        resolutionNotes: escalationLog.resolutionNotes
-          ? `${escalationLog.resolutionNotes}\n[${new Date().toISOString()}] Transfer failed: ${endedReason}`
-          : `[${new Date().toISOString()}] Transfer failed: ${endedReason}`,
-      },
-    });
-
-    // Update call record escalation status
-    await prisma.call.update({
-      where: { id: callRecord.id },
-      data: {
-        escalationStatus: 'FAILED',
-      },
-    });
-
-    // Log event for tracking
-    await prisma.eventLog.create({
-      data: {
-        userId: callRecord.userId,
-        eventType: 'transfer_failed',
-        eventData: {
-          callId: callRecord.id,
-          vapiCallId,
-          agentId,
-          escalationId: escalationLog.id,
-          failureType: failureType || 'UNKNOWN',
-          endedReason,
-          transferNumber: escalationLog.transferNumber,
-          timestamp: new Date().toISOString(),
+    // OPTIMIZED: Run updates in parallel
+    await Promise.all([
+      // Update the escalation log with failure information
+      prisma.escalationLog.update({
+        where: { id: escalationLog.id },
+        data: {
+          status: 'FAILED',
+          failureReason: `Transfer failed: ${failureType || 'UNKNOWN'} (${endedReason})`,
+          transferCompletedAt: new Date(),
+          resolutionNotes: escalationLog.resolutionNotes
+            ? `${escalationLog.resolutionNotes}\n[${new Date().toISOString()}] Transfer failed: ${endedReason}`
+            : `[${new Date().toISOString()}] Transfer failed: ${endedReason}`,
         },
-      },
-    }).catch(err => console.error('Failed to log transfer failure event:', err));
+      }),
+      // Update call record escalation status
+      prisma.call.update({
+        where: { id: callRecord.id },
+        data: {
+          escalationStatus: 'FAILED',
+        },
+      }),
+      // Log event for tracking
+      prisma.eventLog.create({
+        data: {
+          userId: callRecord.userId,
+          eventType: 'transfer_failed',
+          eventData: {
+            callId: callRecord.id,
+            vapiCallId,
+            agentId,
+            escalationId: escalationLog.id,
+            failureType: failureType || 'UNKNOWN',
+            endedReason,
+            transferNumber: escalationLog.transferNumber,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      }),
+    ]);
 
     console.log(`Transfer failure recorded for escalation ${escalationLog.id}:`, {
       callId: callRecord.id,
@@ -550,8 +687,10 @@ async function handleTransferFailureStatus(
  * - Unrecognized intent patterns
  * - Low confidence AI responses
  * - Explicit escalation trigger phrases
+ *
+ * OPTIMIZED: Uses request context for caching, parallel queries
  */
-async function handleConversationUpdate(message: WebhookConversationUpdate) {
+async function handleConversationUpdate(message: WebhookConversationUpdate, ctx: WebhookRequestContext) {
   try {
     const { messages, call } = message;
 
@@ -559,8 +698,8 @@ async function handleConversationUpdate(message: WebhookConversationUpdate) {
       return;
     }
 
-    // Find agent by Vapi assistant ID
-    const agent = await findAgentByVapiAssistantId(call.assistantId);
+    // Find agent by Vapi assistant ID (uses cached lookup)
+    const agent = await ctx.getAgentByVapiId(call.assistantId);
     if (!agent) {
       return;
     }
@@ -569,10 +708,8 @@ async function handleConversationUpdate(message: WebhookConversationUpdate) {
     if (!realTimeTracker.getCallState(call.id)) {
       realTimeTracker.startTracking(call.id, agent.id);
 
-      // Load agent-specific escalation config
-      const escalationConfig = await prisma.escalationConfig.findUnique({
-        where: { agentId: agent.id },
-      });
+      // Load agent-specific escalation config (uses request context cache)
+      const escalationConfig = await ctx.getEscalationConfig(agent.id);
 
       if (escalationConfig) {
         realTimeTracker.updateDetectorConfig({
@@ -601,55 +738,58 @@ async function handleConversationUpdate(message: WebhookConversationUpdate) {
       );
 
       // If automatic escalation is triggered, log it
-      // Note: We cannot force a tool call from here, but we can:
-      // 1. Log the event for analytics
-      // 2. Update the call record with pending escalation
-      // 3. The AI will naturally trigger escalate_to_human based on conversation flow
       if (needsEscalation && result) {
         console.log(`Auto-escalation triggered for call ${call.id}`, {
           reason: result.reason,
           confidence: result.confidence,
         });
 
-        // Find or create the call record
-        const callRecord = await prisma.call.findFirst({
-          where: {
-            OR: [
-              { vapiCallId: call.id },
-              {
-                agentId: agent.id,
-                status: { in: ['RINGING', 'IN_PROGRESS'] },
+        // Run database operations in background
+        runInBackground(
+          async () => {
+            // Find or create the call record
+            const callRecord = await prisma.call.findFirst({
+              where: {
+                OR: [
+                  { vapiCallId: call.id },
+                  {
+                    agentId: agent.id,
+                    status: { in: ['RINGING', 'IN_PROGRESS'] },
+                  },
+                ],
               },
-            ],
-          },
-          orderBy: { startedAt: 'desc' },
-        });
+              orderBy: { startedAt: 'desc' },
+            });
 
-        if (callRecord) {
-          // Mark call as needing escalation (pre-emptive flag)
-          // The actual escalation happens when escalate_to_human tool is called
-          await prisma.call.update({
-            where: { id: callRecord.id },
-            data: {
-              escalationNotes: `Auto-detected: ${result.reason} (confidence: ${result.confidence?.toFixed(2)})`,
-            },
-          });
-        }
-
-        // Log event for analytics
-        await prisma.eventLog.create({
-          data: {
-            userId: agent.userId,
-            eventType: 'auto_escalation_detected',
-            eventData: {
-              callId: call.id,
-              agentId: agent.id,
-              reason: result.reason,
-              confidence: result.confidence,
-              triggerDetails: result.triggerDetails,
-            },
+            if (callRecord) {
+              // Run call update and event log creation in parallel
+              await Promise.all([
+                // Mark call as needing escalation (pre-emptive flag)
+                prisma.call.update({
+                  where: { id: callRecord.id },
+                  data: {
+                    escalationNotes: `Auto-detected: ${result.reason} (confidence: ${result.confidence?.toFixed(2)})`,
+                  },
+                }),
+                // Log event for analytics
+                prisma.eventLog.create({
+                  data: {
+                    userId: agent.userId,
+                    eventType: 'auto_escalation_detected',
+                    eventData: {
+                      callId: call.id,
+                      agentId: agent.id,
+                      reason: result.reason,
+                      confidence: result.confidence,
+                      triggerDetails: result.triggerDetails,
+                    },
+                  },
+                }),
+              ]);
+            }
           },
-        }).catch(err => console.error('Failed to log auto-escalation event:', err));
+          { name: 'auto-escalation-log', maxRetries: 1 }
+        );
       }
     }
   } catch (error) {
@@ -661,8 +801,12 @@ async function handleConversationUpdate(message: WebhookConversationUpdate) {
 /**
  * Handle tool-calls events
  * Executes calendar tools and returns results in Vapi's expected format
+ *
+ * OPTIMIZED: Uses request context for OAuth2 client caching
  */
-async function handleToolCalls(message: WebhookToolCalls) {
+async function handleToolCalls(message: WebhookToolCalls, ctx: WebhookRequestContext) {
+  const timing = createTimingMonitor('handleToolCalls', 2000);
+
   try {
     const { toolCallList, call } = message;
 
@@ -676,8 +820,9 @@ async function handleToolCalls(message: WebhookToolCalls) {
       });
     }
 
-    // Find agent by Vapi assistant ID
-    const agent = await findAgentByVapiAssistantId(call.assistantId);
+    // Find agent by Vapi assistant ID (uses cached lookup)
+    const agent = await ctx.getAgentByVapiId(call.assistantId);
+    timing.checkpoint('agent-lookup');
 
     if (!agent) {
       console.warn(`Agent not found for assistantId: ${call.assistantId}`);
@@ -687,6 +832,17 @@ async function handleToolCalls(message: WebhookToolCalls) {
           result: 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.',
         })),
       });
+    }
+
+    // Pre-fetch agent with user for calendar operations (single query, cached for all tool calls)
+    const agentWithUser = await ctx.getAgentWithConfig(agent.id);
+    timing.checkpoint('agent-with-user');
+
+    // Pre-fetch OAuth2 client for calendar operations (cached for all tool calls)
+    let oauth2Client: Awaited<ReturnType<typeof getOAuth2ClientForUser>> | null = null;
+    if (agentWithUser?.user) {
+      oauth2Client = await ctx.getOAuth2Client(agentWithUser.user.id);
+      timing.checkpoint('oauth2-client');
     }
 
     // Process each tool call
@@ -705,18 +861,12 @@ async function handleToolCalls(message: WebhookToolCalls) {
 
           switch (functionName) {
             case 'check_availability': {
-              // Get agent's user and check Google connection
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
+              // Use cached OAuth2 client
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet. Bitte rufen Sie später noch einmal an oder hinterlassen Sie Ihre Kontaktdaten.';
                 break;
@@ -773,18 +923,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'check_conflicts': {
-              // Get agent's user and check Google connection
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet.';
                 break;
@@ -818,18 +961,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'book_appointment': {
-              // Get agent's user and check Google connection
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet. Bitte rufen Sie später noch einmal an oder hinterlassen Sie Ihre Kontaktdaten.';
                 break;
@@ -936,17 +1072,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'reschedule_appointment': {
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet.';
                 break;
@@ -1033,17 +1163,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'cancel_appointment': {
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderbuchung noch nicht eingerichtet.';
                 break;
@@ -1119,17 +1243,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'list_appointments': {
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderabfrage noch nicht eingerichtet.';
                 break;
@@ -1175,17 +1293,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'search_appointments': {
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderabfrage noch nicht eingerichtet.';
                 break;
@@ -1221,17 +1333,11 @@ async function handleToolCalls(message: WebhookToolCalls) {
             }
 
             case 'find_next_available': {
-              const agentWithUser = await prisma.agent.findUnique({
-                where: { id: agent.id },
-                include: { user: true },
-              });
-
               if (!agentWithUser?.user) {
                 result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
                 break;
               }
 
-              const oauth2Client = await getOAuth2ClientForUser(agentWithUser.user.id);
               if (!oauth2Client) {
                 result = 'Leider ist die Kalenderabfrage noch nicht eingerichtet.';
                 break;
@@ -1280,14 +1386,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
               try {
                 const escalateArgs = args as EscalateCallArgs;
 
-                // Get agent with escalation config
-                const agentWithConfig = await prisma.agent.findUnique({
-                  where: { id: agent.id },
-                  include: {
-                    escalationConfig: true,
-                    user: true,
-                  },
-                });
+                // Get agent with escalation config (uses request context cache)
+                const agentWithConfig = await ctx.getAgentWithConfig(agent.id);
 
                 if (!agentWithConfig) {
                   result = 'Es tut mir leid, ich habe momentan technische Schwierigkeiten.';
@@ -1311,21 +1411,24 @@ async function handleToolCalls(message: WebhookToolCalls) {
                   // No forwarding configured - acknowledge the request and offer callback
                   console.log('Escalation requested but no forwarding configured for agent', agent.id);
 
-                  // Log to EventLog for tracking even without full escalation setup
-                  await prisma.eventLog.create({
-                    data: {
-                      userId: agent.userId,
-                      eventType: 'escalation_requested',
-                      eventData: {
-                        agentId: agent.id,
-                        agentName: agent.name,
-                        reason: escalateArgs.reason,
-                        summary: escalateArgs.summary,
-                        callerName: escalateArgs.callerName,
-                        configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',
+                  // Log to EventLog for tracking in background
+                  runInBackground(
+                    () => prisma.eventLog.create({
+                      data: {
+                        userId: agent.userId,
+                        eventType: 'escalation_requested',
+                        eventData: {
+                          agentId: agent.id,
+                          agentName: agent.name,
+                          reason: escalateArgs.reason,
+                          summary: escalateArgs.summary,
+                          callerName: escalateArgs.callerName,
+                          configStatus: !config ? 'no_config' : !config.enabled ? 'disabled' : 'no_forwarding_number',
+                        },
                       },
-                    },
-                  }).catch(err => console.error('Failed to log escalation event:', err));
+                    }),
+                    { name: 'escalation-event-log' }
+                  );
 
                   result = `Ich verstehe, dass Sie mit einem Mitarbeiter sprechen möchten. Leider ist die direkte Weiterleitung momentan nicht verfügbar. Ich notiere mir Ihr Anliegen: "${escalateArgs.summary}". Ein Mitarbeiter wird sich schnellstmöglich bei Ihnen melden. Können Sie mir bitte Ihren Namen und Ihre Rückrufnummer nennen?`;
                   break;
@@ -1377,14 +1480,12 @@ async function handleToolCalls(message: WebhookToolCalls) {
                 });
 
                 // If we have a transfer number and escalation is pending, return a transfer action
-                // This instructs Vapi to actually transfer the call instead of just announcing it
                 if (escalationResult.transferNumber && escalationResult.status === 'PENDING') {
                   // Build operator briefing message for warm transfer
                   const operatorBriefing = escalationResult.operatorBriefing ||
                     `Eingehender Anruf von ${agentWithConfig.businessName}. Grund: ${escalateArgs.reason}. Zusammenfassung: ${escalateArgs.summary}`;
 
                   // Determine transfer mode based on config
-                  // Use warm transfer if configured to share context, otherwise blind transfer
                   const useWarmTransfer = config.shareSummary || config.shareTranscript;
 
                   // Build Vapi transfer action object with proper typing
@@ -1393,10 +1494,10 @@ async function handleToolCalls(message: WebhookToolCalls) {
                     destination: {
                       type: 'number',
                       number: escalationResult.transferNumber,
-                      message: escalationResult.callerMessage, // Message played to caller during transfer
+                      message: escalationResult.callerMessage,
                       transferPlan: useWarmTransfer ? {
                         mode: 'warm-transfer-with-message',
-                        message: operatorBriefing, // Briefing message for the operator
+                        message: operatorBriefing,
                       } : {
                         mode: 'blind-transfer',
                       },
@@ -1404,7 +1505,6 @@ async function handleToolCalls(message: WebhookToolCalls) {
                   };
 
                   // Return Vapi transfer destination object as JSON string
-                  // This triggers an actual call transfer instead of just playing a message
                   result = JSON.stringify(transferAction);
 
                   console.log('Returning transfer action to Vapi:', {
@@ -1414,7 +1514,6 @@ async function handleToolCalls(message: WebhookToolCalls) {
                   });
                 } else {
                   // No transfer possible (no operators, after hours, etc.)
-                  // Return just the caller message
                   result = escalationResult.callerMessage;
                 }
               } catch (error) {
@@ -1430,11 +1529,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
               try {
                 const availabilityArgs = args as CheckOperatorAvailabilityArgs;
 
-                // Get agent with escalation config
-                const agentWithConfig = await prisma.agent.findUnique({
-                  where: { id: agent.id },
-                  include: { escalationConfig: true },
-                });
+                // Get agent with escalation config (uses request context cache)
+                const agentWithConfig = await ctx.getAgentWithConfig(agent.id);
 
                 if (!agentWithConfig?.escalationConfig) {
                   result = 'Die Verfügbarkeitsprüfung ist momentan nicht verfügbar.';
@@ -1489,6 +1585,8 @@ async function handleToolCalls(message: WebhookToolCalls) {
       })
     );
 
+    timing.end();
+
     // Return results in Vapi's expected format
     return NextResponse.json({ results });
   } catch (error) {
@@ -1510,7 +1608,10 @@ async function handleToolCalls(message: WebhookToolCalls) {
  * Uses Vapi dynamic variables which are substituted at call time:
  * https://docs.vapi.ai/assistants/dynamic-variables#advanced-date-and-time-usage
  */
-async function handleAssistantRequest(message: { call?: { assistantId?: string; phoneNumberId?: string } }) {
+async function handleAssistantRequest(
+  message: { call?: { assistantId?: string; phoneNumberId?: string } },
+  ctx: WebhookRequestContext
+) {
   try {
     const { call } = message;
 
@@ -1551,15 +1652,12 @@ async function handleAssistantRequest(message: { call?: { assistantId?: string; 
     const hasCalendarTools = agent.user?.googleRefreshToken ? true : false;
 
     // Always include escalation tools - they handle gracefully when not fully configured
-    // This allows the AI to recognize escalation requests even if no forwarding number is set
-    // The escalation handler will provide appropriate fallback messages
     const hasEscalationTools = true;
 
     const serverUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Build tools using consolidated modules
     // IMPORTANT: Escalation tools MUST come FIRST so the AI prioritizes them
-    // over calendar tools when user asks for a human
     const escalationTools = hasEscalationTools ? buildEscalationTools(serverUrl) : [];
     const calendarTools = hasCalendarTools ? buildCalendarTools(serverUrl) : [];
 

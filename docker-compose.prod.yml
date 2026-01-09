@@ -44,6 +44,8 @@ services:
 
       # Database
       - DATABASE_URL=postgresql://${POSTGRES_USER:-kametrix}:${POSTGRES_PASSWORD:-kametrix123}@postgres:5432/${POSTGRES_DB:-kametrix}
+      - DATABASE_POOL_MAX=${DATABASE_POOL_MAX:-10}
+      - DATABASE_POOL_MIN=${DATABASE_POOL_MIN:-2}
 
       # Vapi Configuration
       - VAPI_API_KEY=${VAPI_API_KEY}
