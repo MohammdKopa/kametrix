@@ -2,19 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { prisma } from '@/lib/prisma';
 import type { AdminAction, Prisma } from '@/generated/prisma/client';
+import {
+  getActionCategory,
+  getActionsForCategory,
+  createAuditLog,
+  type ActionCategory,
+} from '@/lib/audit-logger';
 
 // Force dynamic rendering since we use cookies() for authentication
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/admin/audit-logs - Get audit logs (admin only)
+ * GET /api/admin/audit-logs - Get audit logs with advanced filtering (admin only)
  *
  * Query params:
  * - adminId: string - Filter by admin who performed action
  * - userId: string - Filter by target user
- * - action: AdminAction - Filter by action type
+ * - action: AdminAction - Filter by specific action type
+ * - category: ActionCategory - Filter by action category
+ * - search: string - Search in description
+ * - startDate: string - Filter logs from this date (ISO format)
+ * - endDate: string - Filter logs until this date (ISO format)
  * - page: number - Page number (default 1)
- * - limit: number - Items per page (default 50)
+ * - limit: number - Items per page (default 50, max 100)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,23 +34,71 @@ export async function GET(request: NextRequest) {
     const adminId = searchParams.get('adminId');
     const userId = searchParams.get('userId');
     const actionFilter = searchParams.get('action') as AdminAction | null;
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+    const categoryFilter = searchParams.get('category') as ActionCategory | null;
+    const search = searchParams.get('search');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '50', 10)), 100);
     const skip = (page - 1) * limit;
 
     // Build where clause
     const whereConditions: Prisma.AdminAuditLogWhereInput[] = [];
 
+    // Admin filter
     if (adminId) {
       whereConditions.push({ adminId });
     }
 
+    // Target user filter
     if (userId) {
       whereConditions.push({ targetUserId: userId });
     }
 
+    // Specific action filter
     if (actionFilter) {
       whereConditions.push({ action: actionFilter });
+    }
+
+    // Category filter (maps to multiple actions)
+    if (categoryFilter && !actionFilter) {
+      const actionsForCategory = getActionsForCategory(categoryFilter);
+      if (actionsForCategory.length > 0) {
+        whereConditions.push({
+          action: { in: actionsForCategory },
+        });
+      }
+    }
+
+    // Search in description
+    if (search && search.trim()) {
+      whereConditions.push({
+        description: {
+          contains: search.trim(),
+          mode: 'insensitive',
+        },
+      });
+    }
+
+    // Date range filter
+    if (startDate) {
+      const start = new Date(startDate);
+      if (!isNaN(start.getTime())) {
+        whereConditions.push({
+          createdAt: { gte: start },
+        });
+      }
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      if (!isNaN(end.getTime())) {
+        // Set to end of day
+        end.setHours(23, 59, 59, 999);
+        whereConditions.push({
+          createdAt: { lte: end },
+        });
+      }
     }
 
     const where: Prisma.AdminAuditLogWhereInput =
@@ -56,6 +114,8 @@ export async function GET(request: NextRequest) {
           previousValue: true,
           newValue: true,
           ipAddress: true,
+          userAgent: true,
+          metadata: true,
           createdAt: true,
           admin: {
             select: {
@@ -79,8 +139,14 @@ export async function GET(request: NextRequest) {
       prisma.adminAuditLog.count({ where }),
     ]);
 
+    // Add category to each log for frontend grouping
+    const logsWithCategory = logs.map((log) => ({
+      ...log,
+      category: getActionCategory(log.action),
+    }));
+
     return NextResponse.json({
-      logs,
+      logs: logsWithCategory,
       total,
       page,
       limit,

@@ -702,6 +702,7 @@ model EscalationLog {
 // ============================================
 
 enum AdminAction {
+  // User Management
   USER_UPDATE           // Updated user details
   USER_ROLE_CHANGE      // Changed user role
   USER_STATUS_CHANGE    // Activated/deactivated/suspended user
@@ -710,6 +711,30 @@ enum AdminAction {
   USER_DELETE           // Deleted user account
   BULK_STATUS_CHANGE    // Bulk status change
   BULK_ROLE_CHANGE      // Bulk role change
+  BULK_DELETE           // Bulk user deletion
+
+  // Agent Management
+  AGENT_CREATE          // Created new agent
+  AGENT_UPDATE          // Updated agent configuration
+  AGENT_DELETE          // Deleted agent
+  AGENT_TOGGLE_STATUS   // Enabled/disabled agent
+
+  // Phone Number Management
+  PHONE_ASSIGN          // Assigned phone number to agent
+  PHONE_RELEASE         // Released phone number from agent
+  PHONE_SYNC            // Synced phone numbers with provider
+
+  // System Configuration
+  SETTINGS_UPDATE       // Updated system settings
+
+  // Access & Security
+  ADMIN_LOGIN           // Admin logged in
+  ADMIN_LOGOUT          // Admin logged out
+  ACCESS_DENIED         // Access attempt denied
+
+  // Compliance & Reporting
+  AUDIT_EXPORT          // Exported audit logs
+  COMPLIANCE_REPORT     // Generated compliance report
 }
 
 model AdminAuditLog {

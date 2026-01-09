@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { getCentsPerMinute, setCentsPerMinute } from '@/lib/settings';
+import { createAuditLog } from '@/lib/audit-logger';
 
 // Force dynamic rendering since we use cookies() for authentication
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    const admin = await requireAdmin(request);
 
     const body = await request.json();
     const { centsPerMinute } = body;
@@ -75,7 +76,20 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Get current value for audit log
+    const previousCentsPerMinute = await getCentsPerMinute();
+
     await setCentsPerMinute(centsPerMinute);
+
+    // Create audit log for settings change
+    await createAuditLog({
+      adminId: admin.id,
+      action: 'SETTINGS_UPDATE',
+      description: `Updated system settings: centsPerMinute changed from ${previousCentsPerMinute} to ${centsPerMinute}`,
+      previousValue: { centsPerMinute: previousCentsPerMinute },
+      newValue: { centsPerMinute },
+      metadata: { settingKey: 'centsPerMinute' },
+    });
 
     return NextResponse.json({
       centsPerMinute,
