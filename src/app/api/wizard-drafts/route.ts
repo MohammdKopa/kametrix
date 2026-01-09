@@ -92,7 +92,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const step = currentStep ?? wizardState.step ?? 1;
 
   try {
-    // Check for existing draft
+    // First, try to find existing draft to determine if this is create or update
     const existingDraft = await prisma.wizardDraft.findFirst({
       where: {
         userId: user.id,
@@ -101,42 +101,68 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     });
 
     let draft;
+    const isUpdate = !!existingDraft;
 
-    if (existingDraft) {
-      // Update existing draft
-      draft = await prisma.wizardDraft.update({
-        where: { id: existingDraft.id },
-        data: {
-          wizardState: wizardState as unknown as object,
-          currentStep: step,
-          lastSavedAt: new Date(),
-        },
-      });
+    // Use upsert to avoid race conditions
+    // Note: We can't use upsert directly with composite unique key, so we handle it manually
+    try {
+      if (existingDraft) {
+        // Update existing draft
+        draft = await prisma.wizardDraft.update({
+          where: { id: existingDraft.id },
+          data: {
+            wizardState: wizardState as unknown as object,
+            currentStep: step,
+            lastSavedAt: new Date(),
+          },
+        });
+      } else {
+        // Create new draft
+        draft = await prisma.wizardDraft.create({
+          data: {
+            userId: user.id,
+            wizardState: wizardState as unknown as object,
+            currentStep: step,
+            status: 'DRAFT',
+          },
+        });
+      }
+    } catch (createError: any) {
+      // Handle race condition: if another request created the draft between our check and create
+      if (createError.code === 'P2002') {
+        // Unique constraint violation - another request beat us to it
+        // Retry by finding the draft and updating it
+        const retryDraft = await prisma.wizardDraft.findFirst({
+          where: {
+            userId: user.id,
+            status: 'DRAFT',
+          },
+        });
 
-      context.logger.info('Wizard draft updated', {
-        userId: user.id,
-        draftId: draft.id,
-        currentStep: step,
-        duration: getRequestDuration(context),
-      });
-    } else {
-      // Create new draft
-      draft = await prisma.wizardDraft.create({
-        data: {
-          userId: user.id,
-          wizardState: wizardState as unknown as object,
-          currentStep: step,
-          status: 'DRAFT',
-        },
-      });
-
-      context.logger.info('Wizard draft created', {
-        userId: user.id,
-        draftId: draft.id,
-        currentStep: step,
-        duration: getRequestDuration(context),
-      });
+        if (retryDraft) {
+          draft = await prisma.wizardDraft.update({
+            where: { id: retryDraft.id },
+            data: {
+              wizardState: wizardState as unknown as object,
+              currentStep: step,
+              lastSavedAt: new Date(),
+            },
+          });
+        } else {
+          // This should never happen, but if it does, throw the original error
+          throw createError;
+        }
+      } else {
+        throw createError;
+      }
     }
+
+    context.logger.info(isUpdate ? 'Wizard draft updated' : 'Wizard draft created', {
+      userId: user.id,
+      draftId: draft.id,
+      currentStep: step,
+      duration: getRequestDuration(context),
+    });
 
     return apiResponse(
       {
@@ -146,9 +172,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           status: draft.status,
           lastSavedAt: draft.lastSavedAt,
         },
-        message: existingDraft ? 'Draft updated' : 'Draft created',
+        message: isUpdate ? 'Draft updated' : 'Draft created',
       },
-      existingDraft ? 200 : 201,
+      isUpdate ? 200 : 201,
       context.requestId
     );
   } catch (error) {
