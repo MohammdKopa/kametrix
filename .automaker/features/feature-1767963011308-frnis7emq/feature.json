@@ -1,0 +1,11 @@
+{
+  "category": "enhancement",
+  "description": "MEDIUM-HIGH: Refactor template-builder.ts to reduce prompt size from 3000+ tokens. Remove repetitive escalation instructions, consolidate tool documentation, use more concise language while maintaining clarity. Target 40-50% reduction in token count to improve first-token latency and reduce API costs.",
+  "title": "Reduce system prompt token count and redundancy",
+  "dependencies": [
+    "feature-1767489729261-73yrrbl2z"
+  ],
+  "priority": 1,
+  "status": "backlog",
+  "id": "feature-1767963011308-frnis7emq"
+}

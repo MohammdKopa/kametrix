@@ -86,738 +86,297 @@
   },
   "suites": [
     {
-      "title": "accessibility-verification.spec.ts",
-      "file": "accessibility-verification.spec.ts",
+      "title": "agent-monitoring-verification.spec.ts",
+      "file": "agent-monitoring-verification.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Accessibility Verification @a11y",
-          "file": "accessibility-verification.spec.ts",
-          "line": 13,
+          "title": "Agent Monitoring Dashboard Verification",
+          "file": "agent-monitoring-verification.spec.ts",
+          "line": 8,
           "column": 6,
-          "specs": [],
-          "suites": [
+          "specs": [
             {
-              "title": "Skip Navigation",
-              "file": "accessibility-verification.spec.ts",
-              "line": 14,
-              "column": 8,
-              "specs": [
+              "title": "Agent Monitoring API endpoint responds correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "skip link is present and functional",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3073,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.548Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 14757,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.905Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-da869fb6f6f589c48ab8",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 15,
-                  "column": 9
-                },
-                {
-                  "title": "skip link navigates to main content",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 1,
-                          "parallelIndex": 1,
-                          "status": "passed",
-                          "duration": 15439,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.927Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-5be118a048e1645b6aa4",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 28,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-4fbb2b71f891ed63c1d2",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 10,
+              "column": 7
             },
             {
-              "title": "Keyboard Navigation",
-              "file": "accessibility-verification.spec.ts",
-              "line": 43,
-              "column": 8,
-              "specs": [
+              "title": "Agent Monitoring API returns proper error for invalid section",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "all interactive elements are keyboard accessible",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1398,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.555Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 2,
-                          "parallelIndex": 2,
-                          "status": "passed",
-                          "duration": 17390,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.898Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-7b82f7f37ffcef9259d5",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 44,
-                  "column": 9
-                },
-                {
-                  "title": "form inputs are tabbable in logical order",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 3,
-                          "parallelIndex": 3,
-                          "status": "passed",
-                          "duration": 17164,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.894Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-6af2cc5cf454c398992b",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 71,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-389d08e66641dee9085d",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 33,
+              "column": 7
             },
             {
-              "title": "ARIA Attributes",
-              "file": "accessibility-verification.spec.ts",
-              "line": 93,
-              "column": 8,
-              "specs": [
+              "title": "Agent Monitoring page route exists",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "buttons have accessible names",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 3575,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.554Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 4,
-                          "parallelIndex": 4,
-                          "status": "passed",
-                          "duration": 9484,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.929Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-446b054afa4cce8a7788",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 94,
-                  "column": 9
-                },
-                {
-                  "title": "form inputs have labels",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 5,
-                          "parallelIndex": 5,
-                          "status": "passed",
-                          "duration": 15194,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.966Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-e5b075abe34e39c572d9",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 110,
-                  "column": 9
-                },
-                {
-                  "title": "links have descriptive text",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 6,
-                          "parallelIndex": 6,
-                          "status": "passed",
-                          "duration": 17142,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.995Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-fb1e92b6d3b13236f2f0",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 132,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-b0b97dd7bce480b22cea",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 39,
+              "column": 7
             },
             {
-              "title": "Focus Management",
-              "file": "accessibility-verification.spec.ts",
-              "line": 149,
-              "column": 8,
-              "specs": [
+              "title": "Agent Monitoring navigation link exists in admin nav",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "focus indicators are visible",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 3621,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.556Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 7,
-                          "parallelIndex": 7,
-                          "status": "passed",
-                          "duration": 14386,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:34.921Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-75d140af88335f15a486",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 150,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-cbcb950e36f858f7c629",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 49,
+              "column": 7
             },
             {
-              "title": "Color Contrast",
-              "file": "accessibility-verification.spec.ts",
-              "line": 165,
-              "column": 8,
-              "specs": [
+              "title": "Agent Monitoring POST endpoint requires authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "text has sufficient contrast (automated check)",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 2689,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.553Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 4,
-                          "parallelIndex": 4,
-                          "status": "passed",
-                          "duration": 12146,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:44.640Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-276afbcf938b49e75c80",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 166,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-72161f46d662a1b7960b",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 62,
+              "column": 7
             },
             {
-              "title": "Semantic Structure",
-              "file": "accessibility-verification.spec.ts",
-              "line": 195,
-              "column": 8,
-              "specs": [
+              "title": "Build includes agent monitoring dashboard component",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "page has proper heading hierarchy",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 4951,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.552Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 7,
-                          "parallelIndex": 7,
-                          "status": "passed",
-                          "duration": 6784,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:49.500Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-2351c521fc9ed7e0bd7d",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 196,
-                  "column": 9
-                },
-                {
-                  "title": "main landmark is present",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 6497,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:49.815Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-dc4f69f269a69b2b4033",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 206,
-                  "column": 9
-                },
-                {
-                  "title": "navigation landmark is present when expected",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 5,
-                          "parallelIndex": 5,
-                          "status": "passed",
-                          "duration": 5906,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:50.367Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-aa830c64624677f4885b",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 217,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-b1289a309f5bb27ca8ef",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 82,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Agent Monitoring API Structure Verification",
+          "file": "agent-monitoring-verification.spec.ts",
+          "line": 104,
+          "column": 6,
+          "specs": [
+            {
+              "title": "API returns JSON responses",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 1433,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.564Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-a0e57eb6f05b433c602c",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 106,
+              "column": 7
             },
             {
-              "title": "Screen Reader Support",
-              "file": "accessibility-verification.spec.ts",
-              "line": 228,
-              "column": 8,
-              "specs": [
+              "title": "POST endpoint returns JSON errors",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "images have alt text",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "timeout": 30000,
+                      "workerIndex": 7,
+                      "parallelIndex": 7,
+                      "status": "passed",
+                      "duration": 1494,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-09T16:00:03.571Z",
                       "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 1,
-                          "parallelIndex": 1,
-                          "status": "passed",
-                          "duration": 5657,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:50.518Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
+                      "attachments": []
                     }
                   ],
-                  "id": "8404730c3df582dec471-45ee2f831cc1ab247be6",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 229,
-                  "column": 9
-                },
-                {
-                  "title": "buttons with icons have accessible names",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 3,
-                          "parallelIndex": 3,
-                          "status": "passed",
-                          "duration": 4212,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:52.265Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-b92c96e93f53e03398ff",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 247,
-                  "column": 9
+                  "status": "expected"
                 }
-              ]
-            },
-            {
-              "title": "Form Accessibility",
-              "file": "accessibility-verification.spec.ts",
-              "line": 266,
-              "column": 8,
-              "specs": [
-                {
-                  "title": "required fields are indicated",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 6,
-                          "parallelIndex": 6,
-                          "status": "passed",
-                          "duration": 4041,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:52.459Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-7cc6333b92b63cf8afc7",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 267,
-                  "column": 9
-                },
-                {
-                  "title": "form errors are announced",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 2,
-                          "parallelIndex": 2,
-                          "status": "passed",
-                          "duration": 3859,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:52.459Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-9f1438e98b6741da3210",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 287,
-                  "column": 9
-                }
-              ]
-            },
-            {
-              "title": "Automated WCAG 2.1 AA Check",
-              "file": "accessibility-verification.spec.ts",
-              "line": 312,
-              "column": 8,
-              "specs": [
-                {
-                  "title": "login page passes axe-core analysis",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 1,
-                          "parallelIndex": 1,
-                          "status": "passed",
-                          "duration": 2486,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:56.186Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-394d366ece004c52dc25",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 313,
-                  "column": 9
-                },
-                {
-                  "title": "homepage passes axe-core analysis",
-                  "ok": true,
-                  "tags": [
-                    "a11y"
-                  ],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [
-                        {
-                          "workerIndex": 5,
-                          "parallelIndex": 5,
-                          "status": "passed",
-                          "duration": 2216,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2026-01-07T15:49:56.327Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "8404730c3df582dec471-d88d6c9294db766a9964",
-                  "file": "accessibility-verification.spec.ts",
-                  "line": 341,
-                  "column": 9
-                }
-              ]
+              ],
+              "id": "a0fa63d4a0b2a534dbe4-07cb22a1ae7931659fdc",
+              "file": "agent-monitoring-verification.spec.ts",
+              "line": 118,
+              "column": 7
             }
           ]
         }
@@ -826,9 +385,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-01-07T15:49:27.353Z",
-    "duration": 31743.583000000002,
-    "expected": 18,
+    "startTime": "2026-01-09T15:59:58.524Z",
+    "duration": 10285.793,
+    "expected": 8,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

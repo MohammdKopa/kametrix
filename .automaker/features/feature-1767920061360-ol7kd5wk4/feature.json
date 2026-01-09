@@ -4,6 +4,8 @@
   "title": "Admin Dashboard - User Account Management",
   "dependencies": [],
   "priority": 1,
-  "status": "backlog",
-  "id": "feature-1767920061360-ol7kd5wk4"
+  "status": "verified",
+  "id": "feature-1767920061360-ol7kd5wk4",
+  "startedAt": "2026-01-09T14:29:55.136Z",
+  "updatedAt": "2026-01-09T14:48:49.287Z"
 }

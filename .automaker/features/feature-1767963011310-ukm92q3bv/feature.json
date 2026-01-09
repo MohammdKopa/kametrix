@@ -1,0 +1,9 @@
+{
+  "category": "bug",
+  "description": "MEDIUM: Resolve voice provider mismatch between assistant creation (11labs) and webhook dynamic config (azure). Centralize voice provider configuration, ensure consistency across assistant.ts and route.ts, and allow per-agent voice provider settings stored in database.",
+  "title": "Fix inconsistent voice provider configuration",
+  "dependencies": [],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767963011310-ukm92q3bv"
+}

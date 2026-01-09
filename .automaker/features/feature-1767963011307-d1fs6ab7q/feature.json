@@ -1,0 +1,11 @@
+{
+  "category": "bug",
+  "description": "HIGH: Refactor /api/webhooks/vapi/route.ts to prevent 7.5s timeout failures. Implement parallel database queries, add database connection pooling, optimize sequential operations, add caching for frequently accessed data (agent configs, escalation settings), and move non-critical operations (logging, analytics) to background jobs. Add timeout monitoring and alerting.",
+  "title": "Optimize webhook performance to prevent timeouts",
+  "dependencies": [
+    "feature-1767723557666-sofit6gb0"
+  ],
+  "priority": 1,
+  "status": "backlog",
+  "id": "feature-1767963011307-d1fs6ab7q"
+}

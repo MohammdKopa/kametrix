@@ -1,0 +1,9 @@
+{
+  "category": "bug",
+  "description": "MEDIUM: Establish consistent error response pattern - German for user-facing messages, English for API/system responses. Audit all error responses in webhook handlers, escalation service, and tool handlers. Create error message constants/localization helper for consistency.",
+  "title": "Standardize error response language handling",
+  "dependencies": [],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767963011309-3zs65itpc"
+}

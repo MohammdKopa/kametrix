@@ -1,0 +1,13 @@
+{
+  "category": "bug",
+  "description": "CRITICAL: Fix escalation webhook to actually transfer calls instead of just announcing transfer. Update /api/webhooks/vapi/route.ts to return proper Vapi transfer destination object with transferPlan configuration. Ensure escalation includes destination number, transfer mode (warm/blind), and operator briefing message for successful call handoff.",
+  "title": "Fix call transfer implementation in escalation",
+  "dependencies": [
+    "feature-1767894365405-ik2ebzwri"
+  ],
+  "priority": 1,
+  "status": "verified",
+  "id": "feature-1767963011304-65imnm1st",
+  "startedAt": "2026-01-09T12:52:37.493Z",
+  "updatedAt": "2026-01-09T13:03:17.805Z"
+}

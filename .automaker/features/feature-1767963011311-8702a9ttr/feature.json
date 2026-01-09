@@ -1,0 +1,9 @@
+{
+  "category": "refactor",
+  "description": "CODE QUALITY: Extract 400+ line switch statement in handleToolCalls into separate handler functions. Create ToolHandler interface and toolHandlers map for each tool (check_availability, book_appointment, escalate_to_human, etc). Improve maintainability and testability.",
+  "title": "Refactor webhook tool handlers into modular functions",
+  "dependencies": [],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767963011311-8702a9ttr"
+}

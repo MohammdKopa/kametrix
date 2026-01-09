@@ -1,0 +1,9 @@
+{
+  "category": "bug",
+  "description": "MEDIUM: Replace Promise.resolve() pseudo-async pattern with proper background job queue for Google Sheets logging. Use setImmediate, worker threads, or job queue (Bull/BullMQ) with error isolation to prevent logging failures from affecting call handling.",
+  "title": "Implement truly asynchronous Google Sheets logging",
+  "dependencies": [],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767963011310-qs3au1o8t"
+}

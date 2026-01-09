@@ -1,0 +1,11 @@
+{
+  "category": "enhancement",
+  "description": "MEDIUM: Implement auto-save functionality for EscalationStep wizard to backend. Save progress incrementally so users don't lose configuration on page refresh or navigation. Add draft/published state for incomplete configurations.",
+  "title": "Add wizard state persistence for escalation setup",
+  "dependencies": [
+    "feature-1767894365405-ik2ebzwri"
+  ],
+  "priority": 2,
+  "status": "backlog",
+  "id": "feature-1767963011312-ubaqijg7h"
+}

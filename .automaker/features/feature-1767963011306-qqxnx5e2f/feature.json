@@ -1,0 +1,13 @@
+{
+  "category": "bug",
+  "description": "HIGH: Connect unused EscalationDetector class to live call flow. Implement automatic escalation triggers based on sentiment analysis, clarification count, frustration indicators, and low confidence scores. Ensure detector runs during real-time conversations to catch situations requiring human intervention beyond explicit tool calls.",
+  "title": "Integrate EscalationDetector for automatic escalation",
+  "dependencies": [
+    "feature-1767894365405-ik2ebzwri"
+  ],
+  "priority": 1,
+  "status": "verified",
+  "id": "feature-1767963011306-qqxnx5e2f",
+  "startedAt": "2026-01-09T13:03:28.801Z",
+  "updatedAt": "2026-01-09T13:11:23.486Z"
+}
