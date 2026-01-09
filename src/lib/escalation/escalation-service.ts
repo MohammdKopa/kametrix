@@ -3,10 +3,13 @@
  *
  * Main service for handling call escalations and transfers.
  * Coordinates between detection, configuration, and transfer execution.
+ * Includes comprehensive error handling for failed transfers with retry logic,
+ * fallback numbers, voicemail fallback, and callback offers.
  */
 
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/errors/logger';
+import { notFoundError } from '@/lib/errors/app-error';
 import type {
   EscalationReason,
   EscalationStatus,
@@ -20,8 +23,15 @@ import type {
   OperatorAvailability,
   InitiateEscalationRequest,
   InitiateEscalationResponse,
+  TransferWithRetryResult,
+  TransferAttemptResult,
+  TransferStatusUpdate,
+  TransferFallbackOptions,
+  CallbackRequestRecord,
 } from '@/types/escalation';
+import { TransferFailureType, DEFAULT_TRANSFER_FAILURE_MESSAGES } from '@/types/escalation';
 import { EscalationDetector, type ConversationContext } from './escalation-detector';
+import { TransferErrorHandler, transferErrorHandler } from './transfer-error-handler';
 
 /**
  * EscalationService class
@@ -31,16 +41,22 @@ import { EscalationDetector, type ConversationContext } from './escalation-detec
  * 2. Checking operator availability
  * 3. Initiating and managing transfers
  * 4. Recording escalation events
+ * 5. Handling transfer failures with retry logic
+ * 6. Managing fallback options (voicemail, callback)
  */
 export class EscalationService {
   private detector: EscalationDetector;
+  private errorHandler: TransferErrorHandler;
+  private transferAttempts: Map<string, TransferAttemptResult[]> = new Map();
+  private statusCallbacks: Array<(update: TransferStatusUpdate) => void> = [];
 
   constructor() {
     this.detector = new EscalationDetector();
+    this.errorHandler = new TransferErrorHandler();
   }
 
   /**
-   * Initialize detector with agent-specific configuration
+   * Initialize detector and error handler with agent-specific configuration
    */
   async initializeForAgent(agentId: string): Promise<void> {
     const config = await prisma.escalationConfig.findUnique({
@@ -54,6 +70,36 @@ export class EscalationService {
         sentimentThreshold: config.sentimentThreshold,
         triggerPhrases: config.triggerPhrases as string[],
       });
+    }
+
+    // Initialize error handler for transfer failures
+    await this.errorHandler.initialize(agentId);
+
+    // Forward status updates from error handler
+    this.errorHandler.onStatusUpdate((update) => {
+      this.emitStatusUpdate(update);
+    });
+
+    logger.info('EscalationService initialized for agent', { agentId, hasConfig: !!config });
+  }
+
+  /**
+   * Register a callback for transfer status updates
+   */
+  onStatusUpdate(callback: (update: TransferStatusUpdate) => void): void {
+    this.statusCallbacks.push(callback);
+  }
+
+  /**
+   * Emit a status update to all registered callbacks
+   */
+  private emitStatusUpdate(update: TransferStatusUpdate): void {
+    for (const callback of this.statusCallbacks) {
+      try {
+        callback(update);
+      } catch (error) {
+        logger.warn('Status callback error', { error });
+      }
     }
   }
 
@@ -407,6 +453,326 @@ export class EscalationService {
    */
   getDetector(): EscalationDetector {
     return this.detector;
+  }
+
+  /**
+   * Get the transfer error handler instance
+   */
+  getErrorHandler(): TransferErrorHandler {
+    return this.errorHandler;
+  }
+
+  // ============================================================================
+  // Transfer Error Handling Methods
+  // ============================================================================
+
+  /**
+   * Handle a transfer failure with comprehensive retry logic
+   *
+   * This method processes transfer failures and determines the next action:
+   * - Retry with the same number
+   * - Try a fallback number
+   * - Offer voicemail
+   * - Offer callback
+   */
+  async handleTransferFailure(
+    escalationId: string,
+    callId: string,
+    targetNumber: string,
+    failureSignal: {
+      code?: string;
+      message?: string;
+      sipCode?: number;
+      vapiStatus?: string;
+    }
+  ): Promise<TransferWithRetryResult> {
+    logger.info('Handling transfer failure', {
+      escalationId,
+      callId,
+      targetNumber,
+      failureSignal,
+    });
+
+    // Get or initialize attempt tracking for this escalation
+    const previousAttempts = this.transferAttempts.get(escalationId) || [];
+
+    // Get the call and config for business hours check
+    const call = await prisma.call.findUnique({
+      where: { id: callId },
+      include: {
+        agent: {
+          include: { escalationConfig: true },
+        },
+      },
+    });
+
+    if (!call) {
+      throw notFoundError('Call', callId);
+    }
+
+    const config = call.agent.escalationConfig;
+    const isWithinBusinessHours = config ? this.isWithinBusinessHours(config) : true;
+
+    // Delegate to error handler
+    const result = await this.errorHandler.handleTransferFailure(
+      escalationId,
+      callId,
+      targetNumber,
+      failureSignal,
+      previousAttempts,
+      isWithinBusinessHours
+    );
+
+    // Update attempt tracking
+    this.transferAttempts.set(escalationId, result.attempts);
+
+    // Emit status update
+    this.emitStatusUpdate({
+      escalationId,
+      callId,
+      status: result.status,
+      updateType: result.success ? 'TRANSFER_COMPLETE' : 'TRANSFER_FAILED',
+      details: {
+        attemptNumber: result.totalAttempts,
+        failureType: result.finalFailureType,
+        errorMessage: result.finalFailureReason,
+      },
+      timestamp: new Date(),
+    });
+
+    return result;
+  }
+
+  /**
+   * Get the next transfer number to try after a failure
+   */
+  async getNextTransferNumber(
+    escalationId: string,
+    callId: string
+  ): Promise<{
+    number: string | null;
+    isFallback: boolean;
+    attemptNumber: number;
+  }> {
+    // Get previous attempts
+    const previousAttempts = this.transferAttempts.get(escalationId) || [];
+    const attemptedNumbers = previousAttempts.map(a => a.attemptedNumber);
+
+    // Get call and config
+    const call = await prisma.call.findUnique({
+      where: { id: callId },
+      include: {
+        agent: {
+          include: { escalationConfig: true },
+        },
+      },
+    });
+
+    if (!call?.agent.escalationConfig) {
+      return { number: null, isFallback: false, attemptNumber: previousAttempts.length };
+    }
+
+    const config = call.agent.escalationConfig;
+    const isWithinBusinessHours = this.isWithinBusinessHours(config);
+    const primaryNumber = isWithinBusinessHours
+      ? config.forwardingNumber
+      : config.afterHoursNumber || config.forwardingNumber;
+
+    if (!primaryNumber) {
+      return { number: null, isFallback: false, attemptNumber: previousAttempts.length };
+    }
+
+    // Get next number from error handler
+    const nextNumber = this.errorHandler.getNextNumber(
+      primaryNumber,
+      attemptedNumbers,
+      isWithinBusinessHours
+    );
+
+    return {
+      number: nextNumber,
+      isFallback: nextNumber !== null && nextNumber !== primaryNumber,
+      attemptNumber: previousAttempts.length + 1,
+    };
+  }
+
+  /**
+   * Record a successful transfer
+   */
+  async recordSuccessfulTransfer(
+    escalationId: string,
+    callId: string,
+    transferredTo: string
+  ): Promise<void> {
+    // Record the successful attempt
+    const attempts = this.transferAttempts.get(escalationId) || [];
+    attempts.push({
+      success: true,
+      attemptedNumber: transferredTo,
+      timestamp: new Date(),
+    });
+    this.transferAttempts.set(escalationId, attempts);
+
+    // Update escalation status
+    await this.updateEscalationStatus(escalationId, 'CONNECTED', {
+      humanConnectedAt: new Date(),
+    });
+
+    // Emit status update
+    this.emitStatusUpdate({
+      escalationId,
+      callId,
+      status: 'CONNECTED',
+      updateType: 'TRANSFER_COMPLETE',
+      details: {
+        attemptNumber: attempts.length,
+        targetNumber: transferredTo,
+      },
+      timestamp: new Date(),
+    });
+
+    // Clear attempt tracking
+    this.transferAttempts.delete(escalationId);
+
+    logger.info('Transfer completed successfully', {
+      escalationId,
+      callId,
+      transferredTo,
+      totalAttempts: attempts.length,
+    });
+  }
+
+  /**
+   * Create a callback request when transfer fails
+   */
+  async createCallbackRequest(
+    escalationId: string,
+    callId: string,
+    callerPhone: string,
+    reason: EscalationReason,
+    options?: {
+      callerName?: string;
+      preferredTime?: string;
+      priority?: 'low' | 'normal' | 'high' | 'urgent';
+      notes?: string;
+    }
+  ): Promise<CallbackRequestRecord> {
+    logger.info('Creating callback request', {
+      escalationId,
+      callId,
+      callerPhone,
+      reason,
+      priority: options?.priority || 'normal',
+    });
+
+    const callbackRecord = await this.errorHandler.createCallbackRequest(
+      escalationId,
+      callId,
+      callerPhone,
+      reason,
+      options
+    );
+
+    // Clear attempt tracking since we're moving to callback
+    this.transferAttempts.delete(escalationId);
+
+    return callbackRecord;
+  }
+
+  /**
+   * Handle voicemail fallback when transfer fails
+   */
+  async handleVoicemailFallback(
+    escalationId: string,
+    callId: string,
+    reason: EscalationReason,
+    conversationSummary?: string
+  ): Promise<{
+    voicemailGreeting: string;
+    status: EscalationStatus;
+  }> {
+    logger.info('Handling voicemail fallback', {
+      escalationId,
+      callId,
+      reason,
+    });
+
+    const result = await this.errorHandler.handleVoicemailFallback(
+      escalationId,
+      callId,
+      reason,
+      conversationSummary
+    );
+
+    // Clear attempt tracking since we're moving to voicemail
+    this.transferAttempts.delete(escalationId);
+
+    return result;
+  }
+
+  /**
+   * Get available fallback options after transfer failure
+   */
+  getFallbackOptions(): TransferFallbackOptions {
+    return this.errorHandler.getFallbackOptions();
+  }
+
+  /**
+   * Get a user-friendly message for a specific failure type
+   */
+  getFailureMessage(failureType: TransferFailureType): string {
+    return DEFAULT_TRANSFER_FAILURE_MESSAGES[failureType] ||
+      DEFAULT_TRANSFER_FAILURE_MESSAGES[TransferFailureType.UNKNOWN];
+  }
+
+  /**
+   * Check if a failure type is retryable
+   */
+  isFailureRetryable(failureType: TransferFailureType): boolean {
+    return this.errorHandler.isRetryable(failureType);
+  }
+
+  /**
+   * Detect failure type from error signals
+   */
+  detectFailureType(errorSignal: {
+    code?: string;
+    message?: string;
+    sipCode?: number;
+    vapiStatus?: string;
+  }): TransferFailureType {
+    return this.errorHandler.detectFailureType(errorSignal);
+  }
+
+  /**
+   * Get transfer attempt history for an escalation
+   */
+  getTransferAttempts(escalationId: string): TransferAttemptResult[] {
+    return this.transferAttempts.get(escalationId) || [];
+  }
+
+  /**
+   * Clear transfer attempt history for an escalation
+   */
+  clearTransferAttempts(escalationId: string): void {
+    this.transferAttempts.delete(escalationId);
+  }
+
+  /**
+   * Generate a comprehensive status message for the caller based on transfer state
+   */
+  generateCallerStatusMessage(
+    failureType: TransferFailureType,
+    attemptNumber: number,
+    isRetrying: boolean
+  ): string {
+    const fallbackOptions = this.getFallbackOptions();
+    return this.errorHandler.generateCallerStatusMessage(
+      failureType,
+      attemptNumber,
+      fallbackOptions,
+      isRetrying
+    );
   }
 }
 

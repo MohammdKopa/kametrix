@@ -4,6 +4,7 @@ import {
   upsertCallFromWebhook,
   mapEndedReasonToStatus,
   extractCallDuration,
+  extractTransferFailureInfo,
   logCallToSheets,
   type WebhookStatusUpdate,
   type WebhookEndOfCall,
@@ -45,7 +46,7 @@ import {
   realTimeTracker,
   type ConversationMessage,
 } from '@/lib/escalation';
-import type { EscalateCallArgs, CheckOperatorAvailabilityArgs, VapiTransferAction } from '@/types/escalation';
+import type { EscalateCallArgs, CheckOperatorAvailabilityArgs, VapiTransferAction, TransferFailureType } from '@/types/escalation';
 
 /**
  * Tool call payload from Vapi
@@ -296,6 +297,9 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
     // Map endedReason to CallStatus
     const finalStatus = mapEndedReasonToStatus(endedReason);
 
+    // Check if this was a transfer failure
+    const transferFailureInfo = extractTransferFailureInfo(endedReason);
+
     // Extract duration (tries multiple sources in the payload)
     const durationSeconds = extractCallDuration(message);
 
@@ -304,6 +308,23 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
 
     // Extract phone number
     const phoneNumber = call.customer?.number || 'Unknown';
+
+    // Handle transfer failure - log and potentially update escalation status
+    if (transferFailureInfo.isTransferFailure) {
+      console.log(`Transfer failure detected: ${endedReason}`, {
+        failureType: transferFailureInfo.failureType,
+        isRetryable: transferFailureInfo.isRetryable,
+        callId: call.id,
+      });
+
+      // Try to find and update associated escalation log
+      await handleTransferFailureStatus(
+        call.id,
+        agent.id,
+        transferFailureInfo.failureType as TransferFailureType | null,
+        endedReason
+      );
+    }
 
     // Update call record with final data
     await upsertCallFromWebhook({
@@ -430,6 +451,92 @@ async function handleEndOfCallReport(message: WebhookEndOfCall) {
   } catch (error) {
     console.error('Error handling end of call report:', error);
     // Don't throw - we already responded to Vapi
+  }
+}
+
+/**
+ * Handle transfer failure status updates
+ * Updates escalation logs and creates appropriate records when a transfer fails
+ */
+async function handleTransferFailureStatus(
+  vapiCallId: string,
+  agentId: string,
+  failureType: TransferFailureType | null,
+  endedReason: string
+) {
+  try {
+    // Find the call record by vapi call ID
+    const callRecord = await prisma.call.findUnique({
+      where: { vapiCallId },
+      include: {
+        agent: {
+          include: { escalationConfig: true },
+        },
+      },
+    });
+
+    if (!callRecord) {
+      console.log(`No call record found for vapiCallId: ${vapiCallId}`);
+      return;
+    }
+
+    // Find the most recent escalation log for this call
+    const escalationLog = await prisma.escalationLog.findFirst({
+      where: { callId: callRecord.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!escalationLog) {
+      console.log(`No escalation log found for call: ${callRecord.id}`);
+      return;
+    }
+
+    // Update the escalation log with failure information
+    await prisma.escalationLog.update({
+      where: { id: escalationLog.id },
+      data: {
+        status: 'FAILED',
+        failureReason: `Transfer failed: ${failureType || 'UNKNOWN'} (${endedReason})`,
+        transferCompletedAt: new Date(),
+        resolutionNotes: escalationLog.resolutionNotes
+          ? `${escalationLog.resolutionNotes}\n[${new Date().toISOString()}] Transfer failed: ${endedReason}`
+          : `[${new Date().toISOString()}] Transfer failed: ${endedReason}`,
+      },
+    });
+
+    // Update call record escalation status
+    await prisma.call.update({
+      where: { id: callRecord.id },
+      data: {
+        escalationStatus: 'FAILED',
+      },
+    });
+
+    // Log event for tracking
+    await prisma.eventLog.create({
+      data: {
+        userId: callRecord.userId,
+        eventType: 'transfer_failed',
+        eventData: {
+          callId: callRecord.id,
+          vapiCallId,
+          agentId,
+          escalationId: escalationLog.id,
+          failureType: failureType || 'UNKNOWN',
+          endedReason,
+          transferNumber: escalationLog.transferNumber,
+          timestamp: new Date().toISOString(),
+        },
+      },
+    }).catch(err => console.error('Failed to log transfer failure event:', err));
+
+    console.log(`Transfer failure recorded for escalation ${escalationLog.id}:`, {
+      callId: callRecord.id,
+      failureType,
+      endedReason,
+    });
+  } catch (error) {
+    console.error('Error handling transfer failure status:', error);
   }
 }
 

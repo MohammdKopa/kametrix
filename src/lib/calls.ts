@@ -150,10 +150,67 @@ export function mapEndedReasonToStatus(endedReason: string): CallStatus {
     case 'customer-did-not-give-microphone-permission':
       return CallStatus.NO_ANSWER;
 
+    // Transfer/forwarding related endings
+    case 'assistant-forwarded-call':
+    case 'forwarded-call':
+    case 'call-forwarded':
+      return CallStatus.TRANSFERRED;
+
+    // Transfer failure reasons - map to FAILED for proper error handling
+    case 'forwarding-failed':
+    case 'forwarding-failed-busy':
+    case 'forwarding-failed-no-answer':
+    case 'forwarding-failed-invalid-number':
+    case 'forwarding-failed-network-error':
+    case 'forwarding-failed-rejected':
+    case 'forwarding-failed-timeout':
+    case 'transfer-failed':
+    case 'transfer-failed-busy':
+    case 'transfer-failed-no-answer':
+      return CallStatus.FAILED;
+
     default:
       console.log(`Unknown endedReason: ${endedReason}, defaulting to COMPLETED`);
       return CallStatus.COMPLETED;
   }
+}
+
+/**
+ * Extract transfer failure details from Vapi endedReason
+ * Returns structured info about why a transfer failed
+ */
+export function extractTransferFailureInfo(endedReason: string): {
+  isTransferFailure: boolean;
+  failureType: string | null;
+  isRetryable: boolean;
+} {
+  const transferFailureReasons: Record<string, { failureType: string; isRetryable: boolean }> = {
+    'forwarding-failed': { failureType: 'UNKNOWN', isRetryable: true },
+    'forwarding-failed-busy': { failureType: 'BUSY', isRetryable: true },
+    'forwarding-failed-no-answer': { failureType: 'NO_ANSWER', isRetryable: true },
+    'forwarding-failed-invalid-number': { failureType: 'INVALID_NUMBER', isRetryable: false },
+    'forwarding-failed-network-error': { failureType: 'NETWORK_ERROR', isRetryable: true },
+    'forwarding-failed-rejected': { failureType: 'REJECTED', isRetryable: false },
+    'forwarding-failed-timeout': { failureType: 'TIMEOUT', isRetryable: true },
+    'transfer-failed': { failureType: 'UNKNOWN', isRetryable: true },
+    'transfer-failed-busy': { failureType: 'BUSY', isRetryable: true },
+    'transfer-failed-no-answer': { failureType: 'NO_ANSWER', isRetryable: true },
+  };
+
+  const info = transferFailureReasons[endedReason];
+  if (info) {
+    return {
+      isTransferFailure: true,
+      failureType: info.failureType,
+      isRetryable: info.isRetryable,
+    };
+  }
+
+  return {
+    isTransferFailure: false,
+    failureType: null,
+    isRetryable: false,
+  };
 }
 
 /**

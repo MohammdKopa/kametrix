@@ -284,3 +284,188 @@ export interface VapiTransferAction {
   /** Transfer destination configuration */
   destination: VapiTransferDestination;
 }
+
+// ============================================================================
+// Transfer Error Handling Types
+// ============================================================================
+
+/**
+ * Types of transfer failures that can occur
+ */
+export enum TransferFailureType {
+  /** Line is busy - recipient is on another call */
+  BUSY = 'BUSY',
+  /** No answer within timeout period */
+  NO_ANSWER = 'NO_ANSWER',
+  /** Invalid or disconnected number */
+  INVALID_NUMBER = 'INVALID_NUMBER',
+  /** Network or connectivity issues */
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  /** Recipient rejected the call */
+  REJECTED = 'REJECTED',
+  /** Transfer timed out */
+  TIMEOUT = 'TIMEOUT',
+  /** Voicemail detected instead of live answer */
+  VOICEMAIL_DETECTED = 'VOICEMAIL_DETECTED',
+  /** Unknown or unspecified error */
+  UNKNOWN = 'UNKNOWN',
+}
+
+/**
+ * Configuration for retry behavior
+ */
+export interface RetryConfig {
+  /** Maximum number of retry attempts */
+  maxAttempts: number;
+  /** Delay between retries in milliseconds */
+  retryDelayMs: number;
+  /** Whether to try fallback numbers */
+  useFallbackNumbers: boolean;
+  /** Ordered list of fallback numbers to try */
+  fallbackNumbers: string[];
+}
+
+/**
+ * Result of a single transfer attempt
+ */
+export interface TransferAttemptResult {
+  /** Whether the attempt was successful */
+  success: boolean;
+  /** The number that was attempted */
+  attemptedNumber: string;
+  /** Type of failure if not successful */
+  failureType?: TransferFailureType;
+  /** Additional error message */
+  errorMessage?: string;
+  /** Duration of the attempt in milliseconds */
+  attemptDurationMs?: number;
+  /** Timestamp of the attempt */
+  timestamp: Date;
+}
+
+/**
+ * Complete result of transfer with retry logic
+ */
+export interface TransferWithRetryResult {
+  /** Overall success status */
+  success: boolean;
+  /** Final status of the escalation */
+  status: EscalationStatus;
+  /** Number successfully transferred to (if any) */
+  transferredTo?: string;
+  /** All attempts made */
+  attempts: TransferAttemptResult[];
+  /** Total number of attempts */
+  totalAttempts: number;
+  /** Whether a fallback number was used */
+  fallbackUsed: boolean;
+  /** Final failure reason if all attempts failed */
+  finalFailureReason?: string;
+  /** Final failure type if all attempts failed */
+  finalFailureType?: TransferFailureType;
+  /** Available fallback options after failure */
+  fallbackOptions?: TransferFallbackOptions;
+  /** Message to communicate to caller */
+  callerMessage: string;
+}
+
+/**
+ * Available fallback options when transfer fails
+ */
+export interface TransferFallbackOptions {
+  /** Voicemail is available */
+  voicemailAvailable: boolean;
+  /** Callback can be requested */
+  callbackAvailable: boolean;
+  /** Alternative number available */
+  alternativeNumberAvailable: boolean;
+  /** The alternative number if available */
+  alternativeNumber?: string;
+  /** Message to send to voicemail if leaving one */
+  voicemailGreeting?: string;
+}
+
+/**
+ * Callback request created when transfer fails
+ */
+export interface CallbackRequestRecord {
+  /** Unique ID for this callback request */
+  id: string;
+  /** ID of the associated call */
+  callId: string;
+  /** ID of the escalation that triggered this */
+  escalationId: string;
+  /** Phone number to call back */
+  callerPhone: string;
+  /** Caller's name if provided */
+  callerName?: string;
+  /** Preferred callback time if specified */
+  preferredTime?: string;
+  /** Reason for the callback */
+  reason: string;
+  /** Priority level */
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  /** Current status */
+  status: 'PENDING' | 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  /** When the request was created */
+  createdAt: Date;
+  /** When the callback should be made by */
+  dueBy?: Date;
+  /** Notes about the callback */
+  notes?: string;
+}
+
+/**
+ * Status update event for transfer progress
+ */
+export interface TransferStatusUpdate {
+  /** ID of the escalation */
+  escalationId: string;
+  /** ID of the call */
+  callId: string;
+  /** Current status */
+  status: EscalationStatus;
+  /** Previous status */
+  previousStatus?: EscalationStatus;
+  /** Type of update */
+  updateType: 'ATTEMPT_STARTED' | 'ATTEMPT_FAILED' | 'ATTEMPT_SUCCEEDED' | 'FALLBACK_STARTED' | 'VOICEMAIL_FALLBACK' | 'CALLBACK_OFFERED' | 'TRANSFER_COMPLETE' | 'TRANSFER_FAILED';
+  /** Details about the update */
+  details?: {
+    attemptNumber?: number;
+    targetNumber?: string;
+    failureType?: TransferFailureType;
+    errorMessage?: string;
+    nextAction?: string;
+  };
+  /** Timestamp of the update */
+  timestamp: Date;
+}
+
+/**
+ * User-facing messages for different transfer failure scenarios
+ */
+export interface TransferFailureMessages {
+  /** Messages for different failure types */
+  [TransferFailureType.BUSY]: string;
+  [TransferFailureType.NO_ANSWER]: string;
+  [TransferFailureType.INVALID_NUMBER]: string;
+  [TransferFailureType.NETWORK_ERROR]: string;
+  [TransferFailureType.REJECTED]: string;
+  [TransferFailureType.TIMEOUT]: string;
+  [TransferFailureType.VOICEMAIL_DETECTED]: string;
+  [TransferFailureType.UNKNOWN]: string;
+}
+
+/**
+ * Default German messages for transfer failures
+ */
+export const DEFAULT_TRANSFER_FAILURE_MESSAGES: TransferFailureMessages = {
+  [TransferFailureType.BUSY]: 'Die Leitung ist momentan besetzt. Ich versuche es erneut oder kann Ihnen alternativ einen Rückruf anbieten.',
+  [TransferFailureType.NO_ANSWER]: 'Leider nimmt gerade niemand ab. Möchten Sie auf der Leitung bleiben, oder soll ich einen Rückruf vereinbaren?',
+  [TransferFailureType.INVALID_NUMBER]: 'Es tut mir leid, es gibt ein Problem mit der Weiterleitung. Kann ich Ihre Kontaktdaten aufnehmen für einen Rückruf?',
+  [TransferFailureType.NETWORK_ERROR]: 'Es gibt momentan technische Schwierigkeiten mit der Verbindung. Ich versuche es noch einmal.',
+  [TransferFailureType.REJECTED]: 'Der Mitarbeiter ist gerade nicht verfügbar. Soll ich Sie mit einem anderen Mitarbeiter verbinden oder einen Rückruf vereinbaren?',
+  [TransferFailureType.TIMEOUT]: 'Die Weiterleitung hat zu lange gedauert. Möchten Sie es noch einmal versuchen oder lieber einen Rückruf erhalten?',
+  [TransferFailureType.VOICEMAIL_DETECTED]: 'Ich habe die Mailbox erreicht. Möchten Sie eine Nachricht hinterlassen oder lieber einen Rückruf erhalten?',
+  [TransferFailureType.UNKNOWN]: 'Es tut mir leid, die Weiterleitung ist momentan nicht möglich. Ich kann Ihnen aber einen Rückruf anbieten.',
+};
