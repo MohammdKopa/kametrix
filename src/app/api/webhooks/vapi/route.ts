@@ -117,8 +117,9 @@ export async function POST(req: NextRequest) {
     const body = JSON.parse(rawBody);
     const { message } = body;
 
-    // Log only important events (reduce noise)
-    if (message.type !== 'transcript' && message.type !== 'speech-update') {
+    // Log only important events (reduce noise from real-time updates)
+    const noiseEvents = ['transcript', 'speech-update', 'conversation-update'];
+    if (!noiseEvents.includes(message.type)) {
       console.log(`Vapi webhook: ${message.type}`);
     }
 
@@ -140,6 +141,7 @@ export async function POST(req: NextRequest) {
 
       case 'transcript':
       case 'speech-update':
+      case 'conversation-update':
         // Real-time updates - not processed, we use end-of-call for final data
         break;
 
